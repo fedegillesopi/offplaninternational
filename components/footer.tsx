@@ -151,12 +151,6 @@ export function Footer() {
                   href="#"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Buyers guide
-                </Link>
-                <Link
-                  href="#"
-                  className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
-                >
                   Market news
                 </Link>
               </div>
