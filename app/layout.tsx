@@ -1,22 +1,29 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import { ThemeProvider } from "next-themes";
+import { Host_Grotesk, Roboto } from "next/font/google";
 import "./globals.css";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: "Off Plan International",
+  description:
+    "One place, total transparency. Find the exact unit you want, filtered by deposit, monthly payment plan, size, location, completion date, and developer.",
+  icons: {
+    icon: "/images/favicon/favicon-32x32.png",
+    apple: "/images/favicon/favicon-256x256.png",
+  },
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  display: "swap",
+const hostGrotesk = Host_Grotesk({
+  variable: "--font-heading",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const roboto = Roboto({
+  variable: "--font-body",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "700"],
 });
 
 export default function RootLayout({
@@ -25,16 +32,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.className} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+    <html lang="en" className={`${hostGrotesk.variable} ${roboto.variable}`}>
+      <body className="font-body antialiased bg-white text-text-primary">
+        {children}
       </body>
     </html>
   );
