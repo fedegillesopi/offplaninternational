@@ -1,7 +1,10 @@
-import Link from "next/link";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 
-export function Footer() {
+export async function Footer() {
+  const t = await getTranslations("footer");
+
   return (
     <footer id="footer" className="bg-[--text-primary]">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-6">
@@ -17,7 +20,7 @@ export function Footer() {
             <div className="flex items-center gap-5">
               <div className="flex flex-col gap-2">
                 <p className="font-body text-base font-light text-white">
-                  Live Support?
+                  {t("live_support")}
                 </p>
                 <a
                   href="mailto:sales@offplaninternational.com?subject=Off%20Plan%20Site%20Contact"
@@ -29,7 +32,7 @@ export function Footer() {
             </div>
             <div className="flex flex-col gap-2">
               <p className="font-body text-base font-light text-[--grey-100]">
-                Follow us on social media
+                {t("follow_us")}
               </p>
               <div className="flex items-center gap-3 text-white">
                 <a
@@ -74,84 +77,84 @@ export function Footer() {
           <div className="flex w-full justify-between gap-6 md:justify-end">
             <div className="flex flex-col gap-2">
               <p className="font-body text-base font-light text-[--primary-main]">
-                Quick search
+                {t("quick_search")}
               </p>
               <div className="flex flex-col gap-2">
                 <Link
                   href="/"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Home
+                  {t("home")}
                 </Link>
                 <Link
                   href="/properties/properties-list"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Properties
+                  {t("properties")}
                 </Link>
                 <Link
                   href="/developments/developments-list"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Developments
+                  {t("developments")}
                 </Link>
                 <Link
                   href="/developers/developers-list"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Developers
+                  {t("developers")}
                 </Link>
                 <Link
                   href="/communities/communities-list"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Communities
+                  {t("communities")}
                 </Link>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <p className="font-body text-base font-light text-[--primary-main]">
-                Legal
+                {t("legal")}
               </p>
               <div className="flex flex-col gap-2">
                 <Link
                   href="/legal/terms-conditions"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Terms of Use
+                  {t("terms")}
                 </Link>
                 <Link
                   href="/legal/privacy-policy"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Privacy Policy
+                  {t("privacy")}
                 </Link>
                 <Link
                   href="/contact"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Contact
+                  {t("contact")}
                 </Link>
                 <Link
                   href="#"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  FAQ
+                  {t("faq")}
                 </Link>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <p className="font-body text-base font-light text-[--primary-main]">
-                Other links
+                {t("other_links")}
               </p>
               <div className="flex flex-col gap-2">
                 <Link
                   href="#"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
-                  Market news
+                  {t("market_news")}
                 </Link>
               </div>
             </div>
@@ -161,8 +164,7 @@ export function Footer() {
         <div className="h-px w-full bg-[--grey-100]" />
 
         <p className="font-body text-base font-light text-white">
-          &copy;Off Plan International 2026 - All rights reserved. Your access
-          to the website is subject to our Terms of Use.
+          {t("copyright")}
         </p>
       </div>
     </footer>

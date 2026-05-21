@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-
-const navLinks = [
-  { label: "Developers", href: "/developers/developers-list" },
-  { label: "Developments", href: "/developments/developments-list" },
-  { label: "Communities", href: "/communities/communities-list" },
-  { label: "Properties", href: "/properties/properties-list" },
-];
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const t = useTranslations("navigation");
+
+  const navLinks = [
+    { label: t("developers"), href: "/developers/developers-list" },
+    { label: t("developments"), href: "/developments/developments-list" },
+    { label: t("communities"), href: "/communities/communities-list" },
+    { label: t("properties"), href: "/properties/properties-list" },
+  ];
 
   return (
     <header id="navbar" className="bg-[--text-primary]">

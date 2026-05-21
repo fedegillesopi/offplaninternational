@@ -1,0 +1,57 @@
+{
+  "navigation": {
+    "developers": "Developers",
+    "developments": "Developments",
+    "communities": "Communities",
+    "properties": "Properties"
+  },
+  "hero": {
+    "title": "Real projects, real contacts.",
+    "subtitle": "Find the exact unit you want, filtered by deposit, monthly payment plan, size, location, completion date, and developer.",
+    "subtitle_highlight": "verified developers and real units.",
+    "subtitle_prefix": "No agents. No pressure. Just ",
+    "search_placeholder": "Search properties, developments, developers..."
+  },
+  "search": {
+    "category": "Category",
+    "price_range": "Price range",
+    "status": "Status",
+    "items_selected": "{count} selected",
+    "category_options": {
+      "apartment": "Apartment",
+      "villa": "Villa",
+      "townhouse": "Townhouse",
+      "penthouse": "Penthouse",
+      "duplex": "Duplex",
+      "studio": "Studio",
+      "commercial": "Commercial",
+      "land": "Land"
+    },
+    "price_options": {
+      "under": "Under AED {amount}K",
+      "range": "AED {min}K - {max}M",
+      "range_2": "AED {min}M - {max}M",
+      "above": "Above AED {amount}M"
+    },
+    "status_options": {
+      "ready": "Ready to move",
+      "construction": "Under construction",
+      "launching": "Launching soon",
+      "completed": "Completed"
+    }
+  },
+  "footer": {
+    "live_support": "Live Support?",
+    "follow_us": "Follow us on social media",
+    "quick_search": "Quick search",
+    "home": "Home",
+    "legal": "Legal",
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "contact": "Contact",
+    "faq": "FAQ",
+    "other_links": "Other links",
+    "market_news": "Market news",
+    "copyright": "©Off Plan International 2026 - All rights reserved. Your access to the website is subject to our Terms of Use."
+  }
+}
