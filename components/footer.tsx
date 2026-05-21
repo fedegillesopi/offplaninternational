@@ -161,7 +161,7 @@ export function Footer() {
         <div className="h-px w-full bg-[--grey-100]" />
 
         <p className="font-body text-base font-light text-white">
-          &copy;Off Plan International 2025 - All rights reserved. Your access
+          &copy;Off Plan International 2026 - All rights reserved. Your access
           to the website is subject to our Terms of Use.
         </p>
       </div>
