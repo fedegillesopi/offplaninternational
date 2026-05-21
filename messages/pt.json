@@ -1,0 +1,57 @@
+{
+  "navigation": {
+    "developers": "Promotoras",
+    "developments": "Empreendimentos",
+    "communities": "Comunidades",
+    "properties": "Propriedades"
+  },
+  "hero": {
+    "title": "Projetos reais, contatos reais.",
+    "subtitle": "Encontre a unidade exata que deseja, filtrada por entrada, plano de pagamento mensal, tamanho, localização, data de conclusão e promotora.",
+    "subtitle_highlight": "promotoras verificadas e unidades reais.",
+    "subtitle_prefix": "Sem corretores. Sem pressão. Apenas ",
+    "search_placeholder": "Pesquisar propriedades, empreendimentos, promotoras..."
+  },
+  "search": {
+    "category": "Categoria",
+    "price_range": "Faixa de preço",
+    "status": "Estado",
+    "items_selected": "{count} selecionados",
+    "category_options": {
+      "apartment": "Apartamento",
+      "villa": "Moradia",
+      "townhouse": "Moradia geminada",
+      "penthouse": "Cobertura",
+      "duplex": "Duplex",
+      "studio": "Studio",
+      "commercial": "Comercial",
+      "land": "Terreno"
+    },
+    "price_options": {
+      "under": "Até EUR {amount}K",
+      "range": "EUR {min}K - {max}M",
+      "range_2": "EUR {min}M - {max}M",
+      "above": "Acima de EUR {amount}M"
+    },
+    "status_options": {
+      "ready": "Pronto a habitar",
+      "construction": "Em construção",
+      "launching": "Lançamento breve",
+      "completed": "Concluído"
+    }
+  },
+  "footer": {
+    "live_support": "Apoio ao vivo?",
+    "follow_us": "Siga-nos nas redes sociais",
+    "quick_search": "Pesquisa rápida",
+    "home": "Início",
+    "legal": "Legal",
+    "terms": "Termos de utilização",
+    "privacy": "Política de privacidade",
+    "contact": "Contacto",
+    "faq": "Perguntas frequentes",
+    "other_links": "Outros links",
+    "market_news": "Notícias do mercado",
+    "copyright": "©Off Plan International 2026 - Todos os direitos reservados. O acesso ao site está sujeito aos nossos Termos de utilização."
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "navigation": {
+    "developers": "Promotoras",
+    "developments": "Desarrollos",
+    "communities": "Comunidades",
+    "properties": "Propiedades"
+  },
+  "hero": {
+    "title": "Proyectos reales, contactos reales.",
+    "subtitle": "Encuentra la unidad exacta que buscas, filtrada por entrada, plan de pago mensual, tamaño, ubicación, fecha de entrega y promotora.",
+    "subtitle_highlight": "promotoras verificadas y unidades reales.",
+    "subtitle_prefix": "Sin agentes. Sin presiones. Solo ",
+    "search_placeholder": "Buscar propiedades, desarrollos, promotoras..."
+  },
+  "search": {
+    "category": "Categoría",
+    "price_range": "Rango de precio",
+    "status": "Estado",
+    "items_selected": "{count} seleccionados",
+    "category_options": {
+      "apartment": "Apartamento",
+      "villa": "Villa",
+      "townhouse": "Adosado",
+      "penthouse": "Ático",
+      "duplex": "Dúplex",
+      "studio": "Estudio",
+      "commercial": "Local comercial",
+      "land": "Terreno"
+    },
+    "price_options": {
+      "under": "Hasta EUR {amount}K",
+      "range": "EUR {min}K - {max}M",
+      "range_2": "EUR {min}M - {max}M",
+      "above": "Más de EUR {amount}M"
+    },
+    "status_options": {
+      "ready": "Listo para entrar",
+      "construction": "En construcción",
+      "launching": "Próximo lanzamiento",
+      "completed": "Terminado"
+    }
+  },
+  "footer": {
+    "live_support": "¿Atención en vivo?",
+    "follow_us": "Síguenos en redes sociales",
+    "quick_search": "Búsqueda rápida",
+    "home": "Inicio",
+    "legal": "Legal",
+    "terms": "Términos de uso",
+    "privacy": "Política de privacidad",
+    "contact": "Contacto",
+    "faq": "Preguntas frecuentes",
+    "other_links": "Otros enlaces",
+    "market_news": "Noticias del mercado",
+    "copyright": "©Off Plan International 2026 - Todos los derechos reservados. El acceso al sitio web está sujeto a nuestros Términos de uso."
+  }
+}

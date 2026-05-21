@@ -1,6 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
+import { routing } from "../../i18n/routing";
+
+const locales = routing.locales as readonly string[];
+const localePattern = locales.join("|");
+const protectedRegex = new RegExp(`\\/(?:${localePattern})?\\/?protected(?:\\/|$)`);
+const authRegex = new RegExp(`\\/(?:${localePattern})?\\/?auth\\/(?!login|sign-up|forgot-password|confirm|error|update-password|sign-up-success)`);
+const localePrefixRegex = new RegExp(`^\\/(${localePattern})\\/`);
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -35,16 +42,13 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  const protectedRegex = /\/(?:ae|ar|br|mx)?\/?protected(?:\/|$)/;
-  const authRegex = /\/(?:ae|ar|br|mx)?\/?auth\/(?!login|sign-up|forgot-password|confirm|error|update-password|sign-up-success)/;
-
   if (
     !user &&
     (protectedRegex.test(pathname) ||
       authRegex.test(pathname))
   ) {
     const url = request.nextUrl.clone();
-    const localeMatch = pathname.match(/^\/(ae|ar|br|mx)\//);
+    const localeMatch = pathname.match(localePrefixRegex);
     const localePrefix = localeMatch ? `/${localeMatch[1]}` : "";
     url.pathname = `${localePrefix}/auth/login`;
     return NextResponse.redirect(url);
