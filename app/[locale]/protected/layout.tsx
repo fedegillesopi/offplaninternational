@@ -3,7 +3,7 @@ import { EnvVarWarning } from "@/components/env-var-warning";
 import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/lib/utils";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Suspense } from "react";
 
 export default function ProtectedLayout({

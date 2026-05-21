@@ -13,15 +13,20 @@ async function ErrorContent({
 }) {
   const params = await searchParams;
 
+  const errorMessages: Record<string, string> = {
+    "No token hash or type": "Invalid confirmation link. Please try again.",
+    "Token already used": "This confirmation link has already been used.",
+  };
+
   return (
     <>
       {params?.error ? (
         <p className="text-sm text-muted-foreground">
-          Code error: {params.error}
+          {errorMessages[params.error] || "An unexpected error occurred. Please try again."}
         </p>
       ) : (
         <p className="text-sm text-muted-foreground">
-          An unspecified error occurred.
+          An unexpected error occurred. Please try again.
         </p>
       )}
     </>
