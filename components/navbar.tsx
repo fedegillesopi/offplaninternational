@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { CurrencySwitcher } from "./currency-switcher";
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,7 +13,6 @@ export function Navbar() {
   const navLinks = [
     { label: t("developers"), href: "/developers/developers-list" },
     { label: t("developments"), href: "/developments/developments-list" },
-    { label: t("communities"), href: "/communities/communities-list" },
     { label: t("properties"), href: "/properties/properties-list" },
   ];
 
@@ -46,7 +46,7 @@ export function Navbar() {
           </svg>
         </button>
 
-        <nav className="hidden gap-1 md:flex">
+        <nav className="hidden items-center gap-2 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -56,6 +56,7 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          <CurrencySwitcher />
         </nav>
       </div>
 
@@ -88,6 +89,9 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <div className="px-4 pt-3">
+                <CurrencySwitcher />
+              </div>
             </nav>
           </div>
         </div>

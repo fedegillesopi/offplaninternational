@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useClickOutside } from "@/hooks/use-click-outside";
 
 interface DropdownProps {
   label: string;
@@ -14,17 +15,7 @@ interface DropdownProps {
 
 function Dropdown({ label, multi, options, selected, onChange }: DropdownProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
 
   const displayText = selected.length === 0
     ? label

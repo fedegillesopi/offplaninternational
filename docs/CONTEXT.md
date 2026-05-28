@@ -27,7 +27,14 @@
 - [x] Sistema i18n con 7 locales y geo-detección
 - [x] Auth completo: login, signup, forgot/reset password, update password
 - [x] Protección de rutas autenticadas via middleware
-- [ ] Página de listado de propiedades
+- [x] CurrencySwitcher en navbar con persistencia en cookie (NEXT_CURRENCY)
+- [x] Sistema de moneda: formato por locale + mapa locale→moneda por defecto
+- [x] Página de listado de propiedades (estructura + cards + filtros + cambio de moneda en vivo)
+- [x] Sistema de conversión de moneda (exchange-rates fijas para MVP)
+- [x] Hook compartido useClickOutside para dropdowns
+- [x] PropertyCard server component con traducciones y CurrencyPrice integrado
+- [x] Barra de filtros completa (Location, Category, Price Range, Status, + More Filters, Map View)
+- [x] BackToHome botón reutilizable
 - [ ] Página de detalle de propiedad
 - [ ] Página de listado de desarrollos
 - [ ] Página de listado de promotoras
@@ -96,10 +103,17 @@ offplaninternational/
 │       │   ├── update-password/page.tsx
 │       │   ├── confirm/route.ts       # Callback de confirmación de email
 │       │   └── error/page.tsx
+│       ├── properties/
+│       │   └── properties-list/
+│       │       └── page.tsx           # Listado de propiedades con filtros + cards
 │       └── protected/
 │           ├── layout.tsx
 │           └── page.tsx               # Página protegida (tutorial de starter kit)
 ├── components/
+│   ├── back-to-home.tsx               # Botón reutilizable con flecha ← y label (client)
+│   ├── currency-price.tsx             # Precio con conversión en vivo via useCurrency (client)
+│   ├── currency-provider.tsx          # Context provider de moneda (client)
+│   ├── currency-switcher.tsx          # Dropdown de selección de moneda (client)
 │   ├── navbar.tsx                     # Navbar responsive (client)
 │   ├── hero-header.tsx                # Hero con búsqueda + filtros (client)
 │   ├── features-section.tsx           # Sección de características
@@ -114,6 +128,8 @@ offplaninternational/
 │   ├── sign-up-form.tsx               # Formulario registro (client)
 │   ├── forgot-password-form.tsx       # Formulario reset password (client)
 │   ├── update-password-form.tsx       # Formulario actualizar password (client)
+│   ├── property-card.tsx              # Card de propiedad horizontal (server, async)
+│   ├── property-filters.tsx           # Barra de filtros completa (client)
 │   ├── ui/                            # Componentes base (shadcn-style)
 │   │   ├── button.tsx
 │   │   ├── card.tsx
@@ -140,7 +156,14 @@ offplaninternational/
 │   ├── gb.json
 │   ├── mx.json
 │   └── pt.json
+├── hooks/
+│   └── use-click-outside.ts           # Hook compartido para cerrar dropdowns con click outside
 ├── lib/
+│   ├── currency.ts                    # Tipos, monedas disponibles, formatPrice, mapa locale→moneda
+│   ├── currency-server.ts             # Lectura de cookie de moneda desde server components
+│   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
+│   ├── filter-options.ts              # Opciones de filtros (location, category, price, status, etc.)
+│   ├── mock-properties.ts             # Mock data de propiedades (3 unidades)
 │   ├── utils.ts                       # cn() helper, hasEnvVars
 │   └── supabase/
 │       ├── client.ts                  # Cliente Supabase browser
@@ -168,6 +191,15 @@ offplaninternational/
 | 2026-05-21 | Confirm route usa `redirect` de `next/navigation` (no de i18n) | Es un callback de Supabase sin locale prefix; el middleware de next-intl lo resuelve automáticamente |
 | 2026-05-21 | Custom spacing scale (0-10 mapeado a 4px-80px) | Diseño custom que no se alinea con la escala default de Tailwind |
 | 2026-05-21 | CSS variables para colores + Tailwind extendido | Permite consistencia entre globals.css y las clases de utilidad |
+| 2026-05-27 | CurrencyContext + cookie `NEXT_CURRENCY` para moneda seleccionada | Evita depender solo del locale; el usuario puede elegir AED/USD/EUR/GBP y persiste 30 días |
+| 2026-05-27 | `CurrencyProvider` envuelve al árbol cliente desde `[locale]/layout.tsx` | La moneda debe estar disponible en componentes cliente (navbar, prices, etc.) sin prop drilling |
+| 2026-05-27 | `formatPrice()` usa `Intl.NumberFormat` con locale específico por moneda | Formato correcto según cada moneda (€1.000 vs $1,000 vs AED 1,000) sin librería externa |
+| 2026-05-27 | CurrencyPrice como client component separado | Permite reactividad en la conversión de moneda sin convertir toda la card a client |
+| 2026-05-27 | `exchange-rates.ts` con tasas fijas (no API externa) | Simplifica el MVP; evita latencia, costos y dependencia de servicios externos |
+| 2026-05-27 | `useClickOutside` como hook compartido en `hooks/` | Elimina duplicación de lógica en hero-header, currency-switcher y property-filters |
+| 2026-05-27 | Datos de filtros extraídos a `lib/filter-options.ts` | Centraliza opciones para mantener consistencia y facilitar cambios sin tocar componentes |
+| 2026-05-27 | `CurrencyProvider` default cambiado a USD (global, no por locale) | Consistencia: todos los usuarios ven USD por defecto independientemente del locale |
+| 2026-05-27 | `currency-server.ts` importa desde `next/headers` | Función async requerida para leer cookies server-side en Next.js 16 |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -210,13 +242,36 @@ offplaninternational/
 3. Si no hay usuario y la ruta es protegida → redirige a `/auth/login`
 4. Si hay usuario pero no debería acceder a ciertas rutas auth → redirige (no implementado aún)
 
-### 7.6 Búsqueda en homepage
+### 7.6 Cambio de moneda
+
+1. Usuario ve el botón con símbolo + código de moneda actual en la navbar (ej: "$ USD")
+2. Al hacer clic, se abre dropdown con las 4 monedas disponibles (AED, USD, EUR, GBP)
+3. Al seleccionar una moneda, `CurrencyContext.setCurrency()` escribe cookie `NEXT_CURRENCY` por 30 días y actualiza el estado global
+4. Todos los componentes que usen `useCurrency()` se re-renderizan con la nueva moneda (CurrencySwitcher, CurrencyPrice en cada property card, etc.)
+5. En server components, `getCurrencyFromCookies(cookieStore, locale)` resuelve la moneda desde la cookie con fallback al default del locale
+6. Mapa locale→moneda default: ae→AED, ar→USD, br→USD, es→EUR, gb→GBP, mx→USD, pt→EUR
+
+### 7.7 Búsqueda en homepage
 
 1. Usuario ingresa texto en campo de búsqueda y/o selecciona filtros (categoría, precio, estado)
 2. Los filtros son client-side (estado local con useState)
 3. No hay action de búsqueda implementada aún — los dropdowns y el input existen pero no disparan navegación ni API call
 
 ⚠️ **Inconsistencia:** La búsqueda en hero-header tiene UI completa pero no ejecuta ninguna acción al buscar o seleccionar filtros.
+
+### 7.8 Listado de propiedades
+
+1. Usuario navega a `/properties-list` (ruta sin locale prefix; el middleware resuelve el locale)
+2. La página renderiza un layout con Navbar, BackToHome, heading "All Properties", PropertyFilters, grid de PropertyCards y Footer
+3. PropertyFilters es un client component con dropdowns individuales (location, category, price range, status)
+4. Cada dropdown usa `useClickOutside()` para cerrarse al hacer clic fuera
+5. "+ More Filters" expande una fila secundaria con Beds, Baths, Developer, Amenities
+6. "Map View" es un botón a la derecha (sin funcionalidad por ahora)
+7. PropertyCard es un server component async que usa `getTranslations("properties")`
+8. Cada card muestra: imagen, categoría (badge), camas/baños/área, precio via CurrencyPrice, ubicación con MapPin, logo del developer, descripción, botones Contact y WhatsApp
+9. CurrencyPrice es un client component que usa `useCurrency()` del context y llama a `convertPrice()` + `formatPrice()` para mostrar el precio en la moneda activa
+10. Los datos actualmente provienen de `lib/mock-properties.ts` (3 propiedades mockeadas)
+11. Al cambiar la moneda global, todas las cards se actualizan en vivo sin recargar la página
 
 ## 8. VARIABLES DE ENTORNO
 
