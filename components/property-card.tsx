@@ -3,31 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Bed, Bath, MapPin, Phone, MessageCircle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { CurrencyPrice } from "@/components/currency-price";
-
-export interface PropertyData {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  category: string;
-  beds: number;
-  baths: number;
-  area: number;
-  currency: string;
-  price: number;
-  location: {
-    country: string;
-    city: string;
-    community: string;
-  };
-  developer: {
-    name: string;
-    logo: string;
-  };
-  image: string;
-  phone: string;
-  whatsapp: string;
-}
+import type { PropertyData } from "@/lib/types";
 
 export async function PropertyCard({ property }: { property: PropertyData }) {
   const t = await getTranslations("properties");
@@ -39,7 +15,7 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
         className="relative block h-[200px] w-full shrink-0 md:h-auto md:w-[320px] lg:w-[360px]"
       >
         <Image
-          src={property.image}
+          src={property.images[0]}
           alt={property.title}
           fill
           className="object-cover"

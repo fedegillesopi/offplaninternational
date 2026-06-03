@@ -104,5 +104,36 @@
       "smart_home": "Smart Home System",
       "sea_view": "Sea View"
     }
+  },
+  "property_detail": {
+    "back_to_list": "Back to List",
+    "all_properties": "All Properties",
+    "property_amenities": "Property amenities",
+    "development_amenities": "Development amenities",
+    "property_details": "Property Details",
+    "subcategory": "Subcategory",
+    "added_on": "Added on",
+    "property_status": "Property status",
+    "handover_date": "Handover date",
+    "development_details": "Development Details",
+    "development_name": "Development name:",
+    "total_development_area": "Total development area:",
+    "developer_label": "Developer:",
+    "community_details": "Community Details",
+    "description_label": "Description:",
+    "tags": "Tags",
+    "mortgage_information": "Mortgage information",
+    "off_plan_payment_plan": "Off Plan payment plan",
+    "payment_plan_length": "Payment Plan Length",
+    "deposit_percentage": "Deposit Percentage",
+    "deposit_value": "Deposit Value",
+    "payment_plan_description": "Payment Plan (During Construction):",
+    "other_related_properties": "Other related properties",
+    "off_plan_property_for_sale": "Off Plan property for sale",
+    "contact": "Contact",
+    "whatsapp": "WhatsApp",
+    "area_sqft": "Area:",
+    "see_more": "See more",
+    "development_label": "Development"
   }
 }

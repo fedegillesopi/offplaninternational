@@ -35,7 +35,18 @@
 - [x] PropertyCard server component con traducciones y CurrencyPrice integrado
 - [x] Barra de filtros completa (Location, Category, Price Range, Status, + More Filters, Map View)
 - [x] BackToHome botón reutilizable
-- [ ] Página de detalle de propiedad
+- [x] Interfaz `PropertyData` extraída a `lib/types.ts` con campos expandidos (images[], amenities[], status, paymentPlan, development, community, etc.)
+- [x] Mock data actualizado con 3 propiedades completas en `lib/mock-properties.ts`
+- [x] Página de detalle de propiedad (ruta `/[locale]/property/[slug]`)
+- [x] Galería de imágenes con navegación y thumbnails (property-gallery.tsx)
+- [x] Sidebar con precio, links y botones de contacto (property-sidebar.tsx)
+- [x] Tabla de detalles (subcategoría, fecha, estado, entrega) (property-details-table.tsx)
+- [x] Grid de amenities con modal overlay + scroll lock (property-amenities-grid.tsx)
+- [x] Tabla de plan de pago (property-payment-plan.tsx)
+- [x] Tags de propiedad (property-tags.tsx)
+- [x] Sección de propiedades relacionadas (related-properties.tsx)
+- [x] Breadcrumb con separador "/" (breadcrumb.tsx)
+- [x] Traducciones completas para namespace `property_detail` en 7 locales
 - [ ] Página de listado de desarrollos
 - [ ] Página de listado de promotoras
 - [ ] Página de listado de comunidades
@@ -106,11 +117,15 @@ offplaninternational/
 │       ├── properties/
 │       │   └── properties-list/
 │       │       └── page.tsx           # Listado de propiedades con filtros + cards
+│       ├── property/
+│       │   └── [slug]/
+│       │       └── page.tsx           # Detalle de propiedad (galería, sidebar, amenities, etc.)
 │       └── protected/
 │           ├── layout.tsx
 │           └── page.tsx               # Página protegida (tutorial de starter kit)
 ├── components/
 │   ├── back-to-home.tsx               # Botón reutilizable con flecha ← y label (client)
+│   ├── breadcrumb.tsx                 # Breadcrumb con separador "/" y links i18n
 │   ├── currency-price.tsx             # Precio con conversión en vivo via useCurrency (client)
 │   ├── currency-provider.tsx          # Context provider de moneda (client)
 │   ├── currency-switcher.tsx          # Dropdown de selección de moneda (client)
@@ -130,6 +145,13 @@ offplaninternational/
 │   ├── update-password-form.tsx       # Formulario actualizar password (client)
 │   ├── property-card.tsx              # Card de propiedad horizontal (server, async)
 │   ├── property-filters.tsx           # Barra de filtros completa (client)
+│   ├── property-gallery.tsx           # Galería de imágenes con navegación y thumbnails (client)
+│   ├── property-sidebar.tsx           # Sidebar con precio + links + botones contacto (server)
+│   ├── property-details-table.tsx     # Tabla de detalles de propiedad (server)
+│   ├── property-amenities-grid.tsx    # Grid de amenities con modal + scroll lock (client)
+│   ├── property-payment-plan.tsx      # Tabla de plan de pago (server)
+│   ├── property-tags.tsx              # Tags de propiedad (server)
+│   ├── related-properties.tsx         # Sección de propiedades relacionadas (server)
 │   ├── ui/                            # Componentes base (shadcn-style)
 │   │   ├── button.tsx
 │   │   ├── card.tsx
@@ -156,6 +178,8 @@ offplaninternational/
 │   ├── gb.json
 │   ├── mx.json
 │   └── pt.json
+├── docs/
+│   └── PRD.md                         # Product Requirements Document (mantenido por agente analista)
 ├── hooks/
 │   └── use-click-outside.ts           # Hook compartido para cerrar dropdowns con click outside
 ├── lib/
@@ -163,7 +187,8 @@ offplaninternational/
 │   ├── currency-server.ts             # Lectura de cookie de moneda desde server components
 │   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
 │   ├── filter-options.ts              # Opciones de filtros (location, category, price, status, etc.)
-│   ├── mock-properties.ts             # Mock data de propiedades (3 unidades)
+│   ├── mock-properties.ts             # Mock data de propiedades (3 unidades completas)
+│   ├── types.ts                       # Interfaz compartida PropertyData con todos los campos expandidos
 │   ├── utils.ts                       # cn() helper, hasEnvVars
 │   └── supabase/
 │       ├── client.ts                  # Cliente Supabase browser
@@ -173,9 +198,10 @@ offplaninternational/
 │   └── images/                        # Assets del sitio
 └── .opencode/
     ├── agents/
-    │   ├── reviewer.md                # Agente revisor de código
-    │   ├── security.md                # Agente de seguridad
-    │   └── docwriter.md               # Agente de documentación
+    │   ├── reviewer.md                # Agente revisor de código (sesiones de auditoría)
+    │   ├── security.md                # Agente de seguridad (sesiones de auditoría)
+    │   ├── docwriter.md               # Agente de documentación (este archivo)
+    │   └── analista.md                # Agente de análisis funcional (solo lectura, escribe PRD con autorización)
     └── package.json
 ```
 
@@ -200,6 +226,16 @@ offplaninternational/
 | 2026-05-27 | Datos de filtros extraídos a `lib/filter-options.ts` | Centraliza opciones para mantener consistencia y facilitar cambios sin tocar componentes |
 | 2026-05-27 | `CurrencyProvider` default cambiado a USD (global, no por locale) | Consistencia: todos los usuarios ven USD por defecto independientemente del locale |
 | 2026-05-27 | `currency-server.ts` importa desde `next/headers` | Función async requerida para leer cookies server-side en Next.js 16 |
+| 2026-06-03 | Interfaz `PropertyData` extraída a `lib/types.ts` | Elimina tipos duplicados entre property-card, mock-data y componentes de detalle; unifica el modelo de datos |
+| 2026-06-03 | Ruta de detalle como `/[locale]/property/[slug]` (slug, no id) | Las URLs con slug son más legibles para humanos y SEO-friendly; consistente con el sitio de referencia |
+| 2026-06-03 | Breadcrumb con separador "/" y links i18n | Separador simple "/" como en el sitio de referencia; usa `Link` de `@/i18n/navigation` para consistencia |
+| 2026-06-03 | Modal de amenities con `useEffect` para scroll lock + cleanup | Bloquea el scroll del body mientras el modal está abierto; el callback de cleanup restaura el scroll al desmontar |
+| 2026-06-03 | Sidebar con `truncate` + `min-w-0` + `w-full` en links development/developer | Evita overflow horizontal cuando los nombres son largos; truncate con ellipsis mantiene el layout |
+| 2026-06-03 | Botones de sidebar en flex-row con estilo property-card (bg-primary-light, hover effects, small) | Consistencia visual con las property cards; el tamaño reducido y hover effects mejoran la UX |
+| 2026-06-03 | Traducciones completas para `property_detail` namespace en 7 locales | Todos los textos del detalle de propiedad traducidos manteniendo consistencia entre locales |
+| 2026-06-03 | `docs/PRD.md` creado con estructura adaptada de Autolog | Documento funcional de referencia para entender el producto sin leer código; mantenido por agente analista |
+| 2026-06-03 | Agentes `reviewer` y `security` disponibles para auditorías | Sesiones dedicadas de revisión de código y seguridad para mantener calidad antes de commits |
+| 2026-06-03 | Subagente `analista` creado (solo lectura, solo escribe PRD con autorización) | Separa la responsabilidad del PRD del contexto técnico; el analista se enfoca en el "qué", docwriter en el "cómo" |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -272,6 +308,26 @@ offplaninternational/
 9. CurrencyPrice es un client component que usa `useCurrency()` del context y llama a `convertPrice()` + `formatPrice()` para mostrar el precio en la moneda activa
 10. Los datos actualmente provienen de `lib/mock-properties.ts` (3 propiedades mockeadas)
 11. Al cambiar la moneda global, todas las cards se actualizan en vivo sin recargar la página
+
+### 7.9 Detalle de propiedad
+
+1. Usuario navega a `/[locale]/property/[slug]` desde un link en property-card o directamente
+2. La página es un server component async que recibe `params.slug` y `params.locale`
+3. Busca la propiedad en `mockProperties` por slug (mock data para MVP)
+4. Renderiza un layout con Navbar, Breadcrumb, dos columnas (gallery + sidebar), y secciones inferiores
+5. **Breadcrumb:** muestra "All Properties / Property Title" con links i18n y separador "/"
+6. **Columna izquierda:**
+   - `PropertyGallery` (client): imagen grande con navegación left/right y thumbnails en fila. Usa `useState` para índice seleccionado
+   - `PropertyDetailsTable` (server): tabla con subcategoría, fecha de publicación, estado, fecha de entrega. Traduce etiquetas via `getTranslations("property_detail")`
+   - `PropertyAmenitiesGrid` (client): muestra 4 amenities en cards, "+N" button abre modal con overlay + scroll lock via `useEffect` con cleanup
+   - `PropertyPaymentPlan` (server): tabla con length del plan, % de depósito, valor del depósito y descripción
+   - `PropertyTags` (server): tags en badges con bg-primary-light
+   - `RelatedProperties` (server): grid de PropertyCards con el resto de propiedades mockeadas
+7. **Columna derecha (sidebar sticky):**
+   - `PropertySidebar` (server): precio via CurrencyPrice, label "Off Plan property for sale", links a development/developer con `truncate` + `min-w-0` + `w-full`, botones Contact (Phone) y WhatsApp en flex-row con bg-primary-light y hover effects
+8. Todos los textos de la página usan el namespace `property_detail` de traducciones, traducido a 7 locales
+9. Si el slug no existe, la página lanza error (a implementar: not-found page)
+10. Los datos de development, developer y community contienen slugs para futuras linking a páginas dedicadas
 
 ## 8. VARIABLES DE ENTORNO
 

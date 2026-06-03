@@ -104,5 +104,36 @@
       "smart_home": "Casa Inteligente",
       "sea_view": "Vista para o Mar"
     }
+  },
+  "property_detail": {
+    "back_to_list": "Voltar à listagem",
+    "all_properties": "Todas as Propriedades",
+    "property_amenities": "Comodidades da propriedade",
+    "development_amenities": "Comodidades do empreendimento",
+    "property_details": "Detalhes da propriedade",
+    "subcategory": "Subcategoria",
+    "added_on": "Adicionado em",
+    "property_status": "Estado",
+    "handover_date": "Data de entrega",
+    "development_details": "Detalhes do empreendimento",
+    "development_name": "Nome do empreendimento:",
+    "total_development_area": "Área total do empreendimento:",
+    "developer_label": "Promotora:",
+    "community_details": "Detalhes da comunidade",
+    "description_label": "Descrição:",
+    "tags": "Tags",
+    "mortgage_information": "Informação hipotecária",
+    "off_plan_payment_plan": "Plano de pagamento Off Plan",
+    "payment_plan_length": "Duração do plano de pagamento",
+    "deposit_percentage": "Percentual de entrada",
+    "deposit_value": "Valor da entrada",
+    "payment_plan_description": "Plano de pagamento (Durante a construção):",
+    "other_related_properties": "Outras propriedades relacionadas",
+    "off_plan_property_for_sale": "Propriedade Off Plan à venda",
+    "contact": "Contato",
+    "whatsapp": "WhatsApp",
+    "area_sqft": "Área:",
+    "see_more": "Ver mais",
+    "development_label": "Empreendimento"
   }
 }
