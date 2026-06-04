@@ -42,6 +42,21 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  const isDashboardRoute = /^\/dashboard(?:\/|$)/.test(pathname);
+  const isAuthPageRoute = /^\/(?:login|signup)(?:\/|$)/.test(pathname);
+
+  if (!user && isDashboardRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && isAuthPageRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   if (
     !user &&
     (protectedRegex.test(pathname) ||

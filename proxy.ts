@@ -17,6 +17,7 @@ const COUNTRY_LOCALE: Record<string, string> = {
 const locales = routing.locales as readonly string[];
 const localePattern = locales.join("|");
 const authRouteRegex = new RegExp(`\\/(?:${localePattern})?\\/?(?:auth|protected)`);
+const dashboardRouteRegex = /^\/(?:dashboard|login|signup)(?:\/|$)/;
 
 function getLocaleFromCountry(country: string | null | undefined): string | null {
   if (!country) return null;
@@ -32,7 +33,7 @@ function pathHasLocale(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isAuthRoute = authRouteRegex.test(pathname);
+  const isAuthRoute = authRouteRegex.test(pathname) || dashboardRouteRegex.test(pathname);
 
   if (isAuthRoute) {
     return await updateSession(request);
