@@ -3,7 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { IconDashboard, IconSettings } from "@tabler/icons-react"
+import { IconDashboard, IconSettings, IconBuilding, IconList, IconChartBar, IconUser } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -17,14 +17,24 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import type { UserRole } from "@/lib/types"
 
-const NAV_MAIN = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: IconDashboard,
-  },
-]
+const NAV_BY_ROLE: Record<UserRole, { title: string; url: string; icon: typeof IconDashboard }[]> = {
+  developer: [
+    { title: "Dashboard", url: "/dashboard", icon: IconDashboard },
+    { title: "Properties", url: "/dashboard/properties", icon: IconBuilding },
+    { title: "Analytics", url: "/dashboard/analytics", icon: IconChartBar },
+  ],
+  broker: [
+    { title: "Dashboard", url: "/dashboard", icon: IconDashboard },
+    { title: "Listings", url: "/dashboard/listings", icon: IconList },
+    { title: "Clients", url: "/dashboard/clients", icon: IconUser },
+  ],
+  private_seller: [
+    { title: "Dashboard", url: "/dashboard", icon: IconDashboard },
+    { title: "My Property", url: "/dashboard/my-property", icon: IconBuilding },
+  ],
+}
 
 const NAV_SECONDARY = [
   {
@@ -38,10 +48,12 @@ export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  user: { name: string; email: string; avatar: string }
+  user: { name: string; email: string; avatar: string; role: UserRole }
 }) {
+  const navMain = NAV_BY_ROLE[user.role] || NAV_BY_ROLE.developer
+
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="none" className="sticky top-0 h-svh self-start" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -55,7 +67,7 @@ export function AppSidebar({
                   alt="Off Plan International"
                   width={140}
                   height={35}
-                  className="h-7 w-auto"
+                  className="h-4 w-auto"
                   priority
                 />
               </Link>
@@ -64,7 +76,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={NAV_MAIN} />
+        <NavMain items={navMain} />
         <NavSecondary items={NAV_SECONDARY} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

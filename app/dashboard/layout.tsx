@@ -22,23 +22,28 @@ export default async function DashboardLayout({
   }
 
   const { data: profile } = await supabase
-    .from("developer_profiles")
-    .select("full_name, email")
+    .from("user_profiles")
+    .select("full_name, email, role")
     .eq("id", user.id)
     .single()
 
-  const userName = profile?.full_name || profile?.email || "Developer"
+  const userName = profile?.full_name || profile?.email?.split("@")[0] || "User"
   const userEmail = profile?.email || user.email || ""
+  const userRole = profile?.role || "developer"
+
+  if (profile && !profile.role) {
+    redirect("/login")
+  }
 
   return (
     <SidebarProvider
       style={{
-        "--sidebar-width": "calc(var(--spacing) * 72)",
-        "--header-height": "calc(var(--spacing) * 12)",
+        "--sidebar-width": "10rem",
+        "--header-height": "3rem",
       } as React.CSSProperties}
     >
       <AppSidebar
-        user={{ name: userName, email: userEmail, avatar: "" }}
+        user={{ name: userName, email: userEmail, avatar: "", role: userRole }}
       />
       <SidebarInset>
         <SiteHeader />

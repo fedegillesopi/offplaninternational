@@ -1,3 +1,21 @@
+export type UserRole = "developer" | "broker" | "private_seller";
+
+export interface UserProfile {
+  id: string;
+  role: UserRole;
+  full_name: string;
+  email: string;
+  phone: string;
+  company_name: string;
+  company_website: string;
+  operating_country: string;
+  license_number: string;
+  country_of_residence: string;
+  profile_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PropertyData {
   id: string;
   slug: string;

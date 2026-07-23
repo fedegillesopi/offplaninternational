@@ -1,6 +1,7 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import { Link } from "@/i18n/navigation";
-import { LoginForm } from "@/components/login-form";
+import { SignUpForm } from "@/components/sign-up-form";
 
 export default function Page() {
   return (
@@ -18,7 +19,9 @@ export default function Page() {
       <div className="flex w-full lg:w-1/2 items-center justify-center p-4">
         <div className="w-full max-w-lg">
           <div className="flex flex-col gap-4">
-            <LoginForm />
+            <Suspense>
+              <SignUpForm />
+            </Suspense>
 
             <Link
               href="/"

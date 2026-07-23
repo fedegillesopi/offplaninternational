@@ -33,10 +33,18 @@ function pathHasLocale(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isAuthRoute = authRouteRegex.test(pathname) || dashboardRouteRegex.test(pathname);
+  const isStandaloneRoute = dashboardRouteRegex.test(pathname);
 
-  if (isAuthRoute) {
+  if (isStandaloneRoute) {
     return await updateSession(request);
+  }
+
+  if (authRouteRegex.test(pathname)) {
+    const sessionResponse = await updateSession(request);
+    if (sessionResponse.status >= 300 && sessionResponse.status < 400) {
+      return sessionResponse;
+    }
+    return intlMiddleware(request);
   }
 
   if (pathname === "/" && !pathHasLocale(pathname)) {

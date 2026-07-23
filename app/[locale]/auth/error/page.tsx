@@ -39,16 +39,16 @@ export default function Page({
   searchParams: Promise<{ error: string }>;
 }) {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+    <div className="flex min-h-svh w-full items-center justify-center p-3">
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
+          <Card className="p-3">
+            <CardHeader className="p-0">
               <CardTitle className="text-2xl">
                 Sorry, something went wrong.
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <Suspense>
                 <ErrorContent searchParams={searchParams} />
               </Suspense>

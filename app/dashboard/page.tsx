@@ -1,14 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { SectionCards } from "@/components/section-cards"
-import { DataTable } from "@/components/data-table"
-import data from "./data.json"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: profile } = await supabase
-    .from("developer_profiles")
+    .from("user_profiles")
     .select("full_name, email")
     .eq("id", user!.id)
     .single()
@@ -23,7 +21,6 @@ export default async function DashboardPage() {
             </h1>
           </div>
           <SectionCards />
-          <DataTable data={data} />
         </div>
       </div>
     </div>
