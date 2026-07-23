@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.2 — 22-Jul-2026
-**Estado:** MVP en desarrollo — Sistema de 3 roles y onboarding implementado
+**Versión:** 1.3 — 23-Jul-2026
+**Estado:** MVP en desarrollo — Sistema de 3 roles, onboarding y esquema de datos completo
 
 ---
 
@@ -72,6 +72,10 @@
 | Pricing plans configurados por role × país (`lib/pricing-plans.ts`) | Todos | ✅ Implementado |
 | Legacy route redirects (`/login` → `/auth/login`, `/signup` → `/auth/sign-up/developer`) | Auth | ✅ Implementado |
 | Fix middleware: `updateSession()` antes de `intlMiddleware()` en auth routes | Auth | ✅ Implementado |
+| Tablas `developers`, `developments` en Supabase (migración 007) | Backend | ✅ Implementado |
+| Tabla `properties` recreada con FKs a `developers`, `developments` y `user_profiles` (migración 007) | Backend | ✅ Implementado |
+| Tabla `payment_plan_milestones` recreada con CHECK y RLS mejorado (migración 007) | Backend | ✅ Implementado |
+| Interfaz `PropertyData` migrada a campos planos + nuevas interfaces `Developer`, `Development`, `PaymentPlanMilestone` | Frontend | ✅ Implementado |
 | Página de listado de desarrollos `/development/[slug]` | Público | ❌ Pendiente |
 | Página de listado de promotoras `/developer/[slug]` | Público | ❌ Pendiente |
 | Página de listado de comunidades | Público | ❌ Pendiente |
@@ -259,9 +263,10 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Barra de filtros completa: Location, Category, Price Range, Status
 - "+ More Filters" expande: Beds, Baths, Developer, Amenities
 - "Map View" botón (placeholder)
-- Cada PropertyCard muestra: imagen, categoría (badge), camas/baños/área, precio via CurrencyPrice, ubicación con MapPin, logo del developer, descripción, botones Contact y WhatsApp
+- Cada PropertyCard muestra: imagen, categoría (badge), camas/baños/área, precio via CurrencyPrice, ubicación con MapPin (city + community), logo y nombre del developer, descripción, botones Contact y WhatsApp
 - Datos mockeados en `lib/mock-properties.ts` (3 unidades)
 - Conversión de moneda en vivo al cambiar moneda global
+- **Campos planos:** PropertyCard accede a campos planos del objeto (`developer_name`, `developer_logo`, `city`, `community`) en lugar de joins anidados
 
 #### 6.1.6 Búsqueda
 - Campo de búsqueda por texto en homepage
@@ -280,6 +285,8 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Related properties grid (3 propiedades sugeridas)
 - Traducciones `property_detail` en 7 locales
 - Datos mockeados desde `lib/mock-properties.ts` con interfaz `PropertyData` compartida en `lib/types.ts`
+- Secciones de desarrollo y comunidad con datos completos (nombre, área total, amenities, descripción)
+- **Migración a campos planos (23-Jul-2026):** Todas las referencias a datos del developer, desarrollo y comunidad se resuelven vía campos planos en `PropertyData` (`developer_name`, `developer_slug`, `developer_logo`, `development_name`, `development_slug`, `development_total_area`, `development_amenities`, `community_name`, `community_slug`, `community_total_area`, `community_description`). RelatedProperties ahora se renderiza correctamente.
 
 ### 6.2 Auth unificado y onboarding (3 roles)
 
@@ -398,7 +405,7 @@ Otras rutas:
 |---|---|---|
 | Framework | Next.js 16.2.6 (App Router) | SSR, Server Components, Server Actions |
 | Lenguaje | TypeScript ~5 | Strict mode |
-| Base de datos | Supabase (PostgreSQL) | Auth + tabla user_profiles |
+| Base de datos | Supabase (PostgreSQL) | Auth + tablas user_profiles, developers, developments, properties, payment_plan_milestones |
 | Estilos | Tailwind CSS 3.4 + tailwindcss-animate | Design system |
 | Componentes UI | Radix UI (shadcn-style): sidebar, sheet, dialog, drawer, select, tabs, table, avatar, separator, skeleton, chart | Primitivas accesibles |
 | Tabla de datos | @tanstack/react-table 8.21 | Tabla con sorting, filtering, pagination |
@@ -445,30 +452,197 @@ Creada via migración `002_user_profiles.sql`. Reemplaza a `developer_profiles` 
 - UPDATE: solo el propio usuario puede actualizar su perfil (`auth.uid() = id`)
 
 **Triggers:**
-- `set_updated_at_user_profiles`: actualiza `updated_at` automáticamente en cada UPDATE
+- `trigger_set_updated_at_user_profiles`: actualiza `updated_at` automáticamente en cada UPDATE
 - `handle_new_user()`: al crear un usuario en `auth.users`, inserta automáticamente un registro en `user_profiles` con `id`, `email`, `role` (desde `raw_user_meta_data->>'role'`, default 'developer') y campos vacíos
 
 **Migración de datos:** La migración 002 migra registros existentes de `developer_profiles` → `user_profiles` con `role = 'developer'` y `profile_completed` basado en si `company_name` no está vacío. La tabla `developer_profiles` se mantiene intacta (no se elimina).
 
-#### 7.2.3 Tabla legacy: developer_profiles
-Creada via migración `001_developer_profiles.sql`. Se mantiene por retrocompatibilidad pero `user_profiles` es la tabla principal.
+#### 7.2.3 Tabla: developers
 
-| Columna | Tipo | Descripción |
-|---|---|---|
-| id | uuid (PK, FK → auth.users) | ID del usuario |
-| full_name | text (not null) | Nombre completo |
-| company_name | text (not null) | Nombre de la empresa |
-| operating_country | text (not null) | Código ISO 2 letras |
-| email | text (not null) | Email del usuario |
-| created_at | timestamptz | Fecha de creación |
-| updated_at | timestamptz | Fecha de última actualización |
+Creada por migración `007_developers_developments_properties_rebuild.sql`.
 
-#### 7.2.4 Interfaz TypeScript: UserProfile
-Definida en `lib/types.ts`:
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del developer |
+| name | text | NOT NULL | Nombre de la promotora |
+| slug | text | NOT NULL, UNIQUE | Slug único |
+| logo_url | text | nullable | URL del logo |
+| website | text | nullable | Sitio web |
+| description | text | nullable | Descripción |
+| country | text | nullable | País de operación |
+| is_verified | boolean | NOT NULL DEFAULT false | Developer verificado |
+| user_profile_id | uuid | FK → user_profiles(id) ON DELETE SET NULL | Perfil de usuario asociado |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:** `slug`, `user_profile_id`, `country`
+**Trigger:** `trigger_set_updated_at_developers`
+**Políticas RLS:**
+- SELECT público: developers verificados (`is_verified = true`)
+- SELECT propio: developer ve su propio registro (`auth.uid() = user_profile_id`)
+- No hay INSERT/UPDATE desde cliente (solo service_role)
+
+#### 7.2.4 Tabla: developments
+
+Creada por migración `007_developers_developments_properties_rebuild.sql`.
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del desarrollo |
+| name | text | NOT NULL | Nombre del desarrollo |
+| slug | text | NOT NULL, UNIQUE | Slug único |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer asociado |
+| description | text | nullable | Descripción |
+| country | text | nullable | País |
+| city | text | nullable | Ciudad |
+| community | text | nullable | Zona o barrio |
+| cover_image | text | nullable | Imagen principal |
+| images | text[] | nullable | Lista de imágenes |
+| amenities | text[] | nullable | Amenities del desarrollo |
+| handover_date | date | nullable | Fecha estimada de entrega |
+| is_active | boolean | NOT NULL DEFAULT true | Desarrollo activo |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:** `slug`, `developer_id`, `country`, `city`
+**Trigger:** `trigger_set_updated_at_developments`
+**Políticas RLS:**
+- SELECT público: developments activos (`is_active = true`)
+
+#### 7.2.5 Tabla: properties
+
+Creada por migración `007_developers_developments_properties_rebuild.sql` (reemplaza 003).
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID de la propiedad |
+| listed_by_id | uuid | NOT NULL, FK → user_profiles(id) ON DELETE CASCADE | ID del vendedor |
+| listed_by_type | text | NOT NULL, CHECK IN ('developer', 'broker', 'private_seller') | Tipo de vendedor |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer constructor (opcional) |
+| development_id | uuid | FK → developments(id) ON DELETE SET NULL | Desarrollo/proyecto (opcional) |
+| status | text | NOT NULL DEFAULT 'available', CHECK IN ('available', 'sold', 'reserved', 'off_market') | Estado |
+| country | text | NOT NULL | País |
+| city | text | NOT NULL | Ciudad |
+| community | text | nullable | Zona o barrio |
+| address | text | nullable | Dirección |
+| title | text | NOT NULL | Título |
+| slug | text | NOT NULL, UNIQUE(listed_by_id, slug) | Slug único por seller |
+| description | text | nullable | Descripción |
+| property_type | text | NOT NULL, CHECK IN ('apartment', 'villa', 'townhouse', 'penthouse', 'duplex') | Tipo |
+| bedrooms | integer | nullable | Dormitorios |
+| bathrooms | integer | nullable | Baños |
+| area_sqft | numeric | nullable | Área en pies cuadrados |
+| area_sqm | numeric | nullable | Área en metros cuadrados |
+| floor | integer | nullable | Piso |
+| has_balcony | boolean | DEFAULT false | Tiene balcón |
+| has_garden | boolean | DEFAULT false | Tiene jardín |
+| price | numeric | NOT NULL | Precio |
+| currency | text | NOT NULL DEFAULT 'USD', CHECK IN ('AED', 'USD', 'EUR', 'GBP') | Moneda |
+| deposit_percentage | numeric | nullable | Porcentaje de depósito |
+| deposit_amount | numeric | nullable | Monto del depósito |
+| has_post_handover | boolean | DEFAULT false | Tiene plan post-entrega |
+| handover_date | date | nullable | Fecha de entrega |
+| payment_plan_months | integer | nullable | Meses del plan de pago |
+| amenities | text[] | nullable | Lista de amenities |
+| images | text[] | nullable | URLs de imágenes |
+| cover_image | text | nullable | URL de imagen principal |
+| tags | text[] | nullable | Tags |
+| is_featured | boolean | DEFAULT false | Propiedad destacada |
+| is_active | boolean | DEFAULT true | Propiedad activa |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:**
+- Simples: `listed_by_id`, `listed_by_type`, `developer_id`, `development_id`, `status`, `country`, `city`, `property_type`, `is_active`
+- Compuesto: `(listed_by_id, is_active)` — query del dashboard
+
+**Trigger:** `set_updated_at_properties`
+**Políticas RLS:**
+- SELECT público: propiedades activas (`is_active = true`)
+- SELECT privado: seller ve todas sus propiedades (`auth.uid() = listed_by_id`)
+- INSERT: seller inserta sus propiedades, verificando `listed_by_type = role`
+- UPDATE/DELETE: solo seller dueño
+
+#### 7.2.6 Tabla: payment_plan_milestones
+
+Creada por migración `007_developers_developments_properties_rebuild.sql` (reemplaza 004).
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del hito |
+| property_id | uuid | NOT NULL, FK → properties(id) ON DELETE CASCADE | ID de la propiedad |
+| milestone_name | text | NOT NULL | Nombre del hito (ej: 'On Booking') |
+| percentage | numeric | NOT NULL, CHECK (>= 0 AND <= 100) | Porcentaje del total |
+| amount | numeric | nullable | Monto en moneda de la propiedad |
+| due_date | date | nullable | Fecha de vencimiento |
+| description | text | nullable | Descripción |
+| sort_order | integer | NOT NULL DEFAULT 0 | Orden de los hitos |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+
+**Índice:** `property_id`
+**Políticas RLS:**
+- SELECT público: milestones de propiedades activas
+- INSERT/UPDATE/DELETE: seller dueño de la propiedad (check vía subquery a properties)
+
+#### 7.2.7 Interfaces TypeScript
+
+Definidas en `lib/types.ts`:
 
 ```typescript
+// --- Tipos base ---
 type UserRole = "developer" | "broker" | "private_seller";
+type PropertyStatus = "available" | "sold" | "reserved" | "off_market";
+type PropertyType = "apartment" | "villa" | "townhouse" | "penthouse" | "duplex";
+type PropertyCurrency = "AED" | "USD" | "EUR" | "GBP";
 
+// --- Tabla developers ---
+interface Developer {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  website: string | null;
+  description: string | null;
+  country: string | null;
+  is_verified: boolean;
+  user_profile_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Tabla developments ---
+interface Development {
+  id: string;
+  name: string;
+  slug: string;
+  developer_id: string | null;
+  description: string | null;
+  country: string | null;
+  city: string | null;
+  community: string | null;
+  cover_image: string | null;
+  images: string[] | null;
+  amenities: string[] | null;
+  handover_date: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Tabla payment_plan_milestones ---
+interface PaymentPlanMilestone {
+  id: string;
+  property_id: string;
+  milestone_name: string;
+  percentage: number;
+  amount: number | null;
+  due_date: string | null;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+// --- Tabla user_profiles ---
 interface UserProfile {
   id: string;
   role: UserRole;
@@ -484,17 +658,106 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
 }
+
+// --- Tabla properties (con campos planos joined) ---
+interface PropertyData {
+  // Identificación
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  descriptionFull: string;
+
+  // Relaciones (FKs)
+  listed_by_id: string;
+  listed_by_type: UserRole;
+  developer_id: string | null;
+  development_id: string | null;
+
+  // Ubicación
+  status: PropertyStatus;
+  country: string;
+  city: string;
+  community: string;
+  address: string | null;
+
+  // Características físicas
+  property_type: PropertyType;
+  category: string;
+  subcategory: string;
+  beds: number;
+  baths: number;
+  area: number;
+  area_sqft: number | null;
+  area_sqm: number | null;
+  floor: number | null;
+  has_balcony: boolean;
+  has_garden: boolean;
+
+  // Financiero
+  price: number;
+  currency: PropertyCurrency;
+  deposit_percentage: number | null;
+  deposit_amount: number | null;
+
+  // Entrega y plan de pago
+  has_post_handover: boolean;
+  handover_date: string | null;
+  handoverDate: string;
+  payment_plan_months: number | null;
+
+  // Multimedia y amenities
+  images: string[];
+  cover_image: string | null;
+  amenities: string[];
+  tags: string[];
+
+  // Metadata
+  is_featured: boolean;
+  is_active: boolean;
+  addedOn: string;
+  created_at: string;
+  updated_at: string;
+
+  // Campos planos (joined desde developers, developments, communities)
+  developer_name: string;
+  developer_slug: string;
+  developer_logo: string;
+  development_name: string;
+  development_slug: string;
+  development_total_area: number;
+  development_amenities: string[];
+  community_name: string;
+  community_slug: string;
+  community_total_area: number;
+  community_description: string;
+
+  // Plan de pago (objeto legacy para UI)
+  paymentPlan: {
+    length: string;
+    depositPercentage: string;
+    depositValue: string;
+    description: string;
+  };
+
+  // Contacto
+  phone: string;
+  whatsapp: string;
+}
 ```
 
-#### 7.2.5 Tablas creadas
-- `developers` — información detallada de promotoras (logo, descripción, país, verificación) — migración 007
-- `developments` — proyectos/desarrollos (nombre, ubicación, amenities, fecha entrega) — migración 007
-- `properties` — unidades individuales con FK a developers y developments — migración 007 (reemplaza 003)
-- `payment_plan_milestones` — hitos del plan de pago por propiedad — migración 007 (reemplaza 004)
+**Patrón de campos planos:** `PropertyData` incluye tanto los campos propios de la tabla `properties` como campos "joined" que replican datos de las tablas `developers`, `developments` y `communities`. Esto evita joins en tiempo de render y simplifica el acceso en componentes Server. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vía vistas materializadas.
+
+#### 7.2.8 Tablas con datos migrados
 - `subscriptions` — suscripciones por usuario (inactiva en beta, preparada para Stripe) — migración 006
 - Storage bucket `property-images` — imágenes de propiedades (público, 5MB, folder-based RLS) — migración 005
 
-#### 7.2.6 Tablas pendientes de crear
+#### 7.2.9 Tablas legacy
+- `developer_profiles` — reemplazada por `user_profiles` (migración 002). Se mantiene por retrocompatibilidad.
+- `properties` (v003) — reemplazada por la versión 007 con FKs a `developers`, `developments` y `user_profiles`
+- `payment_plan_milestones` (v004) — reemplazada por la versión 007 con CHECK en percentage y RLS mejorado
+
+#### 7.2.10 Tablas pendientes de crear
 - `communities` — comunidades/zonas
 - `favorites` — favoritos del inversor
 - `inquiries` — consultas de inversores a vendedores
@@ -548,6 +811,10 @@ interface UserProfile {
 - **Verificación de sesión:** `getUser()` server-side (no `getClaims()`) — el JWT puede estar expirado aunque los claims se decodifiquen
 - **Variables de entorno:** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - **RLS en user_profiles:** cada usuario solo puede leer/escribir su propio perfil
+- **RLS en developers:** público para verificados, propio para el developer dueño
+- **RLS en developments:** público para activos
+- **RLS en properties:** público para activos, propio para el seller dueño
+- **RLS en payment_plan_milestones:** público para propiedades activas, propio vía subquery a properties
 - **Role en Supabase Auth:** El role se guarda en `raw_user_meta_data` del usuario al registrarse (`options.data.role`). El trigger `handle_new_user()` lo lee con `coalesce(new.raw_user_meta_data->>'role', 'developer')`.
 
 ---
@@ -668,6 +935,7 @@ interface UserProfile {
 15. **El confirm route handler ejecuta `updateSession()` antes de verificar el OTP**, permitiendo leer el perfil del usuario recién creado.
 16. **Los pricing plans están configurados pero no se aplican.** Son referencia para futura implementación de planes pagos.
 17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el dashboard layout leen de `user_profiles`.
+18. **Los componentes usan campos planos para acceder a datos de tablas relacionadas.** `PropertyData` incluye campos "joined" (`developer_name`, `development_name`, etc.) que replican datos de `developers` y `developments`. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vistas materializadas.
 
 ---
 
@@ -681,7 +949,7 @@ interface UserProfile {
 - El locale/idioma se puede inferir por geolocalización del país de origen
 
 **Restricciones:**
-- Datos mockeados para MVP — sin base de datos propia de propiedades
+- Datos mockeados para MVP — las tablas existen en Supabase pero la UI aún no las consulta
 - Sin mapa funcional en MVP (pendiente geolocalización)
 - Sin pagos integrados en la plataforma
 - Sin comparador de propiedades
@@ -719,13 +987,23 @@ interface UserProfile {
 - Fix middleware auth routes (updateSession antes de intlMiddleware)
 - Pricing plans configurados por role × país
 - Confirm route handler con onboarding gate
+- Tablas `developers`, `developments` creadas en Supabase (migración 007)
+- Tabla `properties` recreada con FKs a `developers`, `developments` y `user_profiles` (migración 007, reemplaza 003)
+- Tabla `payment_plan_milestones` recreada con CHECK en percentage (0-100) y RLS con ownership check vía subquery (migración 007, reemplaza 004)
+- Función `trigger_set_updated_at()` renombrada a `trigger_set_updated_at_user_profiles()` para evitar conflictos de nombres
+- Interfaz `PropertyData` migrada a campos planos: `developer_name`, `developer_slug`, `developer_logo`, `development_name`, `development_slug`, `development_total_area`, `development_amenities`, `community_name`, `community_slug`, `community_total_area`, `community_description`
+- Nuevas interfaces TypeScript: `Developer`, `Development`, `PaymentPlanMilestone`
+- Nuevos tipos TypeScript: `PropertyStatus`, `PropertyType`, `PropertyCurrency`
+- `property-card.tsx` migrado a campos planos (`developer_name`, `developer_logo`, `city`, `community`)
+- Detalle de propiedad migrado a campos planos (todas las referencias anidadas eliminadas)
+- `RelatedProperties` se renderiza correctamente
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/dashboard/properties`, `/dashboard/analytics` (Developer), `/dashboard/listings`, `/dashboard/clients` (Broker), `/dashboard/my-property` (Private Seller)
 - **Corto plazo:** Crear rutas `/development/[slug]` y `/developer/[slug]` — actualmente dan 404 al navegar desde el detalle de propiedad
+- **Corto plazo:** Conectar tablas `developers`, `developments` y `properties` a la UI real (reemplazar datos planos mockeados con queries a Supabase)
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
-- **Corto plazo:** Conectar datos de propiedades a Supabase (reemplazar mock data con queries reales)
 - **Corto plazo:** Migrar formularios de auth a traducciones (actualmente hardcodeados en inglés)
 - **Corto plazo:** Implementar página `/dashboard/settings`
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
@@ -766,3 +1044,4 @@ interface UserProfile {
 | DataTable | Tabla interactiva con drag & drop, filtros, paginación y edición inline |
 | Onboarding | Flujo post-registro donde el usuario completa los datos de su perfil según su role |
 | Pricing Plans | Matriz de precios configurada por role × país para futuros planes pagos |
+| Campos planos | Patrón de diseño donde `PropertyData` incluye datos "joined" de tablas relacionadas (`developer_name`, `development_name`, etc.) para evitar joins en tiempo de render |

@@ -138,7 +138,7 @@ Creada por migración `supabase/migrations/002_user_profiles.sql`. Reemplaza a `
 | updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
 
 **Triggers:**
-- `set_updated_at_user_profiles`: actualiza `updated_at` automaticamente en cada UPDATE
+- `trigger_set_updated_at_user_profiles`: actualiza `updated_at` automaticamente en cada UPDATE (renombrada en migración 007)
 - `handle_new_user`: inserta perfil con role de `raw_user_meta_data->>'role'` (default 'developer') al crear usuario en `auth.users`
 
 **Politicas RLS:**
@@ -257,13 +257,13 @@ Creada por migración `supabase/migrations/007_developers_developments_propertie
 - Compuesto: `(listed_by_id, is_active)` — query del dashboard
 
 **Trigger:**
-- `set_updated_at_properties`: actualiza `updated_at` automáticamente en cada UPDATE
+- `trigger_set_updated_at_properties`: actualiza `updated_at` automáticamente en cada UPDATE
 
 **Políticas RLS:**
 - SELECT público: propiedades activas (`is_active = true`)
-- SELECT privado: seller ve todas sus propiedades (`auth.uid() = seller_id`)
-- INSERT: seller inserta sus propiedades, verificando `seller_type = role`
-- UPDATE/DELETE: solo seller dueño
+- SELECT privado: seller ve todas sus propiedades (`auth.uid() = listed_by_id`)
+- INSERT: seller inserta sus propiedades, verificando `listed_by_type = role` (subquery a user_profiles)
+- UPDATE/DELETE: solo seller dueño (`auth.uid() = listed_by_id`)
 
 ### payment_plan_milestones
 
@@ -533,6 +533,9 @@ offplaninternational/
 | 2026-06-22 | Pricing plans por role x pais | Matriz de precios diferenciada: developer/broker pagan, private_seller es gratuito |
 | 2026-06-22 | proxy.ts ejecuta updateSession() antes de intlMiddleware() en auth routes | Asegura que la sesion este actualizada antes del routing de locale |
 | 2026-06-22 | Legacy routes redirigen | `/login` -> `/auth/login`, `/signup` -> `/auth/sign-up/developer`; mantiene compatibilidad con URLs existentes |
+| 2026-07-23 | Migración 007: tablas `developers`, `developments`, rebuild `properties` y `payment_plan_milestones` | Separa entidades de negocio: developer (promotora), development (proyecto), property (unidad). Renombra `seller_id/seller_type` a `listed_by_id/listed_by_type`. Agrega CHECK en percentage, ownership vía subquery en milestones. Renombra función trigger a `trigger_set_updated_at_*` para consistencia |
+| 2026-07-23 | Campos flat en `PropertyData` (`developer_name`, `city`, `community`, etc.) | Evita joins anidados en server components; el mock data y la interfaz incluyen campos joined planos que en producción vendrán de queries con JOINs |
+| 2026-07-23 | Tipos `PropertyStatus`, `PropertyType`, `PropertyCurrency` extraídos en `lib/types.ts` | Unifica restricciones de BD con tipos TypeScript; facilita autocomplete y validación |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -673,5 +676,8 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Dashboard/sin i18n:** las rutas `(auth)` y `dashboard` no usan next-intl; los componentes son hardcodeados en ingles
 - **Sidebar:** usa `SidebarProvider` con cookie `sidebar_state` para persistencia del estado colapsado
 - **Roles:** tipo `UserRole` definido en `lib/types.ts` como `"developer" | "broker" | "private_seller"`
+- **Tipos de propiedad:** `PropertyStatus`, `PropertyType`, `PropertyCurrency` definidos en `lib/types.ts`, alineados con CHECK constraints de BD
+- **Interfaces de dominio:** `Developer`, `Development`, `PaymentPlanMilestone` en `lib/types.ts` — reflejan tablas de BD 1:1
+- **PropertyData:** interfaz flat con campos joined (`developer_name`, `developer_logo`, `city`, `community`, etc.) — no usar objetos anidados
 - **user_profiles:** tabla unica para todos los roles; campos condicionales se llenan en onboarding
 - **Auth forms:** login-form, sign-up-form, update-password-form usan `useRouter` de `@/i18n/navigation` para navegacion con locale
