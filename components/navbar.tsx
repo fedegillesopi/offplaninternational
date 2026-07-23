@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { CurrencySwitcher } from "./currency-switcher";
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const t = useTranslations("navigation");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user ? { email: data.user.email! } : null);
+    });
+  }, []);
 
   const navLinks = [
     { label: t("developers"), href: "/developers/developers-list" },
     { label: t("developments"), href: "/developments/developments-list" },
-    { label: t("communities"), href: "/communities/communities-list" },
     { label: t("properties"), href: "/properties/properties-list" },
   ];
 
@@ -46,7 +55,7 @@ export function Navbar() {
           </svg>
         </button>
 
-        <nav className="hidden gap-1 md:flex">
+        <nav className="hidden items-center gap-2 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -56,6 +65,33 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          <CurrencySwitcher />
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="font-heading rounded bg-[--primary-main] px-3 py-1 text-sm font-medium text-[--text-primary] no-underline transition-all duration-200 hover:bg-[--primary-main]/90"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <div className="flex items-center gap-1">
+                <Link
+                  href="/auth/login"
+                  className="font-heading py-1 text-sm font-light text-white no-underline transition-all duration-200 hover:text-[--primary-main]"
+                >
+                  Login
+                </Link>
+                <p className="text-white">/</p>
+                <Link
+                  href="/auth/sign-up"
+                  className="font-heading py-1 text-sm font-light text-white no-underline transition-all duration-200 hover:text-[--primary-main]"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            </>
+          )}
         </nav>
       </div>
 
@@ -88,6 +124,37 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <div className="px-4 pt-3">
+                <CurrencySwitcher />
+              </div>
+              <div className="flex gap-2 px-4 pt-4">
+                {user ? (
+                  <Link
+                    href="/dashboard"
+                    className="font-heading flex-1 rounded bg-[--primary-main] px-3 py-2 text-center text-sm font-medium text-[--text-primary] no-underline transition-all duration-200 hover:bg-[--primary-main]/90"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      className="font-heading flex-1 rounded border border-white px-3 py-2 text-center text-sm font-light text-white no-underline transition-all duration-200 hover:text-[--primary-main]"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/auth/sign-up"
+                      className="font-heading flex-1 px-3 py-2 text-center text-sm font-light text-white no-underline transition-all duration-200 hover:text-[--primary-main]"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         </div>

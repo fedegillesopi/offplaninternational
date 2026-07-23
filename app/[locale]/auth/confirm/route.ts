@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
   const type = rawType && VALID_TYPES.includes(rawType as EmailOtpType)
     ? (rawType as EmailOtpType)
     : null;
-  const next = searchParams.get("next") ?? "/";
 
   if (token_hash && type) {
     const supabase = await createClient();
@@ -20,8 +19,25 @@ export async function GET(request: NextRequest) {
       type,
       token_hash,
     });
+
     if (!error) {
-      redirect(next);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("role, profile_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (profile && !profile.profile_completed) {
+          redirect(`/auth/onboarding/${profile.role}`);
+        }
+
+        redirect("/dashboard");
+      }
+
+      redirect("/dashboard");
     } else {
       redirect(`/auth/error?error=${error?.message}`);
     }

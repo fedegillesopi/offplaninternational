@@ -1,24 +1,36 @@
 "use client";
 
+import { useState } from "react";
+import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useState } from "react";
+import type { UserRole } from "@/lib/types";
+
+const ROLES: { value: UserRole; label: string }[] = [
+  { value: "developer", label: "Developer" },
+  { value: "broker", label: "Broker" },
+  { value: "private_seller", label: "Private Seller" },
+];
 
 export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const params = useParams();
+  const initialRole = (params.role as UserRole) || "developer";
+  const [activeTab, setActiveTab] = useState<UserRole>(initialRole);
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -38,12 +50,22 @@ export function SignUpForm({
       return;
     }
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
+          data: {
+            role: activeTab,
+            full_name: fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });
       if (error) throw error;
@@ -55,64 +77,114 @@ export function SignUpForm({
     }
   };
 
+  const resetForm = () => {
+    setFullName("");
+    setEmail("");
+    setPassword("");
+    setRepeatPassword("");
+    setError(null);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as UserRole);
+    router.push(`/auth/sign-up/${value}`);
+    resetForm();
+  };
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
+    <div className={cn("flex flex-col gap-4", className)} {...props}>
+      <div className="flex rounded-lg bg-muted p-1">
+        {ROLES.map((role) => (
+          <button
+            key={role.value}
+            type="button"
+            onClick={() => handleTabChange(role.value)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 rounded-md px-2 py-1 text-sm font-medium transition-all",
+              activeTab === role.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>{role.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <Card className="p-3">
+        <CardHeader className="p-0">
+          <CardTitle className="text-2xl font-bold">
+            Create your account
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            List your properties and connect directly with investors.
+          </p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignUp}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="repeat-password">Repeat Password</Label>
-                </div>
-                <Input
-                  id="repeat-password"
-                  type="password"
-                  required
-                  value={repeatPassword}
-                  onChange={(e) => setRepeatPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating an account..." : "Sign up"}
-              </Button>
+        <CardContent className="p-0">
+          <form onSubmit={handleSignUp} className="space-y-2">
+            <div className="space-y-1">
+              <Label htmlFor="fullName">Full name</Label>
+              <Input
+                id="fullName"
+                placeholder="John Doe"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
-            <div className="mt-4 text-center text-sm">
-              Already have an account?{" "}
-              <Link href="/auth/login" className="underline underline-offset-4">
-                Login
-              </Link>
+
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="repeat-password">Repeat password</Label>
+              <Input
+                id="repeat-password"
+                type="password"
+                required
+                value={repeatPassword}
+                onChange={(e) => setRepeatPassword(e.target.value)}
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            <Button variant={"secondary"} type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating account..." : "Create account"}
+            </Button>
           </form>
         </CardContent>
+        <CardFooter className="flex flex-col border-none p-0 mt-2">
+          <p className="text-center text-xs text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              href="/auth/login"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Login
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
