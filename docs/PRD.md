@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.1 — 04-Jun-2026
-**Estado:** MVP en desarrollo — Dashboard de developer completado
+**Versión:** 1.2 — 22-Jul-2026
+**Estado:** MVP en desarrollo — Sistema de 3 roles y onboarding implementado
 
 ---
 
@@ -31,7 +31,7 @@
 
 **Arquitectura general:** El proyecto opera como dos experiencias integradas en un mismo dominio:
 1. **Sitio público** (bajo `[locale]`): landing page, listado y detalle de propiedades, auth para inversores. Todo con i18n y geo-detección.
-2. **Plataforma de developers** (rutas standalone): dashboard, auth de developers, gestión de propiedades y métricas. Sin i18n (inglés por ahora).
+2. **Plataforma de vendedores** (rutas standalone): dashboard, auth con 3 roles (developer, broker, private seller), gestión de propiedades y métricas. Sin i18n (inglés por ahora).
 
 ---
 
@@ -39,14 +39,13 @@
 
 ### 2.1 Objetivos principales
 - Proveer un marketplace global donde inversores puedan buscar, comparar y contactar promotoras directamente
-- Dar a las promotoras un canal de listing directo sin coste de intermediarios
+- Dar a promotoras, brokers y vendedores privados un canal de listing directo sin coste de intermediarios
 - Centralizar información financiera completa por unidad (depósito, plan de pago, precio, fecha de entrega)
 - Eliminar la fricción del proceso de compra Off-Plan
 
 ### 2.2 Indicadores de éxito del MVP
 - Propiedades listadas: ≥ 100 unidades en los primeros 3 meses
-- Promotoras registradas: ≥ 5 promotoras activas
-- Usuarios registrados: ≥ 200 en los primeros 3 meses
+- Usuarios registrados (todos los roles): ≥ 200 en los primeros 3 meses
 - Consultas enviadas a través de la plataforma: ≥ 50 en los primeros 3 meses
 
 ---
@@ -65,18 +64,19 @@
 | Listado de propiedades con cards y filtros avanzados | Público | ✅ Implementado |
 | Conversión de moneda en vivo (CurrencyPrice + CurrencyProvider) | Público | ✅ Implementado |
 | Página de detalle de propiedad (gallery, sidebar, details-table, amenities, payment-plan, tags, breadcrumb, related-properties) | Público | ✅ Completado |
-| Auth inversor (login, signup, forgot/reset password, update password, confirm email) | Público | ✅ Implementado |
-| Auth developer (login y signup standalone) | Developer | ✅ Implementado |
-| Tabla `developer_profiles` en Supabase con RLS y trigger automático | Developer | ✅ Implementado |
-| Dashboard de developer con sidebar, métricas (SectionCards) y tabla de datos (DataTable) | Developer | ✅ Implementado |
-| Sidebar con navegación (Dashboard, Settings) y avatar de usuario | Developer | ✅ Implementado |
-| Logout desde el dashboard | Developer | ✅ Implementado |
-| Protección de rutas del dashboard (middleware redirige a /login si no hay sesión) | Developer | ✅ Implementado |
+| Auth unificado con 3 roles (login, signup, forgot/reset password, update password, confirm email) | Todos | ✅ Implementado |
+| Signup URL-driven por role: `/auth/sign-up/developer`, `/auth/sign-up/broker`, `/auth/sign-up/private-seller` | Todos | ✅ Implementado |
+| Onboarding post-confirmación: `/auth/onboarding/[role]` con campos condicionales | Todos | ✅ Implementado |
+| Tabla `user_profiles` en Supabase con RLS, trigger y migración desde `developer_profiles` | Todos | ✅ Implementado |
+| Dashboard unificado con sidebar basado en role (Developer/Broker/Private Seller) | Todos | ✅ Implementado |
+| Pricing plans configurados por role × país (`lib/pricing-plans.ts`) | Todos | ✅ Implementado |
+| Legacy route redirects (`/login` → `/auth/login`, `/signup` → `/auth/sign-up/developer`) | Auth | ✅ Implementado |
+| Fix middleware: `updateSession()` antes de `intlMiddleware()` en auth routes | Auth | ✅ Implementado |
 | Página de listado de desarrollos `/development/[slug]` | Público | ❌ Pendiente |
 | Página de listado de promotoras `/developer/[slug]` | Público | ❌ Pendiente |
 | Página de listado de comunidades | Público | ❌ Pendiente |
-| Dashboard de inversor (favoritos, consultas) | Público | ❌ Pendiente |
-| Panel de administración completo para promotoras | Developer | ❌ Pendiente |
+| Dashboard de inversor (favoritos, consultas) | Inversor | ❌ Pendiente |
+| Paneles específicos por role (Properties/Analytics para Developer, Listings/Clients para Broker, My Property para Private Seller) | Vendedor | ❌ Pendiente |
 | Mapa global con unidades geolocalizadas | Público | ❌ Pendiente |
 
 ### 3.2 Fuera de alcance del MVP
@@ -94,36 +94,42 @@
 
 ## 4. MODELO OPERATIVO
 
-El sistema funciona como un **marketplace bilateral** con dos caras:
+El sistema funciona como un **marketplace multilateral** con tres tipos de vendedores y una cara pública de inversores:
 
 **Cara pública (inversores):**
-- Las promotoras listan unidades individuales con datos financieros completos
-- Los inversores buscan, filtran y contactan directamente a las promotoras
+- Los vendedores (developers, brokers, vendedores privados) listan unidades individuales con datos financieros completos
+- Los inversores buscan, filtran y contactan directamente al vendedor
 - No hay intermediarios ni comisiones por venta
-- El modelo de ingresos futuro son planes premium de visibilidad para promotoras
+- El modelo de ingresos futuro son planes premium de visibilidad para vendedores
 
-**Cara privada (developers):**
-- Los developers se registran y acceden a un dashboard
-- El dashboard muestra métricas de sus propiedades y permite gestionar listings
-- La tabla `developer_profiles` se crea automáticamente al registrarse vía trigger de Supabase
+**Cara privada (vendedores — 3 roles):**
+- Los vendedores se registran eligiendo su role (Developer, Broker, o Private Seller)
+- Tras confirmar email, completan un onboarding específico para su role
+- Acceden a un dashboard unificado con sidebar adaptado a su role
+- La tabla `user_profiles` se crea automáticamente al registrarse vía trigger de Supabase
+
+**Modelo de pricing por role:**
+- **Developer:** Planes Enterprise/Business/Professional según país ($99–$299/mes)
+- **Broker:** Planes Professional/Starter según país ($49–$199/mes)
+- **Private Seller:** Plan Free (hasta 3 propiedades)
 
 **Jerarquía de datos:**
 
 ```
 Comunidad / Zona
   └── Desarrollo / Proyecto
-        └── Promotora (Developer)
+        └── Vendedor (Developer / Broker / Private Seller)
               └── Unidades (properties individuales)
 ```
 
 **Flujo de valor:**
 
 ```
-Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
+Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
                      ↓
-         Inversor envía consulta → Consulta llega a promotora
+         Inversor envía consulta → Consulta llega al vendedor
                      ↓
-         Promotora contacta directamente al inversor
+         Vendedor contacta directamente al inversor
                      ↓
          Sin intermediarios, sin presión comercial
 ```
@@ -135,7 +141,7 @@ Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
 ### 5.1 Inversor / Comprador
 **Perfil:** Inversor o comprador final que busca propiedades Off-Plan. Local o internacional.
 
-**Motivación inmediata:** Encontrar unidades disponibles con información financiera clara y contactar directamente a la promotora.
+**Motivación inmediata:** Encontrar unidades disponibles con información financiera clara y contactar directamente al vendedor.
 
 **Motivación diferida:** Guardar favoritos, hacer seguimiento de consultas, recibir alertas de nuevas propiedades.
 
@@ -144,31 +150,65 @@ Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
 - Ver detalle de cada propiedad
 - Cambiar moneda de visualización
 - Registrarse para guardar favoritos y enviar consultas
-- Enviar consulta a promotora desde la ficha de propiedad
+- Enviar consulta al vendedor desde la ficha de propiedad
 - Contactar por WhatsApp directamente
 
 **Restricciones:**
 - No puede listar propiedades
 - No puede editar información de propiedades
-- No accede a paneles de administración
+- No accede a paneles de vendedores
 
-### 5.2 Promotora / Developer
-**Perfil:** Empresa desarrolladora que construye y vende propiedades Off-Plan. Se registra con datos de empresa y país de operación.
+### 5.2 Developer (Promotora)
+**Perfil:** Empresa desarrolladora que construye y vende propiedades Off-Plan. Se registra con datos de empresa.
 
-**Motivación inmediata:** Acceder al dashboard, visualizar métricas y gestionar propiedades.
+**Motivación inmediata:** Acceder al dashboard, listar propiedades y recibir consultas de inversores.
 
-**Motivación diferida:** Panel de administración completo, estadísticas de consultas, gestión de inventario de unidades.
+**Motivación diferida:** Analytics de propiedades, gestión de inventario de unidades.
 
 **Acciones en el sistema:**
-- Registrarse con email, empresa y país de operación
-- Iniciar sesión y acceder al dashboard
-- Ver métricas de propiedades (SectionCards)
-- Gestionar propiedades en tabla de datos (DataTable reordenable)
-- Cerrar sesión
+- Registrarse en `/auth/sign-up/developer` con full name, email y password
+- Completar onboarding en `/auth/onboarding/developer` con: company name, company website, operating country, phone
+- Acceder al dashboard con sidebar: Dashboard, Properties, Analytics, Settings
+- Listar y gestionar propiedades
 
 **Restricciones:**
-- No puede ver propiedades de otras promotoras (solo las propias)
-- No tiene acceso al sitio público como inversor con la misma cuenta
+- No puede ver propiedades de otros vendedores
+- Campos de onboarding: company_name, company_website, operating_country (obligatorio), phone
+
+### 5.3 Broker
+**Perfil:** Intermediario inmobiliario con licencia profesional que lista propiedades de distintos desarrolladores.
+
+**Motivación inmediata:** Acceder al dashboard, listar propiedades de sus clientes y gestionar consultas.
+
+**Motivación diferida:** Gestión de clientes (inversores), seguimiento de leads.
+
+**Acciones en el sistema:**
+- Registrarse en `/auth/sign-up/broker` con full name, email y password
+- Completar onboarding en `/auth/onboarding/broker` con: company name, company website, operating country, license number, phone
+- Acceder al dashboard con sidebar: Dashboard, Listings, Clients, Settings
+- Listar propiedades de distintos desarrolladores
+
+**Restricciones:**
+- Campos de onboarding: company_name, company_website, operating_country, license_number (obligatorio), phone
+- license_number es obligatorio y específico del broker
+
+### 5.4 Private Seller
+**Perfil:** Propietario individual que quiere vender su propia propiedad Off-Plan o en fase de construcción.
+
+**Motivación inmediata:** Listar su propiedad y recibir consultas directas de inversores.
+
+**Motivación diferida:** Gestionar las consultas recibidas de su propiedad.
+
+**Acciones en el sistema:**
+- Registrarse en `/auth/sign-up/private-seller` con full name, email y password
+- Completar onboarding en `/auth/onboarding/private-seller` con: country of residence, phone
+- Acceder al dashboard con sidebar: Dashboard, My Property, Settings
+- Listar su propiedad individual
+
+**Restricciones:**
+- Plan gratuito con hasta 3 propiedades
+- Campos de onboarding: country_of_residence (obligatorio), phone
+- No tiene campos de empresa (company_name, company_website, operating_country no aplican)
 
 ---
 
@@ -196,14 +236,13 @@ Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
   - EAU → ae → AED | AR → ar → USD | BR → br → USD | ES → es → EUR
   - GB → gb → GBP | MX → mx → USD | PT → pt → EUR
 
-#### 6.1.3 Auth inversor (bajo `/[locale]/auth/`)
+#### 6.1.3 Auth (bajo `/[locale]/auth/`)
 - Método: email/password
 - Flujos: registro, login, forgot password, reset password, update password
 - Confirmación de email obligatoria
-- Rutas protegidas via middleware: `proxy.ts` combina i18n + geo + auth
+- Rutas protegidas via middleware: `proxy.ts` ejecuta `updateSession()` antes de `intlMiddleware()` en rutas de auth para resolver locale correctamente
 - `getUser()` server-side para verificar sesión (no `getClaims()`)
-- Sin distinción de roles en MVP
-- Tras login exitoso → redirige a `/[locale]/protected`
+- Tras login exitoso → redirige a `/dashboard` (standalone, sin locale prefix)
 
 #### 6.1.4 Currency Switcher
 - 4 monedas disponibles: AED, USD, EUR, GBP
@@ -242,31 +281,112 @@ Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
 - Traducciones `property_detail` en 7 locales
 - Datos mockeados desde `lib/mock-properties.ts` con interfaz `PropertyData` compartida en `lib/types.ts`
 
-### 6.2 Plataforma de developers (rutas standalone)
+### 6.2 Auth unificado y onboarding (3 roles)
 
-#### 6.2.1 Auth developer
-- **Login:** `/login` — formulario con email y password, redirect a `/dashboard` tras éxito. Sin i18n (inglés).
-- **Signup:** `/signup` — formulario con company name, operating country, email y password. Tras crear usuario en Supabase Auth, actualiza `developer_profiles` con company_name y operating_country. Redirect a `/dashboard`.
-- La tabla `developer_profiles` se crea automáticamente para cada nuevo usuario vía trigger `on_auth_user_created` en Supabase.
-- Middleware protege `/dashboard` redirigiendo a `/login` si no hay sesión activa.
-- Middleware redirige a `/dashboard` si un usuario autenticado visita `/login` o `/signup`.
+#### 6.2.1 Registro por role (URL-driven)
+- **Ruta base:** `/[locale]/auth/sign-up/[role]` — cada role tiene su propia URL
+- **Tabs de role:** El componente `sign-up-form.tsx` renderiza 3 tabs (Developer, Broker, Private Seller). Al hacer clic en un tab, navega a `/auth/sign-up/{role}` usando `router.push()`. No hay tabs internos — cada tab es una URL distinta.
+- **Lectura del role:** `SignUpForm` lee el role de `useParams()` (`params.role`). El form inicializa `activeTab` con el role de la URL.
+- **Formulario:** full name, email, password, repeat password (común a los 3 roles)
+- **Submit:** `supabase.auth.signUp()` con `options.data.role = activeTab` y `full_name`. El role se guarda en `raw_user_meta_data` de Supabase.
+- **Redirect post-signup:** `/auth/sign-up-success` (email de confirmación pendiente)
+- **Redirect legacy:** `/[locale]/auth/sign-up` (sin role) redirige a `/auth/sign-up/developer`
+- **Componente:** `components/sign-up-form.tsx` (client, hardcodeado en inglés)
+- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha
 
-#### 6.2.2 Dashboard de developer
-- **Layout:** SidebarProvider con AppSidebar, SiteHeader y contenido. Protegido: verifica sesión vía `supabase.auth.getUser()`. Si no hay sesión, redirige a `/login`.
-- **AppSidebar:** Sidebar colapsable con logo, navegación principal (Dashboard), navegación secundaria (Settings), y NavUser con avatar, nombre, email y logout.
-- **Dashboard page:** Saludo personalizado con `profile.email`, SectionCards (métricas), y DataTable con datos mockeados desde `data.json`.
-- **SectionCards:** 4 cards que muestran: Total Revenue ($1,250), New Customers (1,234), Active Accounts (45,678), Growth Rate (4.5%). Cada una con badge de tendencia (up/down) y descripción. Datos mockeados (placeholder).
-- **DataTable:** Tabla interactiva con 68 filas de datos mockeados. Funcionalidades:
-  - Reordenación drag & drop (dnd-kit)
-  - Selección múltiple con checkbox
-  - Columnas: Header, Section Type, Status, Target, Limit, Reviewer
-  - Filtro por búsqueda de texto
-  - Paginación
-  - Edición inline de Target y Limit
-  - Column visibility toggle
-  - Viewer drawer al hacer clic en una fila (con gráfico de área)
-  - Toolbar con acciones (Delete, Edit, etc.)
-- **NavUser:** Dropdown con avatar, nombre, email y botón de "Log out". Al cerrar sesión, redirige a `/login`.
+#### 6.2.2 Login unificado
+- **Ruta:** `/[locale]/auth/login` — formulario con email y password
+- **Componente:** `components/login-form.tsx` (client, usa `Link` y `useRouter` de `@/i18n/navigation`)
+- **Submit:** `supabase.auth.signInWithPassword()` → redirect a `/dashboard`
+- **Link a registro:** `/auth/sign-up` (redirige a `/auth/sign-up/developer`)
+- **Link a forgot password:** `/auth/forgot-password`
+- **Legacy route:** `(auth)/login/page.tsx` redirige a `/auth/login`
+
+#### 6.2.3 Onboarding post-confirmación
+- **Ruta:** `/[locale]/auth/onboarding/[role]`
+- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) lee `user_profiles.role` y `user_profiles.profile_completed` tras verificar el OTP. Si `profile_completed === false`, redirige a `/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/dashboard`.
+- **Formulario unificado con campos condicionales por role:**
+  - **Developer:** company name*, company website, operating country*, phone*
+  - **Broker:** company name*, company website, operating country*, license number*, phone*
+  - **Private Seller:** country of residence*, phone*
+  - (* = obligatorio)
+- **Submit:** Actualiza `user_profiles` con los campos correspondientes + `profile_completed = true`
+- **Post-submit:** Redirige a `/dashboard`
+- **Países disponibles:** AE, GB, ES, PT, MX, BR, AR, ID, ME
+- **Componente:** `app/[locale]/auth/onboarding/[role]/page.tsx` (client)
+- **Configuración de role:** `ROLE_CONFIG` define título, ícono (lucide-react: Building2, Briefcase, User) y descripción por role
+
+### 6.3 Dashboard unificado (rutas standalone)
+
+#### 6.3.1 Layout del dashboard
+- **Ruta:** `/dashboard` (sin locale prefix, sin i18n)
+- **Protección:** `dashboard/layout.tsx` verifica sesión vía `supabase.auth.getUser()`. Sin sesión → redirect a `/login`.
+- **Datos del perfil:** Query a `user_profiles` selectando `full_name`, `email`, `role`. Si no hay `role` → redirect a `/login`.
+- **Sidebar:** `AppSidebar` recibe `{ name, email, avatar, role }`. El sidebar renderiza navegación diferente según `role`.
+- **SidebarProvider** con `SiteHeader` y contenido
+
+#### 6.3.2 Sidebar por role (`app-sidebar.tsx`)
+- **Developer:** Dashboard (`/dashboard`), Properties (`/dashboard/properties`), Analytics (`/dashboard/analytics`)
+- **Broker:** Dashboard (`/dashboard`), Listings (`/dashboard/listings`), Clients (`/dashboard/clients`)
+- **Private Seller:** Dashboard (`/dashboard`), My Property (`/dashboard/my-property`)
+- **Común a todos:** Settings (`/dashboard/settings`) en NavSecondary
+- **NavUser:** Dropdown con avatar, nombre, email y botón de logout
+
+#### 6.3.3 Dashboard page
+- Saludo personalizado con `profile.email`
+- SectionCards: 4 cards con métricas mockeadas (Revenue, Customers, Accounts, Growth)
+- ⚠️ Las sub-rutas del sidebar (properties, analytics, listings, clients, my-property) están definidas en la navegación pero las páginas aún no existen
+
+#### 6.3.4 Legacy route redirects
+- `app/(auth)/login/page.tsx` → redirect a `/auth/login`
+- `app/(auth)/signup/page.tsx` → redirect a `/auth/sign-up/developer`
+- Estas rutas existen para compatibilidad con URLs legadas
+
+### 6.4 Pricing plans (`lib/pricing-plans.ts`)
+
+Matriz de pricing configurada por role × país:
+
+| Role | País | Plan | Precio/mes | Moneda | Listing limit |
+|---|---|---|---|---|---|
+| Developer | AE | Enterprise | 299 | AED | Unlimited |
+| Developer | GB | Business | 199 | GBP | Unlimited |
+| Developer | ES | Business | 149 | EUR | Unlimited |
+| Developer | PT | Business | 149 | EUR | Unlimited |
+| Developer | MX | Professional | 99 | USD | Up to 50 |
+| Developer | BR | Professional | 99 | USD | Up to 50 |
+| Developer | AR | Professional | 99 | USD | Up to 50 |
+| Broker | AE | Professional | 199 | AED | Unlimited |
+| Broker | GB | Professional | 149 | GBP | Unlimited |
+| Broker | ES | Professional | 99 | EUR | Up to 50 |
+| Broker | PT | Professional | 99 | EUR | Up to 50 |
+| Broker | MX | Starter | 49 | USD | Up to 20 |
+| Broker | BR | Starter | 49 | USD | Up to 20 |
+| Broker | AR | Starter | 49 | USD | Up to 20 |
+| Private Seller | Todos | Free | 0 | USD | Up to 3 |
+
+**Tipos TypeScript:** `UserRole = "developer" | "broker" | "private_seller"` (en `lib/types.ts`)
+**Función helper:** `getPricingPlan(role, country?)` — resuelve el plan para un role y país dado. Fallback a `_default` o al primer plan disponible.
+
+### 6.5 Fix middleware auth routes
+
+**Problema original:** En rutas de auth (`/[locale]/auth/*`), `intlMiddleware()` se ejecutaba antes que `updateSession()`, causando que el locale no se resolviera correctamente al redirigir tras auth.
+
+**Solución implementada en `proxy.ts`:**
+- Las rutas de auth (detectadas por regex `authRouteRegex`) ejecutan `updateSession()` primero
+- Si `updateSession()` retorna un redirect (status 3xx), se retorna ese redirect directamente
+- Si no hay redirect, se continúa con `intlMiddleware(request)`
+- Las rutas standalone (`/dashboard`, `/login`, `/signup`) siguen ejecutando solo `updateSession()`
+
+```
+Auth routes (/[locale]/auth/*):
+  updateSession() → si redirect, retornarlo → sino, intlMiddleware()
+
+Standalone routes (/dashboard, /login, /signup):
+  updateSession() directamente
+
+Otras rutas:
+  intlMiddleware() directamente
+```
 
 ---
 
@@ -278,7 +398,7 @@ Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
 |---|---|---|
 | Framework | Next.js 16.2.6 (App Router) | SSR, Server Components, Server Actions |
 | Lenguaje | TypeScript ~5 | Strict mode |
-| Base de datos | Supabase (PostgreSQL) | Auth + tabla developer_profiles |
+| Base de datos | Supabase (PostgreSQL) | Auth + tabla user_profiles |
 | Estilos | Tailwind CSS 3.4 + tailwindcss-animate | Design system |
 | Componentes UI | Radix UI (shadcn-style): sidebar, sheet, dialog, drawer, select, tabs, table, avatar, separator, skeleton, chart | Primitivas accesibles |
 | Tabla de datos | @tanstack/react-table 8.21 | Tabla con sorting, filtering, pagination |
@@ -300,18 +420,24 @@ Promotora lista unidades → Inversor busca/filtra → Encuentra unidad
 - `auth.users` — usuarios del sistema
 - `auth.sessions` — sesiones activas
 
-#### 7.2.2 Tabla propia: developer_profiles
-Creada via migración `001_developer_profiles.sql`.
+#### 7.2.2 Tabla: user_profiles (tabla principal de perfiles)
+Creada via migración `002_user_profiles.sql`. Reemplaza a `developer_profiles` como tabla principal.
 
-| Columna | Tipo | Descripción |
-|---|---|---|
-| id | uuid (PK, FK → auth.users) | ID del usuario, se crea en cascada al eliminar |
-| full_name | text (not null) | Nombre completo del developer (default '') |
-| company_name | text (not null) | Nombre de la empresa (default '', se completa en onboarding) |
-| operating_country | text (not null) | Código ISO 2 letras: 'AE', 'PT', 'MX', etc. (default '', se completa en onboarding) |
-| email | text (not null) | Email del usuario |
-| created_at | timestamptz (default now()) | Fecha de creación |
-| updated_at | timestamptz (default now()) | Fecha de última actualización |
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, FK → auth.users(id) ON DELETE CASCADE | ID del usuario |
+| role | text | NOT NULL, CHECK ('developer', 'broker', 'private_seller') | Rol del usuario en la plataforma |
+| full_name | text | NOT NULL (default '') | Nombre completo |
+| email | text | NOT NULL | Email del usuario |
+| phone | text | NOT NULL (default '') | Número de teléfono |
+| company_name | text | NOT NULL (default '') | Nombre de la empresa (developer/broker) |
+| company_website | text | NOT NULL (default '') | Website de la empresa (developer/broker) |
+| operating_country | text | NOT NULL (default '') | Código ISO 2 letras del país de operación (developer/broker) |
+| license_number | text | NOT NULL (default '') | Número de licencia profesional (broker) |
+| country_of_residence | text | NOT NULL (default '') | País de residencia (private_seller) |
+| profile_completed | boolean | NOT NULL (default false) | Si el usuario completó el onboarding |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
 
 **Políticas RLS:**
 - SELECT: solo el propio usuario puede leer su perfil (`auth.uid() = id`)
@@ -319,16 +445,54 @@ Creada via migración `001_developer_profiles.sql`.
 - UPDATE: solo el propio usuario puede actualizar su perfil (`auth.uid() = id`)
 
 **Triggers:**
-- `set_updated_at`: actualiza `updated_at` automáticamente en cada UPDATE
-- `on_auth_user_created`: al crear un usuario en `auth.users`, inserta automáticamente un registro en `developer_profiles` con `id`, `email` y campos vacíos
+- `set_updated_at_user_profiles`: actualiza `updated_at` automáticamente en cada UPDATE
+- `handle_new_user()`: al crear un usuario en `auth.users`, inserta automáticamente un registro en `user_profiles` con `id`, `email`, `role` (desde `raw_user_meta_data->>'role'`, default 'developer') y campos vacíos
 
-#### 7.2.3 Tablas pendientes de crear
+**Migración de datos:** La migración 002 migra registros existentes de `developer_profiles` → `user_profiles` con `role = 'developer'` y `profile_completed` basado en si `company_name` no está vacío. La tabla `developer_profiles` se mantiene intacta (no se elimina).
+
+#### 7.2.3 Tabla legacy: developer_profiles
+Creada via migración `001_developer_profiles.sql`. Se mantiene por retrocompatibilidad pero `user_profiles` es la tabla principal.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| id | uuid (PK, FK → auth.users) | ID del usuario |
+| full_name | text (not null) | Nombre completo |
+| company_name | text (not null) | Nombre de la empresa |
+| operating_country | text (not null) | Código ISO 2 letras |
+| email | text (not null) | Email del usuario |
+| created_at | timestamptz | Fecha de creación |
+| updated_at | timestamptz | Fecha de última actualización |
+
+#### 7.2.4 Interfaz TypeScript: UserProfile
+Definida en `lib/types.ts`:
+
+```typescript
+type UserRole = "developer" | "broker" | "private_seller";
+
+interface UserProfile {
+  id: string;
+  role: UserRole;
+  full_name: string;
+  email: string;
+  phone: string;
+  company_name: string;
+  company_website: string;
+  operating_country: string;
+  license_number: string;
+  country_of_residence: string;
+  profile_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+#### 7.2.5 Tablas pendientes de crear
 - `properties` — unidades individuales (precio, depósito, plan de pago, fecha entrega, ubicación, imágenes)
 - `developers` — información detallada de promotoras (logo, descripción, contacto, redes)
 - `developments` — proyectos/desarrollos (nombre, ubicación, amenities, fecha entrega estimada)
 - `communities` — comunidades/zonas
 - `favorites` — favoritos del inversor
-- `inquiries` — consultas de inversores a promotoras
+- `inquiries` — consultas de inversores a vendedores
 
 ### 7.3 Estructura de rutas
 
@@ -340,23 +504,30 @@ Creada via migración `001_developer_profiles.sql`.
 | `/[locale]` | Público | Homepage con locale |
 | `/[locale]/properties-list` | Público | Listado de propiedades con filtros |
 | `/[locale]/property/[slug]` | Público | Detalle de propiedad |
-| `/[locale]/auth/login` | Público | Login inversor |
-| `/[locale]/auth/sign-up` | Público | Registro inversor |
+| `/[locale]/auth/login` | Público | Login unificado |
+| `/[locale]/auth/sign-up/[role]` | Público | Registro por role (developer/broker/private-seller) |
+| `/[locale]/auth/sign-up` | Público | Redirect a `/auth/sign-up/developer` |
 | `/[locale]/auth/forgot-password` | Público | Reset de contraseña |
 | `/[locale]/auth/update-password` | Público | Actualizar contraseña |
-| `/[locale]/auth/confirm` | Público | Callback de confirmación email |
+| `/[locale]/auth/confirm` | Público | Callback de confirmación email → onboarding o dashboard |
+| `/[locale]/auth/onboarding/[role]` | Autenticado | Onboarding post-confirmación por role |
 | `/[locale]/auth/error` | Público | Error de autenticación |
 | `/[locale]/auth/sign-up-success` | Público | Éxito de registro |
 | `/[locale]/protected` | Autenticado | Página protegida inversor (placeholder) |
 
-#### Plataforma de developers (sin i18n)
+#### Plataforma de vendedores (sin i18n)
 
 | Ruta | Acceso | Descripción |
 |---|---|---|
-| `/login` | Público | Login developer |
-| `/signup` | Público | Registro developer |
-| `/dashboard` | Autenticado | Dashboard de developer con sidebar, métricas y tabla |
-| `/dashboard/settings` | Autenticado | Configuración de developer (placeholder en sidebar) |
+| `/login` | Público | Redirect a `/auth/login` |
+| `/signup` | Público | Redirect a `/auth/sign-up/developer` |
+| `/dashboard` | Autenticado | Dashboard unificado con sidebar según role |
+| `/dashboard/settings` | Autenticado | Configuración (placeholder en sidebar) |
+| `/dashboard/properties` | Developer | Gestión de propiedades (pendiente) |
+| `/dashboard/analytics` | Developer | Analytics (pendiente) |
+| `/dashboard/listings` | Broker | Listings (pendiente) |
+| `/dashboard/clients` | Broker | Clientes (pendiente) |
+| `/dashboard/my-property` | Private Seller | Mi propiedad (pendiente) |
 
 ### 7.4 Seguridad y acceso
 
@@ -365,11 +536,14 @@ Creada via migración `001_developer_profiles.sql`.
   - next-intl locale routing (público)
   - Geo-detección (público)
   - Auth middleware para rutas protegidas y dashboard
+- **Fix auth routes:** En `proxy.ts`, las rutas de auth ejecutan `updateSession()` antes de `intlMiddleware()` para resolver el locale correctamente antes de redirigir
 - **Protección del dashboard:** `updateSession()` en `lib/supabase/middleware.ts` verifica sesión en `/dashboard/*`. Si no hay usuario, redirige a `/login`. Si hay usuario en `/login` o `/signup`, redirige a `/dashboard`.
 - **Protección del sitio público:** `updateSession()` también protege `/[locale]/protected` y `/[locale]/auth/*` (excepto rutas públicas como login, sign-up, forgot-password, etc.)
+- **Onboarding gate:** El confirm route handler lee `user_profiles.profile_completed`. Si es `false`, redirige a `/auth/onboarding/{role}` en lugar de `/dashboard`.
 - **Verificación de sesión:** `getUser()` server-side (no `getClaims()`) — el JWT puede estar expirado aunque los claims se decodifiquen
 - **Variables de entorno:** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- **RLS en developer_profiles:** cada usuario solo puede leer/escribir su propio perfil
+- **RLS en user_profiles:** cada usuario solo puede leer/escribir su propio perfil
+- **Role en Supabase Auth:** El role se guarda en `raw_user_meta_data` del usuario al registrarse (`options.data.role`). El trigger `handle_new_user()` lo lee con `coalesce(new.raw_user_meta_data->>'role', 'developer')`.
 
 ---
 
@@ -393,39 +567,55 @@ Creada via migración `001_developer_profiles.sql`.
 
 **Servicios consumidos:** CurrencyContext, Intl.NumberFormat, filter-options.ts
 
-### Flujo B: Developer se registra y accede al dashboard
+### Flujo B: Usuario se registra con un role
 
 ```
-1. Developer navega a /signup
-2. Completa formulario: company name, operating country, email, password
-3. Submit → supabase.auth.signUp() crea usuario en auth.users
-4. Trigger on_auth_user_created inserta registro en developer_profiles (id, email, campos vacíos)
-5. Client actualiza developer_profiles: company_name, operating_country
-6. Redirige a /dashboard
-7. Dashboard layout verifica sesión vía getUser()
-8. Sidebar muestra nombre y email del perfil
-9. Dashboard page muestra SectionCards y DataTable con datos mockeados
-10. Developer puede hacer drag & drop en la tabla, filtrar, paginar, editar inline
-11. Developer puede cerrar sesión desde NavUser → redirige a /login
+1. Usuario navega a /auth/sign-up/developer (o /broker, o /private-seller)
+2. Ve 3 tabs (Developer, Broker, Private Seller) — el tab activo corresponde a la URL
+3. Si cambia de tab, navega a /auth/sign-up/{nuevo-role} (URL cambia)
+4. Completa formulario: full name, email, password, repeat password
+5. Submit → supabase.auth.signUp() con options.data.role = activeTab
+6. Trigger handle_new_user() crea registro en user_profiles con role, email y campos vacíos
+7. Redirige a /auth/sign-up-success (email de confirmación pendiente)
+8. Usuario confirma email → /[locale]/auth/confirm route handler
 ```
 
-**Servicios consumidos:** Supabase Auth, developer_profiles (RLS), SectionCards (mock), DataTable (mock)
+**Servicios consumidos:** Supabase Auth, user_profiles (trigger)
 
-### Flujo C: Login de developer
+### Flujo C: Onboarding post-confirmación
 
 ```
-1. Developer navega a /login
+1. Confirm route handler verifica OTP con supabase.auth.verifyOtp()
+2. Lee user_profiles.role y user_profiles.profile_completed
+3. Si profile_completed === false → redirect a /auth/onboarding/{role}
+4. Si profile_completed === true → redirect a /dashboard
+5. Onboarding page muestra formulario con campos condicionales:
+   - Developer: company name*, company website, operating country*, phone*
+   - Broker: company name*, company website, operating country*, license number*, phone*
+   - Private Seller: country of residence*, phone*
+6. Submit → actualiza user_profiles con campos + profile_completed = true
+7. Redirige a /dashboard
+```
+
+**Servicios consumidos:** Supabase Auth (verifyOtp), user_profiles (select + update)
+
+### Flujo D: Login de vendedor
+
+```
+1. Usuario navega a /auth/login (o /login que redirige aquí)
 2. Completa formulario con email y password
 3. Submit → supabase.auth.signInWithPassword()
 4. Si éxito → redirige a /dashboard
-5. Dashboard layout: getUser() → developer_profiles query → sidebar con nombre
-6. Si error → mensaje en el formulario
-7. Si developer ya autenticado visita /login → middleware redirige a /dashboard
+5. Dashboard layout: getUser() → user_profiles query (full_name, email, role)
+6. AppSidebar renderiza navegación según role
+7. Dashboard page muestra SectionCards con datos mockeados
+8. Si error → mensaje en el formulario
+9. Si usuario ya autenticado visita /login o /signup → middleware redirige a /dashboard
 ```
 
-**Servicios consumidos:** Supabase Auth
+**Servicios consumidos:** Supabase Auth, user_profiles (RLS)
 
-### Flujo D: Cambio de moneda (sitio público)
+### Flujo E: Cambio de moneda (sitio público)
 
 ```
 1. Usuario ve moneda actual en navbar (ej: "$ USD")
@@ -439,6 +629,19 @@ Creada via migración `001_developer_profiles.sql`.
 
 **Servicios consumidos:** CurrencyContext, exchange-rates.ts, Intl.NumberFormat
 
+### Flujo F: Sidebar adaptativo por role
+
+```
+1. Dashboard layout carga perfil de user_profiles (incluye role)
+2. Pasa { name, email, avatar, role } a AppSidebar
+3. AppSidebar selecciona navegación de NAV_BY_ROLE[role]:
+   - Developer: Dashboard, Properties, Analytics
+   - Broker: Dashboard, Listings, Clients
+   - Private Seller: Dashboard, My Property
+4. NavSecondary muestra Settings (común a todos)
+5. NavUser muestra avatar, nombre, email y botón de logout
+```
+
 ---
 
 ## 9. REGLAS DE NEGOCIO
@@ -451,13 +654,15 @@ Creada via migración `001_developer_profiles.sql`.
 6. **Las rutas `/development/[slug]` y `/developer/[slug]` no existen.** Los links desde el detalle de propiedad llevan a 404.
 7. **El locale default (ae) no aparece en la URL.** Evita redirects innecesarios para EAU, mercado principal.
 8. **La geo-detección funciona solo en producción** (Vercel, Cloudflare, AWS). En local se usa default locale.
-9. **No hay distinción de roles en el sitio público en MVP.** Todos los usuarios autenticados tienen el mismo acceso.
-10. **Solo email/password en MVP.** Sin OAuth social.
-11. **Usar `getUser()` en vez de `getClaims()`** para verificar sesión server-side (el JWT puede estar expirado aunque los claims se decodifiquen).
-12. **El dashboard de developer y sus componentes (SectionCards, DataTable) usan datos mockeados.** Son placeholder visual.
-13. **El sistema tiene dos flujos de auth separados:** inversores (`/[locale]/auth/*`) y developers (`/login`, `/signup`). Cada uno redirige a su dashboard correspondiente.
-14. **La tabla `developer_profiles` se crea automáticamente al registrarse** vía trigger de Supabase. El onboarding (company_name, operating_country) se completa desde el formulario de signup.
-15. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/dashboard`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
+9. **Solo email/password en MVP.** Sin OAuth social.
+10. **Usar `getUser()` en vez de `getClaims()`** para verificar sesión server-side (el JWT puede estar expirado aunque los claims se decodifiquen).
+11. **El dashboard y sus componentes (SectionCards, DataTable) usan datos mockeados.** Son placeholder visual.
+12. **Las sub-rutas del dashboard (properties, analytics, listings, clients, my-property) están definidas en la navegación del sidebar pero las páginas aún no existen.** Al navegar darán 404.
+13. **La tabla `user_profiles` se crea automáticamente al registrarse** vía trigger `handle_new_user()`. El role se extrae de `raw_user_meta_data->>'role'` (default: 'developer'). El onboarding se completa post-confirmación de email.
+14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/dashboard`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
+15. **El confirm route handler ejecuta `updateSession()` antes de verificar el OTP**, permitiendo leer el perfil del usuario recién creado.
+16. **Los pricing plans están configurados pero no se aplican.** Son referencia para futura implementación de planes pagos.
+17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el dashboard layout leen de `user_profiles`.
 
 ---
 
@@ -465,11 +670,10 @@ Creada via migración `001_developer_profiles.sql`.
 
 **Supuestos:**
 - Los inversores tienen acceso a internet y usan navegador web
-- Las promotoras tienen capacidad técnica para listar sus unidades (o reciben asistencia)
+- Los vendedores (developers, brokers, private sellers) tienen capacidad técnica para listar sus unidades (o reciben asistencia)
 - El mercado Off-Plan es suficientemente grande como para justificar una plataforma global
-- Los inversores están dispuestos a contactar a promotoras directamente sin agente de por medio
+- Los inversores están dispuestos a contactar a vendedores directamente sin agente de por medio
 - El locale/idioma se puede inferir por geolocalización del país de origen
-- Los developers necesitan un dashboard separado del sitio público
 
 **Restricciones:**
 - Datos mockeados para MVP — sin base de datos propia de propiedades
@@ -480,12 +684,13 @@ Creada via migración `001_developer_profiles.sql`.
 - Solo email/password en auth
 - Tasas de cambio fijas, no automáticas
 - Sin modo offline
-- Sin distinción de roles de usuario en MVP (sitio público)
 - Las rutas `/development/[slug]` y `/developer/[slug]` no existen
 - Sin dashboard de inversor (favoritos, consultas)
 - Los botones de contacto (WhatsApp, Phone) no ejecutan acciones reales
-- El dashboard de developer y su tabla de datos usan datos de relleno (no son propiedades reales)
-- Sin panel de administración completo para promotoras
+- El dashboard y su tabla de datos usan datos de relleno (no son propiedades reales)
+- Las sub-rutas del sidebar del dashboard (properties, analytics, listings, clients, my-property) no tienen páginas implementadas
+- Los pricing plans están configurados pero no se cobran ni se aplican
+- Auth hardcodeado en inglés (sin traducciones i18n en formularios de auth)
 
 ---
 
@@ -494,34 +699,39 @@ Creada via migración `001_developer_profiles.sql`.
 ### ✅ Completado
 - Homepage completa con hero, features, about, FAQ, contacto, footer
 - Sistema i18n completo con 7 locales, geo-detección y routing as-needed
-- Auth completo (inversor y developer) con todos los flujos
+- Auth completo con 3 roles (developer, broker, private seller)
+- Signup URL-driven por role con tabs y navegación
+- Onboarding post-confirmación con campos condicionales por role
+- Tabla `user_profiles` con RLS, triggers y migración desde `developer_profiles`
 - CurrencySwitcher con persistencia y conversión en vivo
 - Listado de propiedades con filtros avanzados
 - Página de detalle de propiedad con gallery, sidebar, details-table, amenities-grid (modal + scroll lock), payment-plan, tags, breadcrumb, related-properties
 - Traducciones `property_detail` en 7 locales
-- Interfaz `PropertyData` compartida en `lib/types.ts`
+- Interfaz `PropertyData` y `UserProfile` en `lib/types.ts`
 - Datos mockeados (3 propiedades) para todas las secciones
-- Tabla `developer_profiles` en Supabase con RLS y triggers
-- Dashboard de developer con sidebar, SectionCards y DataTable reordenable
-- Auth developer: login y signup standalone con redirect a dashboard
-- Middleware combinado (i18n + geo + auth + dashboard protection)
+- Dashboard unificado con sidebar adaptativo por role
+- Legacy route redirects (`/login`, `/signup`)
+- Fix middleware auth routes (updateSession antes de intlMiddleware)
+- Pricing plans configurados por role × país
+- Confirm route handler con onboarding gate
 
 ### 🔜 Siguientes pasos
+- **Corto plazo:** Implementar páginas del sidebar: `/dashboard/properties`, `/dashboard/analytics` (Developer), `/dashboard/listings`, `/dashboard/clients` (Broker), `/dashboard/my-property` (Private Seller)
 - **Corto plazo:** Crear rutas `/development/[slug]` y `/developer/[slug]` — actualmente dan 404 al navegar desde el detalle de propiedad
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
 - **Corto plazo:** Conectar datos de propiedades a Supabase (reemplazar mock data con queries reales)
-- **Corto plazo:** Reemplazar componentes de tutorial del starter kit de Supabase
-- **Corto plazo:** Migrar formularios de auth del sitio público a traducciones (actualmente hardcodeados en inglés)
+- **Corto plazo:** Migrar formularios de auth a traducciones (actualmente hardcodeados en inglés)
+- **Corto plazo:** Implementar página `/dashboard/settings`
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
 - **Mediano plazo:** Páginas de listado de comunidades
-- **Mediano plazo:** Panel de administración completo para promotoras (gestión de propiedades, consultas)
+- **Mediano plazo:** Panel de administración completo para vendedores (gestión de propiedades, consultas)
 - **Mediano plazo:** Mapa global con unidades geolocalizadas
 - **Mediano plazo:** Conectar DataTable del dashboard a datos reales de propiedades
+- **Mediano plazo:** Aplicar pricing plans (planes pagos según role y país)
 - **Largo plazo:** Comparador lado a lado de propiedades
 - **Largo plazo:** Calculadora de rentabilidad / ROI
-- **Largo plazo:** Valoraciones y reseñas de promotoras
-- **Largo plazo:** Planes pagos para promotoras (visibilidad premium)
+- **Largo plazo:** Valoraciones y reseñas de vendedores
 - **Largo plazo:** App nativa mobile (iOS / Android)
 - **Largo plazo:** OAuth social (Google, Apple)
 
@@ -533,8 +743,11 @@ Creada via migración `001_developer_profiles.sql`.
 |---|---|
 | Off-Plan | Propiedad en venta antes de su construcción o durante la misma |
 | Unidad | Propiedad individual dentro de un desarrollo (ej: departamento, villa, local) |
-| Promotora / Developer | Empresa desarrolladora que construye y comercializa el proyecto |
-| Desarrollo / Project | Conjunto de unidades construidas por una promotora en un mismo sitio |
+| Developer | Empresa desarrolladora que construye y comercializa el proyecto |
+| Broker | Intermediario inmobiliario con licencia que lista propiedades de distintos desarrolladores |
+| Private Seller | Propietario individual que vende su propia propiedad |
+| Vendedor | Término genérico que engloba Developer, Broker y Private Seller |
+| Desarrollo / Project | Conjunto de unidades construidas por un desarrollador en un mismo sitio |
 | Comunidad | Zona o distrito donde se ubica un desarrollo |
 | Depósito | Pago inicial requerido para reservar una unidad Off-Plan |
 | Plan de pago | Esquema de pagos escalonados durante la construcción |
@@ -543,6 +756,8 @@ Creada via migración `001_developer_profiles.sql`.
 | i18n | Internacionalización — soporte multi-idioma |
 | Locale | Identificador de idioma/región (ej: ae, es, gb, br) |
 | RLS | Row Level Security — mecanismo de seguridad a nivel de fila en Supabase |
-| SectionCards | Componente de tarjetas de métricas en el dashboard de developer |
+| user_profiles | Tabla unificada de perfiles con roles (reemplaza developer_profiles como tabla principal) |
+| SectionCards | Componente de tarjetas de métricas en el dashboard |
 | DataTable | Tabla interactiva con drag & drop, filtros, paginación y edición inline |
-| Developer Profiles | Tabla de perfiles de promotora con RLS, creada automáticamente al registrarse |
+| Onboarding | Flujo post-registro donde el usuario completa los datos de su perfil según su role |
+| Pricing Plans | Matriz de precios configurada por role × país para futuros planes pagos |

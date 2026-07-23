@@ -8,7 +8,9 @@
 
 **Usuarios:**
 - **Inversor/comprador:** busca unidades Off-Plan filtradas por depósito, plan de pago, tamaño, ubicación, fecha de entrega y promotora.
-- **Promotora (developer):** lista unidades individuales y recibe consultas directas sin coste de intermediarios.
+- **Developer:** promotora que lista unidades individuales y recibe consultas directas sin coste de intermediarios.
+- **Broker:** intermediario que lista propiedades de múltiples promotoras.
+- **Private Seller:** propietario individual que vende su propiedad.
 
 **Propuesta de valor:**
 - Transparencia total: datos financieros completos por unidad.
@@ -48,13 +50,20 @@
 - [x] Traducciones completas para namespace `property_detail` en 7 locales
 - [x] Auth completo en `[locale]/auth/`: login, sign-up, forgot-password, update-password, confirm, error, sign-up-success
 
-### Auth + Dashboard (nuevo)
-- [x] Auth simplificado en `(auth)/login` y `(auth)/signup` (sin i18n, hardcodeado en inglés)
-- [x] Dashboard en `app/dashboard/` con sidebar shadcn
+### Auth + Dashboard (nuevo sistema con roles)
+- [x] Sistema de 3 roles: Developer, Broker, Private Seller
+- [x] Tabla `user_profiles` con roles (reemplaza `developer_profiles`)
+- [x] Sign-up con tabs URL-driven por rol (`/auth/sign-up/[role]`)
+- [x] Onboarding post-confirmación con campos condicionales por rol (`/auth/onboarding/[role]`)
+- [x] Confirm route que lee role de user_profiles y redirige a onboarding o dashboard
+- [x] Dashboard unificado en `/dashboard` con sidebar basado en role
+- [x] Pricing plans por role × país en `lib/pricing-plans.ts`
+- [x] Legacy routes: `/login` y `/signup` redirigen al nuevo sistema
+- [x] Navbar actualizada con links a `/auth/login` y `/auth/sign-up`
+- [x] Login form y update password form con navegación i18n
+- [x] Sidebar con navegación condicional por role (NAV_BY_ROLE en app-sidebar.tsx)
 - [x] Data table completa con drag-and-drop, paginación, sorting, column visibility
 - [x] Section cards con métricas mock
-- [x] `developer_profiles` table en Supabase con migración 001
-- [x] Creación automática de perfil al registrarse (trigger en auth.users)
 - [x] Protección de rutas dashboard via middleware
 
 ### Pendiente
@@ -63,10 +72,10 @@
 - [ ] Página de listado de comunidades
 - [ ] Panel de administración para promotoras
 - [ ] Mapa global con unidades geolocalizadas
-- [ ] Migrar formularios de auth a traducciones (actualmente hardcodeados en inglés)
 - [ ] Reemplazar componentes de tutorial de Supabase starter kit
 - [ ] Dashboard de favoritos y consultas del usuario
 - [ ] `app/dashboard/settings` page (ruta definida en sidebar pero sin página implementada)
+- [ ] Traducciones completas para auth forms (onboarding, sign-up, login están hardcodeados en inglés)
 
 ## 3. STACK TECNOLÓGICO
 
@@ -108,37 +117,46 @@
 
 ## 4. ESQUEMA DE BASE DE DATOS
 
-### developer_profiles
+### user_profiles
 
-Creada por migración `supabase/migrations/001_developer_profiles.sql`.
+Creada por migración `supabase/migrations/002_user_profiles.sql`. Reemplaza a `developer_profiles`.
 
-| Columna | Tipo | Constraints | Descripción |
+| Columna | Tipo | Constraints | Descripcion |
 |---|---|---|---|
 | id | uuid | PK, references auth.users(id) ON DELETE CASCADE | UUID del usuario auth |
-| full_name | text | NOT NULL | Nombre completo (vacio al crear, se completa en onboarding) |
-| company_name | text | NOT NULL | Nombre de la empresa (vacio al crear) |
-| operating_country | text | NOT NULL | Código ISO 2 letras: 'AE', 'PT', 'MX', etc. (vacio al crear) |
+| role | text | NOT NULL, CHECK (role IN ('developer', 'broker', 'private_seller')) | Rol del usuario |
+| full_name | text | NOT NULL DEFAULT '' | Nombre completo |
 | email | text | NOT NULL | Email del usuario |
-| created_at | timestamptz | DEFAULT now() | Fecha de creación |
-| updated_at | timestamptz | DEFAULT now() | Fecha de actualización |
+| phone | text | NOT NULL DEFAULT '' | Telefono |
+| company_name | text | NOT NULL DEFAULT '' | Nombre de la empresa (developer/broker) |
+| company_website | text | NOT NULL DEFAULT '' | URL de la empresa (developer/broker) |
+| operating_country | text | NOT NULL DEFAULT '' | Pais de operacion: 'AE', 'PT', 'MX', etc. (developer/broker) |
+| license_number | text | NOT NULL DEFAULT '' | Numero de licencia (broker) |
+| country_of_residence | text | NOT NULL DEFAULT '' | Pais de residencia (private_seller) |
+| profile_completed | boolean | NOT NULL DEFAULT false | Si completo el onboarding |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
 
 **Triggers:**
-- `set_updated_at`: actualiza `updated_at` automáticamente en cada UPDATE
-- `on_auth_user_created`: inserta perfil con valores vacíos al crear usuario en `auth.users`
+- `set_updated_at_user_profiles`: actualiza `updated_at` automaticamente en cada UPDATE
+- `handle_new_user`: inserta perfil con role de `raw_user_meta_data->>'role'` (default 'developer') al crear usuario en `auth.users`
 
-**Políticas RLS:**
+**Politicas RLS:**
 - SELECT: solo propio perfil (`auth.uid() = id`)
 - INSERT: solo propio perfil
 - UPDATE: solo propio perfil
 
-**Función helper:**
-- `public.update_updated_at_column()`: setea `updated_at = now()`
-- `public.handle_new_user()`: inserta registro en developer_profiles al crearse un auth.users
+**Migracion de datos:**
+- `002_user_profiles.sql` migra datos de `developer_profiles` a `user_profiles` con role='developer'
+
+### developer_profiles (LEGACY - no usar)
+
+La tabla `developer_profiles` fue reemplazada por `user_profiles`. La migracion `002_user_profiles.sql` migra los datos existentes. No se recomienda usar esta tabla en nuevo codigo.
 
 ### Tablas de Supabase (gestionadas por Supabase)
-- `auth.users`, `auth.sessions`, `auth.mfa_factors`, etc. — auth estándar de Supabase
+- `auth.users`, `auth.sessions`, `auth.mfa_factors`, etc. — auth estandar de Supabase
 
-### ⚠️ Pendiente
+### Pendiente
 Definir tablas de `properties`, `developers`, `developments`, `communities`, `favorites`, `inquiries`.
 
 ## 5. ESTRUCTURA DE ARCHIVOS
@@ -156,23 +174,27 @@ offplaninternational/
 ├── app/
 │   ├── layout.tsx                     # Root layout (fonts Host Grotesk + Roboto)
 │   ├── globals.css                    # CSS variables, Tailwind base, sidebar vars
-│   ├── (auth)/                        # Route group auth (sin i18n)
-│   │   ├── login/page.tsx             # Login form (client, hardcodeado inglés)
-│   │   └── signup/page.tsx            # Signup form (client, hardcodeado inglés)
+│   ├── (auth)/                        # Route group auth LEGACY (solo redirige)
+│   │   ├── login/page.tsx             # Redirect a /auth/login
+│   │   └── signup/page.tsx            # Redirect a /auth/sign-up/developer
 │   ├── dashboard/                     # Dashboard (sin i18n, requiere auth)
-│   │   ├── layout.tsx                 # Layout con sidebar + header + auth guard
-│   │   ├── page.tsx                   # Página principal dashboard
+│   │   ├── layout.tsx                 # Layout con sidebar + header + auth guard (lee user_profiles)
+│   │   ├── page.tsx                   # Pagina principal dashboard (lee user_profiles)
 │   │   └── data.json                  # Mock data para data table (68 registros)
 │   └── [locale]/
 │       ├── layout.tsx                 # NextIntlClientProvider + CurrencyProvider wrapper
-│       ├── page.tsx                   # Homepage (composición de componentes)
-│       ├── auth/                      # Auth con i18n
-│       │   ├── login/page.tsx
-│       │   ├── sign-up/page.tsx
+│       ├── page.tsx                   # Homepage (composicion de componentes)
+│       ├── auth/
+│       │   ├── login/page.tsx         # Login form (usa LoginForm)
+│       │   ├── sign-up/
+│       │   │   ├── page.tsx           # Redirect a /auth/sign-up/developer
+│       │   │   └── [role]/page.tsx    # Sign-up con tabs por rol (Developer/Broker/Private Seller)
+│       │   ├── onboarding/
+│       │   │   └── [role]/page.tsx    # Onboarding post-confirmacion con campos condicionales
 │       │   ├── sign-up-success/page.tsx
 │       │   ├── forgot-password/page.tsx
 │       │   ├── update-password/page.tsx
-│       │   ├── confirm/route.ts       # Callback de confirmación de email
+│       │   ├── confirm/route.ts       # Callback de confirmacion (lee user_profiles, redirige segun profile_completed)
 │       │   └── error/page.tsx
 │       ├── properties/
 │       │   └── properties-list/
@@ -184,41 +206,41 @@ offplaninternational/
 │           ├── layout.tsx
 │           └── page.tsx
 ├── components/
-│   ├── app-sidebar.tsx                # Sidebar del dashboard (shadcn)
-│   ├── nav-main.tsx                   # Navegación principal sidebar (client)
-│   ├── nav-secondary.tsx              # Navegación secundaria sidebar (client)
+│   ├── app-sidebar.tsx                # Sidebar del dashboard con NAV_BY_ROLE por rol
+│   ├── nav-main.tsx                   # Navegacion principal sidebar (client)
+│   ├── nav-secondary.tsx              # Navegacion secundaria sidebar (client)
 │   ├── nav-user.tsx                   # Dropdown de usuario + logout en sidebar (client)
 │   ├── site-header.tsx                # Header del dashboard con sidebar trigger
-│   ├── section-cards.tsx              # Grid de 4 cards con métricas
+│   ├── section-cards.tsx              # Grid de 4 cards con metricas
 │   ├── data-table.tsx                 # Data table completa (tanstack + dnd-kit + recharts)
-│   ├── back-to-home.tsx               # Botón reutilizable con flecha (client)
+│   ├── back-to-home.tsx               # Boton reutilizable con flecha (client)
 │   ├── breadcrumb.tsx                 # Breadcrumb con separador "/" y links i18n
-│   ├── currency-price.tsx             # Precio con conversión en vivo (client)
+│   ├── currency-price.tsx             # Precio con conversion en vivo (client)
 │   ├── currency-provider.tsx          # Context provider de moneda (client)
-│   ├── currency-switcher.tsx          # Dropdown de selección de moneda (client)
-│   ├── navbar.tsx                     # Navbar responsive (client)
-│   ├── hero-header.tsx                # Hero con búsqueda + filtros (client)
-│   ├── features-section.tsx           # Sección de características
-│   ├── about-section.tsx              # Sección "sobre nosotros"
+│   ├── currency-switcher.tsx          # Dropdown de seleccion de moneda (client)
+│   ├── navbar.tsx                     # Navbar responsive con links a /auth/login y /auth/sign-up
+│   ├── hero-header.tsx                # Hero con busqueda + filtros (client)
+│   ├── features-section.tsx           # Seccion de caracteristicas
+│   ├── about-section.tsx              # Seccion "sobre nosotros"
 │   ├── faq-section.tsx                # FAQ con accordion items
 │   ├── accordion-item.tsx             # Componente accordion (client)
 │   ├── contact-banner.tsx             # Banner de contacto
 │   ├── footer.tsx                     # Footer (server, async)
-│   ├── auth-button.tsx                # Botón auth contextual (server)
-│   ├── logout-button.tsx              # Cerrar sesión (client)
-│   ├── login-form.tsx                 # Formulario login (client)
-│   ├── sign-up-form.tsx               # Formulario registro (client)
+│   ├── auth-button.tsx                # Boton auth contextual (server)
+│   ├── logout-button.tsx              # Cerrar sesion (client)
+│   ├── login-form.tsx                 # Formulario login con navegacion i18n
+│   ├── sign-up-form.tsx               # Formulario registro con tabs de rol (Developer/Broker/Private Seller)
 │   ├── forgot-password-form.tsx       # Formulario reset password (client)
-│   ├── update-password-form.tsx       # Formulario actualizar password (client)
+│   ├── update-password-form.tsx       # Formulario actualizar password con navegacion i18n
 │   ├── property-card.tsx              # Card de propiedad horizontal (server, async)
 │   ├── property-filters.tsx           # Barra de filtros completa (client)
-│   ├── property-gallery.tsx           # Galería de imágenes (client)
+│   ├── property-gallery.tsx           # Galeria de imagenes (client)
 │   ├── property-sidebar.tsx           # Sidebar con precio + botones (server)
 │   ├── property-details-table.tsx     # Tabla de detalles (server)
 │   ├── property-amenities-grid.tsx    # Grid de amenities con modal (client)
 │   ├── property-payment-plan.tsx      # Tabla de plan de pago (server)
 │   ├── property-tags.tsx              # Tags de propiedad (server)
-│   ├── related-properties.tsx         # Sección de propiedades relacionadas (server)
+│   ├── related-properties.tsx         # Seccion de propiedades relacionadas (server)
 │   ├── ui/                            # Componentes base (shadcn-style + custom)
 │   │   ├── avatar.tsx
 │   │   ├── badge.tsx
@@ -234,7 +256,7 @@ offplaninternational/
 │   │   ├── select.tsx
 │   │   ├── separator.tsx
 │   │   ├── sheet.tsx
-│   │   ├── sidebar.tsx (726 líneas, full sidebar con context y cookie)
+│   │   ├── sidebar.tsx (726 lineas, full sidebar con context y cookie)
 │   │   ├── skeleton.tsx
 │   │   ├── sonner.tsx
 │   │   ├── table.tsx
@@ -271,17 +293,19 @@ offplaninternational/
 │   └── pt.json
 ├── supabase/
 │   └── migrations/
-│       └── 001_developer_profiles.sql  # Migración inicial: tabla, triggers, RLS
+│       ├── 001_developer_profiles.sql  # Migracion legacy (reemplazada por 002)
+│       └── 002_user_profiles.sql       # Tabla unificada con roles + migracion de datos
 ├── docs/
 │   ├── CONTEXT.md                     # Este archivo
 │   └── PRD.md                         # Product Requirements Document (agente analista)
 ├── lib/
-│   ├── currency.ts                    # Tipos, monedas, formatPrice, mapa locale→moneda
+│   ├── currency.ts                    # Tipos, monedas, formatPrice, mapa locale->moneda
 │   ├── currency-server.ts             # Lectura de cookie de moneda server-side
 │   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
 │   ├── filter-options.ts              # Opciones de filtros centralizadas
 │   ├── mock-properties.ts             # Mock data de propiedades (3 unidades)
-│   ├── types.ts                       # Interfaz PropertyData
+│   ├── pricing-plans.ts               # Pricing matrix por role x pais
+│   ├── types.ts                       # UserRole, UserProfile, PropertyData
 │   ├── utils.ts                       # cn() helper, hasEnvVars
 │   └── supabase/
 │       ├── client.ts                  # Cliente Supabase browser
@@ -320,87 +344,113 @@ offplaninternational/
 | 2026-06-04 | `(auth)` route group para login/signup sin i18n | Rutas de auth que no necesitan traducción; el middleware redirige aquí |
 | 2026-06-04 | Sidebar shadcn completa con persistencia en cookie `sidebar_state` | Componente robusto con colapso, offcanvas mobile y contexto compartido |
 | 2026-06-04 | Data table con @tanstack/react-table + @dnd-kit/sortable | Tabla con drag-and-drop nativo, paginación, column visibility, sorting |
-| 2026-06-04 | `developer_profiles` con trigger on_auth_user_created | Garantiza que cada usuario registrado tenga su perfil sin lógica extra en cliente |
+| 2026-06-04 | `developer_profiles` con trigger on_auth_user_created | Garantiza que cada usuario registrado tenga su perfil sin logica extra en cliente |
 | 2026-06-04 | RLS en developer_profiles con policy por `auth.uid()` | Seguridad a nivel BD: cada usuario solo ve/edita su propio perfil |
 | 2026-06-04 | Middleware maneja dos sistemas de rutas: dashboard/auth y locale | Las rutas dashboard/login/signup van a auth middleware; el resto a i18n + geo + auth |
+| 2026-06-22 | Tabla `user_profiles` reemplaza `developer_profiles` | Soporte para 3 roles (developer, broker, private_seller) con campos condicionales |
+| 2026-06-22 | Sistema de 3 roles con tabs URL-driven | `/auth/sign-up/[role]` permite seleccionar rol durante registro con navegacion limpia |
+| 2026-06-22 | Onboarding post-confirmacion con campos condicionales | Perfiles diferenciados: developer/broker necesitan company data, private_seller necesita country_of_residence |
+| 2026-06-22 | Confirm route lee `user_profiles` y redirige segun `profile_completed` | Flujo completo: signup -> email confirm -> onboarding (si profile_completed=false) -> dashboard |
+| 2026-06-22 | Sidebar con NAV_BY_ROLE | Navegacion condicional: developer ve Properties/Analytics, broker ve Listings/Clients, private_seller ve My Property |
+| 2026-06-22 | Pricing plans por role x pais | Matriz de precios diferenciada: developer/broker pagan, private_seller es gratuito |
+| 2026-06-22 | proxy.ts ejecuta updateSession() antes de intlMiddleware() en auth routes | Asegura que la sesion este actualizada antes del routing de locale |
+| 2026-06-22 | Legacy routes redirigen | `/login` -> `/auth/login`, `/signup` -> `/auth/sign-up/developer`; mantiene compatibilidad con URLs existentes |
 
 ## 7. FLUJOS PRINCIPALES
 
-### 7.1 Detección de locale + geo-redirect
+### 7.1 Deteccion de locale + geo-redirect
 
 1. Usuario llega a `/` sin locale prefix
 2. `proxy.ts` revisa cookie `NEXT_LOCALE`
-3. Si existe cookie y no es default → redirige a `/{locale}`
-4. Si no existe cookie → lee headers CDN (`x-vercel-ip-country`, etc.)
-5. Si país detectado tiene locale mapeado y no es default → redirige a `/{locale}` y setea cookie por 30 días
-6. Sino → next-intl middleware sirve default locale (ae)
+3. Si existe cookie y no es default -> redirige a `/{locale}`
+4. Si no existe cookie -> lee headers CDN (`x-vercel-ip-country`, etc.)
+5. Si pais detectado tiene locale mapeado y no es default -> redirige a `/{locale}` y setea cookie por 30 dias
+6. Sino -> next-intl middleware sirve default locale (ae)
 
-### 7.2 Registro de usuario (nuevo sistema `(auth)/signup`)
+### 7.2 Registro de usuario (nuevo sistema con roles)
 
-1. Usuario completa formulario en `/signup`
-2. `signup/page.tsx` llama a `supabase.auth.signUp()` con email + password
-3. El trigger `on_auth_user_created` inserta automáticamente un perfil vacío en `developer_profiles`
-4. Inmediatamente después, la página hace un UPDATE a `developer_profiles` con company_name y operating_country
+1. Usuario navega a `/[locale]/auth/sign-up/developer` (o /broker o /private_seller)
+2. `sign-up-form.tsx` muestra tabs para seleccionar rol (URL-driven)
+3. Al cambiar tab, se navega a `/auth/sign-up/{role}` y se resetea el form
+4. Usuario completa: full name, email, password, repeat password
+5. `signUp()` envia `role` y `full_name` en `raw_user_meta_data`
+6. Trigger `handle_new_user` en BD crea perfil en `user_profiles` con el role
+7. Redirige a `/auth/sign-up-success`
+
+### 7.3 Confirmacion de email + onboarding
+
+1. Usuario hace click en link de confirmacion de email
+2. `/auth/confirm` route handler verifica OTP con Supabase
+3. Lee `role` y `profile_completed` de `user_profiles`
+4. Si `profile_completed = false` -> redirige a `/auth/onboarding/{role}`
+5. Si `profile_completed = true` -> redirige a `/dashboard`
+
+### 7.4 Onboarding post-confirmacion
+
+1. Usuario accede a `/auth/onboarding/{role}`
+2. Page carga config segun role (titulo, icono, descripcion)
+3. Campos condicionales:
+   - **Developer/Broker:** company name, company website, operating country
+   - **Broker:** license number (adicional)
+   - **Private Seller:** country of residence
+   - **Todos:** phone number
+4. Al enviar, actualiza `user_profiles` con `profile_completed = true`
 5. Redirige a `/dashboard`
 
-### 7.3 Login (nuevo sistema `(auth)/login`)
+### 7.5 Login
 
-1. Usuario completa formulario en `/login`
-2. `login/page.tsx` llama a `supabase.auth.signInWithPassword()`
-3. Si éxito → redirige a `/dashboard`
-4. Si error → se muestra mensaje en rojo
+1. Usuario completa formulario en `/auth/login`
+2. `login-form.tsx` llama a `signInWithPassword()`
+3. Si exito -> redirige a `/dashboard`
+4. Si error -> se muestra mensaje en rojo
 
-### 7.4 Protección de rutas (dashboard + auth)
+### 7.6 Proteccion de rutas (middleware)
 
 1. `proxy.ts` detecta rutas `/dashboard`, `/login`, `/signup` y las deriva a `updateSession()`
-2. `updateSession()` en `lib/supabase/middleware.ts`:
-   - Si no hay usuario y ruta es `/dashboard` → redirect a `/login`
-   - Si hay usuario y ruta es `/login` o `/signup` → redirect a `/dashboard`
-3. El layout de dashboard también verifica sesión server-side con `createClient()` como fallback
+2. Para rutas `/auth/*` o `/protected/*`, ejecuta `updateSession()` primero y luego `intlMiddleware()`
+3. `updateSession()` en `lib/supabase/middleware.ts`:
+   - Si no hay usuario y ruta es `/dashboard` -> redirect a `/auth/login`
+   - Si hay usuario y ruta es `/auth/login` o `/auth/sign-up` -> redirect a `/dashboard`
+4. El layout de dashboard tambien verifica sesion server-side con `createClient()` como fallback
 
-### 7.5 Dashboard
+### 7.7 Dashboard
 
 1. Usuario autenticado accede a `/dashboard`
-2. `dashboard/layout.tsx` verifica sesión, obtiene perfil de `developer_profiles`, renderiza SidebarProvider + AppSidebar + SiteHeader + children
-3. `dashboard/page.tsx` muestra:
-   - Saludo con email del usuario
-   - SectionCards (4 cards con métricas mock: Revenue, New Customers, Active Accounts, Growth Rate)
-   - DataTable (tabla con 68 filas mock, drag-and-drop reorder, column visibility, paginación, inline editing)
+2. `dashboard/layout.tsx` verifica sesion, obtiene perfil de `user_profiles` (full_name, email, role), renderiza SidebarProvider + AppSidebar + SiteHeader + children
+3. `app-sidebar.tsx` muestra navegacion condicional segun role:
+   - **Developer:** Dashboard, Properties, Analytics
+   - **Broker:** Dashboard, Listings, Clients
+   - **Private Seller:** Dashboard, My Property
+4. Todos ven Settings en NavSecondary
+4. `dashboard/page.tsx` muestra saludo con email + SectionCards (metricas mock)
 
-### 7.6 Registro de usuario (sistema legacy `[locale]/auth/sign-up`)
+### 7.8 Navegacion en sidebar
 
-1. Usuario completa formulario en `/[locale]/auth/sign-up`
-2. `sign-up-form.tsx` llama a `supabase.auth.signUp()` con email + password
-3. Supabase envía email de confirmación con redirect a `/auth/confirm`
-4. Tras confirmar, usuario puede acceder a rutas protegidas
-
-### 7.7 Navegación en sidebar
-
-1. AppSidebar muestra logo, NavMain (Dashboard), NavSecondary (Settings), NavUser (avatar + logout)
+1. AppSidebar muestra logo, NavMain (items por role), NavSecondary (Settings), NavUser (avatar + logout)
 2. Sidebar es collapsible tipo "offcanvas" (se superpone al contenido)
 3. En mobile, sidebar se abre como Sheet
-4. Estado de sidebar persiste en cookie `sidebar_state` por 7 días
+4. Estado de sidebar persiste en cookie `sidebar_state` por 7 dias
 
-### 7.8 Data Table
+### 7.9 Data Table
 
 1. Componente cliente que recibe array de datos con schema zod
 2. Usa `@tanstack/react-table` para manejo de estado (sorting, pagination, column visibility, row selection, column filters)
-3. Drag-and-drop de filas via `@dnd-kit/sortable` con restricción vertical
+3. Drag-and-drop de filas via `@dnd-kit/sortable` con restriccion vertical
 4. Tabs para Outlook, Past Performance, Key Personnel, Focus Documents
-5. Columna de acciones con menú contextual (Edit, Make a copy, Delete)
-6. Edición inline de campos Target y Limit
+5. Columna de acciones con menu contextual (Edit, Make a copy, Delete)
+6. Edicion inline de campos Target y Limit
 7. Selector de reviewer con opciones mock
-8. Drawer con detalle expandido (header, chart recharts AreaChart, formulario de edición)
+8. Drawer con detalle expandido (header, chart recharts AreaChart, formulario de edicion)
 
-### 7.9 Búsqueda en homepage
+### 7.10 Busqueda en homepage
 
-1. Usuario ingresa texto en campo de búsqueda y/o selecciona filtros (categoría, precio, estado)
+1. Usuario ingresa texto en campo de busqueda y/o selecciona filtros (categoria, precio, estado)
 2. Los filtros son client-side (estado local con useState)
-3. No hay action de búsqueda implementada — los dropdowns y el input existen pero no disparan navegación ni API call
+3. No hay action de busqueda implementada -- los dropdowns y el input existen pero no disparan navegacion ni API call
 
-⚠️ **Inconsistencia:** La búsqueda en hero-header tiene UI completa pero no ejecuta ninguna acción al buscar o seleccionar filtros.
+Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta ninguna accion al buscar o seleccionar filtros.
 
-### 7.10 Listado de propiedades
+### 7.11 Listado de propiedades
 
 1. Usuario navega a `/properties-list` (sin locale prefix; el middleware resuelve el locale)
 2. Layout con Navbar, BackToHome, heading "All Properties", PropertyFilters, grid de PropertyCards y Footer
@@ -409,7 +459,7 @@ offplaninternational/
 5. CurrencyPrice usa `useCurrency()` del context y llama a `convertPrice()` + `formatPrice()`
 6. Mock data: 3 propiedades en `lib/mock-properties.ts`
 
-### 7.11 Detalle de propiedad
+### 7.12 Detalle de propiedad
 
 1. Usuario navega a `/[locale]/property/[slug]`
 2. Server component async que busca propiedad en mock data por slug
@@ -441,6 +491,9 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **UI primitives:** estilo shadcn, usando `cva()` para variantes y `cn()` para merge
 - **Auth:** `getUser()` para verificar sesión server-side (no `getClaims()`)
 - **Git:** No hacer commit a menos que se solicite explícitamente
-- **Supabase client:** Crear nueva instancia por función en server (no variables globales)
-- **Dashboard/sin i18n:** las rutas `(auth)` y `dashboard` no usan next-intl; los componentes son hardcodeados en inglés
+- **Supabase client:** Crear nueva instancia por funcion en server (no variables globales)
+- **Dashboard/sin i18n:** las rutas `(auth)` y `dashboard` no usan next-intl; los componentes son hardcodeados en ingles
 - **Sidebar:** usa `SidebarProvider` con cookie `sidebar_state` para persistencia del estado colapsado
+- **Roles:** tipo `UserRole` definido en `lib/types.ts` como `"developer" | "broker" | "private_seller"`
+- **user_profiles:** tabla unica para todos los roles; campos condicionales se llenan en onboarding
+- **Auth forms:** login-form, sign-up-form, update-password-form usan `useRouter` de `@/i18n/navigation` para navegacion con locale
