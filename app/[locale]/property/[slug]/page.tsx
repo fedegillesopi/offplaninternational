@@ -30,7 +30,6 @@ export default async function PropertyDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const t = await getTranslations("properties");
   const td = await getTranslations("property_detail");
   const property = getPropertyBySlug(slug);
 
@@ -71,11 +70,11 @@ export default async function PropertyDetailPage({
               <div className="flex flex-wrap items-center gap-2 font-body text-sm font-light text-[--text-primary]">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4 text-[--primary-main]" />
-                  <span>{property.location.country}</span>
+                  <span>{property.country}</span>
                   <span>,</span>
-                  <span>{property.location.city}</span>
+                  <span>{property.city}</span>
                   <span>,</span>
-                  <span>{property.location.community}</span>
+                  <span>{property.community}</span>
                 </div>
 
                 <span className="text-[--grey-200]">|</span>
@@ -134,7 +133,7 @@ export default async function PropertyDetailPage({
                     {td("development_name")}
                   </span>
                   <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development.name}
+                    {property.development_name}
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
@@ -142,7 +141,7 @@ export default async function PropertyDetailPage({
                     {td("total_development_area")}
                   </span>
                   <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development.totalArea.toLocaleString()} sqft
+                    {property.development_total_area.toLocaleString()} sqft
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
@@ -150,17 +149,17 @@ export default async function PropertyDetailPage({
                     {td("developer_label")}
                   </span>
                   <Link
-                    href={`/developer/${property.developer.slug}`}
+                    href={`/developer/${property.developer_slug}`}
                     className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
                   >
-                    {property.developer.name}
+                    {property.developer_name}
                   </Link>
                 </div>
               </div>
             </div>
 
             <PropertyAmenitiesGrid
-              amenities={property.development.amenities}
+              amenities={property.development_amenities}
               title={td("development_amenities")}
             />
 
@@ -178,7 +177,7 @@ export default async function PropertyDetailPage({
                       {td("development_name")}
                     </span>
                     <span className="font-body text-sm font-medium text-[--text-primary]">
-                      {property.community.name}
+                      {property.community_name}
                     </span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2">
@@ -186,7 +185,7 @@ export default async function PropertyDetailPage({
                       {td("total_development_area")}
                     </span>
                     <span className="font-body text-sm font-medium text-[--text-primary]">
-                      {property.community.totalArea.toLocaleString()} sqft
+                      {property.community_total_area.toLocaleString()} sqft
                     </span>
                   </div>
                   <div className="px-3 py-2">
@@ -194,7 +193,7 @@ export default async function PropertyDetailPage({
                       {td("description_label")}
                     </span>
                     <p className="mt-1 font-body text-sm font-regular text-[--text-primary]">
-                      {property.community.description}
+                      {property.community_description}
                     </p>
                   </div>
                 </div>
@@ -214,15 +213,19 @@ export default async function PropertyDetailPage({
             <PropertySidebar
               price={property.price}
               currency={property.currency}
-              developmentName={property.development.name}
-              developmentSlug={property.development.slug}
-              developerName={property.developer.name}
-              developerSlug={property.developer.slug}
+              developmentName={property.development_name}
+              developmentSlug={property.development_slug}
+              developerName={property.developer_name}
+              developerSlug={property.developer_slug}
               phone={property.phone}
               whatsapp={property.whatsapp}
             />
           </aside>
         </div>
+
+        <div className="h-px w-full bg-[--grey-50]" />
+
+        <RelatedProperties properties={related} />
       </main>
       <Footer />
     </div>

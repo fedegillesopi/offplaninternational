@@ -486,10 +486,15 @@ interface UserProfile {
 }
 ```
 
-#### 7.2.5 Tablas pendientes de crear
-- `properties` — unidades individuales (precio, depósito, plan de pago, fecha entrega, ubicación, imágenes)
-- `developers` — información detallada de promotoras (logo, descripción, contacto, redes)
-- `developments` — proyectos/desarrollos (nombre, ubicación, amenities, fecha entrega estimada)
+#### 7.2.5 Tablas creadas
+- `developers` — información detallada de promotoras (logo, descripción, país, verificación) — migración 007
+- `developments` — proyectos/desarrollos (nombre, ubicación, amenities, fecha entrega) — migración 007
+- `properties` — unidades individuales con FK a developers y developments — migración 007 (reemplaza 003)
+- `payment_plan_milestones` — hitos del plan de pago por propiedad — migración 007 (reemplaza 004)
+- `subscriptions` — suscripciones por usuario (inactiva en beta, preparada para Stripe) — migración 006
+- Storage bucket `property-images` — imágenes de propiedades (público, 5MB, folder-based RLS) — migración 005
+
+#### 7.2.6 Tablas pendientes de crear
 - `communities` — comunidades/zonas
 - `favorites` — favoritos del inversor
 - `inquiries` — consultas de inversores a vendedores

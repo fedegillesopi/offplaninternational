@@ -153,11 +153,184 @@ Creada por migración `supabase/migrations/002_user_profiles.sql`. Reemplaza a `
 
 La tabla `developer_profiles` fue reemplazada por `user_profiles`. La migracion `002_user_profiles.sql` migra los datos existentes. No se recomienda usar esta tabla en nuevo codigo.
 
+### developers
+
+Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql`.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del developer |
+| name | text | NOT NULL | Nombre de la promotora |
+| slug | text | NOT NULL, UNIQUE | Slug unico |
+| logo_url | text | nullable | URL del logo |
+| website | text | nullable | Sitio web |
+| description | text | nullable | Descripcion |
+| country | text | nullable | Pais de operacion |
+| is_verified | boolean | NOT NULL DEFAULT false | Developer verificado |
+| user_profile_id | uuid | FK → user_profiles(id) ON DELETE SET NULL | ID del perfil de usuario asociado |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Índices:** `slug`, `user_profile_id`, `country`
+
+**Trigger:** `trigger_set_updated_at_developers`
+
+**Políticas RLS:**
+- SELECT público: developers verificados (`is_verified = true`)
+- SELECT propio: developer ve su propio registro (`auth.uid() = user_profile_id`)
+- No hay INSERT/UPDATE desde cliente (solo service_role)
+
+### developments
+
+Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql`.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del desarrollo |
+| name | text | NOT NULL | Nombre del desarrollo |
+| slug | text | NOT NULL, UNIQUE | Slug unico |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer asociado |
+| description | text | nullable | Descripcion |
+| country | text | nullable | Pais |
+| city | text | nullable | Ciudad |
+| community | text | nullable | Zona o barrio |
+| cover_image | text | nullable | Imagen principal |
+| images | text[] | nullable | Lista de imagenes |
+| amenities | text[] | nullable | Amenities del desarrollo |
+| handover_date | date | nullable | Fecha estimada de entrega |
+| is_active | boolean | NOT NULL DEFAULT true | Desarrollo activo |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Índices:** `slug`, `developer_id`, `country`, `city`
+
+**Trigger:** `trigger_set_updated_at_developments`
+
+**Políticas RLS:**
+- SELECT público: developments activos (`is_active = true`)
+
+### properties
+
+Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql` (reemplaza 003).
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID de la propiedad |
+| listed_by_id | uuid | NOT NULL, FK → user_profiles(id) ON DELETE CASCADE | ID del vendedor |
+| listed_by_type | text | NOT NULL, CHECK IN ('developer', 'broker', 'private_seller') | Tipo de vendedor |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer constructor (opcional) |
+| development_id | uuid | FK → developments(id) ON DELETE SET NULL | Desarrollo/proyecto (opcional) |
+| status | text | NOT NULL DEFAULT 'available', CHECK IN ('available', 'sold', 'reserved', 'off_market') | Estado |
+| country | text | NOT NULL | Pais |
+| city | text | NOT NULL | Ciudad |
+| community | text | nullable | Zona o barrio |
+| address | text | nullable | Direccion |
+| title | text | NOT NULL | Titulo |
+| slug | text | NOT NULL, UNIQUE(listed_by_id, slug) | Slug unico por seller |
+| description | text | nullable | Descripcion |
+| property_type | text | NOT NULL, CHECK IN ('apartment', 'villa', 'townhouse', 'penthouse', 'duplex') | Tipo |
+| bedrooms | integer | nullable | Dormitorios |
+| bathrooms | integer | nullable | Banos |
+| area_sqft | numeric | nullable | Area en pies cuadrados |
+| area_sqm | numeric | nullable | Area en metros cuadrados |
+| floor | integer | nullable | Piso |
+| has_balcony | boolean | DEFAULT false | Tiene balcon |
+| has_garden | boolean | DEFAULT false | Tiene jardin |
+| price | numeric | NOT NULL | Precio |
+| currency | text | NOT NULL DEFAULT 'USD', CHECK IN ('AED', 'USD', 'EUR', 'GBP') | Moneda |
+| deposit_percentage | numeric | nullable | Porcentaje de deposito |
+| deposit_amount | numeric | nullable | Monto del deposito |
+| has_post_handover | boolean | DEFAULT false | Tiene plan post-entrega |
+| handover_date | date | nullable | Fecha de entrega |
+| payment_plan_months | integer | nullable | Meses del plan de pago |
+| amenities | text[] | nullable | Lista de amenities |
+| images | text[] | nullable | URLs de imagenes |
+| cover_image | text | nullable | URL de imagen principal |
+| tags | text[] | nullable | Tags |
+| is_featured | boolean | DEFAULT false | Propiedad destacada |
+| is_active | boolean | DEFAULT true | Propiedad activa |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Índices:**
+- `listed_by_id`, `listed_by_type`, `developer_id`, `development_id`, `status`, `country`, `city`, `property_type`, `is_active`
+- Compuesto: `(listed_by_id, is_active)` — query del dashboard
+
+**Trigger:**
+- `set_updated_at_properties`: actualiza `updated_at` automáticamente en cada UPDATE
+
+**Políticas RLS:**
+- SELECT público: propiedades activas (`is_active = true`)
+- SELECT privado: seller ve todas sus propiedades (`auth.uid() = seller_id`)
+- INSERT: seller inserta sus propiedades, verificando `seller_type = role`
+- UPDATE/DELETE: solo seller dueño
+
+### payment_plan_milestones
+
+Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql` (reemplaza 004).
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del hito |
+| property_id | uuid | NOT NULL, FK → properties(id) ON DELETE CASCADE | ID de la propiedad |
+| milestone_name | text | NOT NULL | Nombre del hito (ej: 'On Booking') |
+| percentage | numeric | NOT NULL, CHECK (>= 0 AND <= 100) | Porcentaje del total |
+| amount | numeric | nullable | Monto en moneda de la propiedad |
+| due_date | date | nullable | Fecha de vencimiento |
+| description | text | nullable | Descripcion |
+| sort_order | integer | NOT NULL DEFAULT 0 | Orden de los hitos |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+
+**Índice:** `property_id`
+
+**Políticas RLS:**
+- SELECT público: milestones de propiedades activas
+- INSERT/UPDATE/DELETE: seller dueño de la propiedad
+
+### subscriptions (inactiva en beta)
+
+Creada por migración `supabase/migrations/006_subscriptions.sql`. Tabla preparada para integración futura con Stripe.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID de la suscripción |
+| user_id | uuid | NOT NULL, FK → user_profiles(id) ON DELETE CASCADE | ID del usuario |
+| role | text | NOT NULL | Role al momento de suscribirse |
+| plan_name | text | NOT NULL | Nombre del plan |
+| country | text | NOT NULL | País de operación |
+| status | text | NOT NULL DEFAULT 'active', CHECK IN ('active', 'cancelled', 'past_due', 'trialing', 'incomplete') | Estado |
+| stripe_customer_id | text | nullable | ID de cliente en Stripe |
+| stripe_subscription_id | text | nullable | ID de suscripción en Stripe |
+| stripe_price_id | text | nullable | ID del precio en Stripe |
+| current_period_start | timestamptz | nullable | Inicio del periodo actual |
+| current_period_end | timestamptz | nullable | Fin del periodo actual |
+| cancel_at_period_end | boolean | DEFAULT false | Cancelar al fin del periodo |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Índices:** `user_id`, `status`, `stripe_customer_id`, `stripe_subscription_id`
+
+**Trigger:** `set_updated_at_subscriptions`
+
+**Políticas RLS:**
+- SELECT: usuario lee su propia suscripción
+- INSERT/UPDATE: solo service_role (Stripe webhook)
+
+### Storage: property-images
+
+Bucket creado por migración `supabase/migrations/005_storage_property_images.sql`.
+
+- **Público:** true
+- **Tamaño máximo:** 5MB
+- **MIME types:** image/jpeg, image/png, image/webp
+- **Estructura:** `property-images/{user_id}/{filename}`
+- **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado
+
 ### Tablas de Supabase (gestionadas por Supabase)
 - `auth.users`, `auth.sessions`, `auth.mfa_factors`, etc. — auth estandar de Supabase
 
 ### Pendiente
-Definir tablas de `properties`, `developers`, `developments`, `communities`, `favorites`, `inquiries`.
+Definir tablas de `communities`, `favorites`, `inquiries`.
 
 ## 5. ESTRUCTURA DE ARCHIVOS
 
@@ -294,7 +467,12 @@ offplaninternational/
 ├── supabase/
 │   └── migrations/
 │       ├── 001_developer_profiles.sql  # Migracion legacy (reemplazada por 002)
-│       └── 002_user_profiles.sql       # Tabla unificada con roles + migracion de datos
+│       ├── 002_user_profiles.sql       # Tabla unificada con roles + migracion de datos
+│       ├── 003_properties.sql          # Tabla properties (LEGACY, reemplazada por 007)
+│       ├── 004_payment_plan_milestones.sql  # Milestones (LEGACY, reemplazada por 007)
+│       ├── 005_storage_property_images.sql  # Bucket de imagenes en Supabase Storage
+│       ├── 006_subscriptions.sql       # Tabla de suscripciones (inactiva en beta)
+│       └── 007_developers_developments_properties_rebuild.sql  # Developers, Developments, Properties rebuild, Milestones rebuild
 ├── docs/
 │   ├── CONTEXT.md                     # Este archivo
 │   └── PRD.md                         # Product Requirements Document (agente analista)
