@@ -80,7 +80,7 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const updateData: Record<string, string> = {
+      const updateData: Record<string, string | boolean> = {
         phone,
         profile_completed: true,
       };
