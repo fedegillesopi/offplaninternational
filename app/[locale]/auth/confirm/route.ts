@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
           redirect(`/auth/onboarding/${profile.role}`);
         }
 
-        redirect("/dashboard");
+        redirect("/app");
       }
 
-      redirect("/dashboard");
+      redirect("/app");
     } else {
       redirect(`/auth/error?error=${error?.message}`);
     }

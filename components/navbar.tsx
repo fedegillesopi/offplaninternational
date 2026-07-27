@@ -68,7 +68,7 @@ export function Navbar() {
           <CurrencySwitcher />
           {user ? (
             <Link
-              href="/dashboard"
+              href="/app"
               className="font-heading rounded bg-[--primary-main] px-3 py-1 text-sm font-medium text-[--text-primary] no-underline transition-all duration-200 hover:bg-[--primary-main]/90"
             >
               Dashboard
@@ -130,7 +130,7 @@ export function Navbar() {
               <div className="flex gap-2 px-4 pt-4">
                 {user ? (
                   <Link
-                    href="/dashboard"
+                    href="/app"
                     className="font-heading flex-1 rounded bg-[--primary-main] px-3 py-2 text-center text-sm font-medium text-[--text-primary] no-underline transition-all duration-200 hover:bg-[--primary-main]/90"
                     onClick={() => setMenuOpen(false)}
                   >

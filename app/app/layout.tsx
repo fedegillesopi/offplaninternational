@@ -1,9 +1,7 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
 
 export const metadata: Metadata = {
   title: "Dashboard - Off Plan International",
@@ -36,19 +34,15 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider
-      style={{
-        "--sidebar-width": "10rem",
-        "--header-height": "3rem",
-      } as React.CSSProperties}
-    >
-      <AppSidebar
-        user={{ name: userName, email: userEmail, avatar: "", role: userRole }}
-      />
-      <SidebarInset>
-        <SiteHeader />
+    <div className="flex h-screen">
+      <aside className="w-64 shrink-0 border-r">
+        <AppSidebar
+          user={{ name: userName, email: userEmail, avatar: "", role: userRole }}
+        />
+      </aside>
+      <main className="flex-1 overflow-auto">
         {children}
-      </SidebarInset>
-    </SidebarProvider>
+      </main>
+    </div>
   )
 }
