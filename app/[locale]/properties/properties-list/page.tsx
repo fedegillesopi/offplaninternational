@@ -1,9 +1,9 @@
 import { getTranslations } from "next-intl/server";
-import { Navbar } from "@/components/navbar";
-import { BackToHome } from "@/components/back-to-home";
-import { PropertyFilters } from "@/components/property-filters";
-import { PropertyCard } from "@/components/property-card";
-import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/site/navbar";
+import { BackToHome } from "@/components/site/back-to-home";
+import { PropertyFilters } from "@/components/properties/property-filters";
+import { PropertyCard } from "@/components/properties/property-card";
+import { Footer } from "@/components/site/footer";
 import { mockProperties } from "@/lib/mock-properties";
 
 export default async function PropertiesListPage() {

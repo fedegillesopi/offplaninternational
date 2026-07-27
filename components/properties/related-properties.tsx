@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { PropertyCard } from "@/components/property-card";
+import { PropertyCard } from "@/components/properties/property-card";
 import type { PropertyData } from "@/lib/types";
 
 export async function RelatedProperties({

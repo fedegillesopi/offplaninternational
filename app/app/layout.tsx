@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "@/components/platform/app-sidebar"
 
 export const metadata: Metadata = {
   title: "Dashboard - Off Plan International",

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { CurrencySwitcher } from "./currency-switcher";
+import { CurrencySwitcher } from "@/components/shared/currency-switcher";
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);

@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
 

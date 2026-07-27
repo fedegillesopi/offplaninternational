@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { Link } from "@/i18n/navigation";
-import { SignUpForm } from "@/components/sign-up-form";
+import { SignUpForm } from "@/components/auth/sign-up-form";
 
 export default function Page() {
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrency } from "@/components/currency-provider";
+import { useCurrency } from "@/components/shared/currency-provider";
 import { convertPrice } from "@/lib/exchange-rates";
 import { formatPrice } from "@/lib/currency";
 

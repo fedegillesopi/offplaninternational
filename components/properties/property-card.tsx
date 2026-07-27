@@ -2,7 +2,7 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Bed, Bath, MapPin, Phone, MessageCircle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { CurrencyPrice } from "@/components/currency-price";
+import { CurrencyPrice } from "@/components/shared/currency-price";
 import type { PropertyData } from "@/lib/types";
 
 export async function PropertyCard({ property }: { property: PropertyData }) {

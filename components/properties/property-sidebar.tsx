@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { CurrencyPrice } from "@/components/currency-price";
+import { CurrencyPrice } from "@/components/shared/currency-price";
 import { Link } from "@/i18n/navigation";
 import { Phone, MessageCircle } from "lucide-react";
 
