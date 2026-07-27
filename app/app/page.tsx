@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { SectionCards } from "@/components/section-cards"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -20,7 +19,6 @@ export default async function DashboardPage() {
               Hi, {profile?.email || "Developer"}
             </h1>
           </div>
-          <SectionCards />
         </div>
       </div>
     </div>
