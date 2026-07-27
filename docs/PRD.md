@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.3 — 23-Jul-2026
-**Estado:** MVP en desarrollo — Sistema de 3 roles, onboarding y esquema de datos completo
+**Versión:** 1.4 — 27-Jul-2026
+**Estado:** MVP en desarrollo — Auth i18n completo, componentes reorganizados, ruta /app
 
 ---
 
@@ -68,7 +68,15 @@
 | Signup URL-driven por role: `/auth/sign-up/developer`, `/auth/sign-up/broker`, `/auth/sign-up/private-seller` | Todos | ✅ Implementado |
 | Onboarding post-confirmación: `/auth/onboarding/[role]` con campos condicionales | Todos | ✅ Implementado |
 | Tabla `user_profiles` en Supabase con RLS, trigger y migración desde `developer_profiles` | Todos | ✅ Implementado |
+| Auth i18n: namespace `auth` traducido a 7 locales + auth components con `useTranslations` | Todos | ✅ Implementado |
+| Locale-aware redirects en auth: `emailRedirectTo`, `forgot-password` redirectTo, `confirm/route.ts` con `NEXT_LOCALE` | Todos | ✅ Implementado |
 | Dashboard unificado con sidebar basado en role (Developer/Broker/Private Seller) | Todos | ✅ Implementado |
+| Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/) | Frontend | ✅ Implementado |
+| Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx) | Frontend | ✅ Implementado |
+| shadcn defaults restaurados: Button (h-9/h-10), Input (h-9), custom spacing eliminado | Frontend | ✅ Implementado |
+| UI primitives creados: textarea.tsx, dialog.tsx (Radix UI) | Frontend | ✅ Implementado |
+| Rename `/dashboard` → `/app` | Todos | ✅ Implementado |
+| Sidebar reestructurada: NAV_BY_ROLE simplificado, dropdown usuario con logout | Todos | ✅ Implementado |
 | Pricing plans configurados por role × país (`lib/pricing-plans.ts`) | Todos | ✅ Implementado |
 | Legacy route redirects (`/login` → `/auth/login`, `/signup` → `/auth/sign-up/developer`) | Auth | ✅ Implementado |
 | Fix middleware: `updateSession()` antes de `intlMiddleware()` en auth routes | Auth | ✅ Implementado |
@@ -246,7 +254,9 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Confirmación de email obligatoria
 - Rutas protegidas via middleware: `proxy.ts` ejecuta `updateSession()` antes de `intlMiddleware()` en rutas de auth para resolver locale correctamente
 - `getUser()` server-side para verificar sesión (no `getClaims()`)
-- Tras login exitoso → redirige a `/dashboard` (standalone, sin locale prefix)
+- Tras login exitoso → redirige a `/app` (standalone, sin locale prefix)
+- **i18n:** Todos los formularios de auth usan `useTranslations("auth.*")` con traducciones a 7 locales (ae, ar, br, es, gb, mx, pt)
+- **Locale-aware redirects:** `emailRedirectTo` (sign-up) y `redirectTo` (forgot-password) incluyen locale via `useLocale()`. `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects
 
 #### 6.1.4 Currency Switcher
 - 4 monedas disponibles: AED, USD, EUR, GBP
@@ -298,20 +308,20 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - **Submit:** `supabase.auth.signUp()` con `options.data.role = activeTab` y `full_name`. El role se guarda en `raw_user_meta_data` de Supabase.
 - **Redirect post-signup:** `/auth/sign-up-success` (email de confirmación pendiente)
 - **Redirect legacy:** `/[locale]/auth/sign-up` (sin role) redirige a `/auth/sign-up/developer`
-- **Componente:** `components/sign-up-form.tsx` (client, hardcodeado en inglés)
-- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha
+- **Componente:** `components/auth/sign-up-form.tsx` (client, usa `useTranslations("auth.sign_up")`)
+- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha. "Back to home" traducido via `getTranslations("auth")`
 
 #### 6.2.2 Login unificado
 - **Ruta:** `/[locale]/auth/login` — formulario con email y password
-- **Componente:** `components/login-form.tsx` (client, usa `Link` y `useRouter` de `@/i18n/navigation`)
-- **Submit:** `supabase.auth.signInWithPassword()` → redirect a `/dashboard`
+- **Componente:** `components/auth/login-form.tsx` (client, usa `useTranslations("auth.login")`, `Link` y `useRouter` de `@/i18n/navigation`)
+- **Submit:** `supabase.auth.signInWithPassword()` → redirect a `/app`
 - **Link a registro:** `/auth/sign-up` (redirige a `/auth/sign-up/developer`)
 - **Link a forgot password:** `/auth/forgot-password`
 - **Legacy route:** `(auth)/login/page.tsx` redirige a `/auth/login`
 
 #### 6.2.3 Onboarding post-confirmación
 - **Ruta:** `/[locale]/auth/onboarding/[role]`
-- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) lee `user_profiles.role` y `user_profiles.profile_completed` tras verificar el OTP. Si `profile_completed === false`, redirige a `/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/dashboard`.
+- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) lee la cookie `NEXT_LOCALE` (fallback: `ae`), verifica el OTP con Supabase, lee `user_profiles.role` y `user_profiles.profile_completed`. Si `profile_completed === false`, redirige a `/{locale}/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/{locale}/app`.
 - **Formulario unificado con campos condicionales por role:**
   - **Developer:** company name*, company website, operating country*, phone*
   - **Broker:** company name*, company website, operating country*, license number*, phone*
@@ -326,28 +336,27 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 ### 6.3 Dashboard unificado (rutas standalone)
 
 #### 6.3.1 Layout del dashboard
-- **Ruta:** `/dashboard` (sin locale prefix, sin i18n)
-- **Protección:** `dashboard/layout.tsx` verifica sesión vía `supabase.auth.getUser()`. Sin sesión → redirect a `/login`.
-- **Datos del perfil:** Query a `user_profiles` selectando `full_name`, `email`, `role`. Si no hay `role` → redirect a `/login`.
-- **Sidebar:** `AppSidebar` recibe `{ name, email, avatar, role }`. El sidebar renderiza navegación diferente según `role`.
-- **SidebarProvider** con `SiteHeader` y contenido
+- **Ruta:** `/app` (sin locale prefix, sin i18n)
+- **Protección:** `app/app/layout.tsx` verifica sesión vía `supabase.auth.getUser()`. Sin sesión → redirect a `/auth/login`.
+- **Datos del perfil:** Query a `user_profiles` selectando `full_name`, `email`, `role`. Si no hay `role` → redirect a `/auth/login`.
+- **Sidebar:** `AppSidebar` renderiza navegación diferente según `role`. Layout flex simple (no usa shadcn SidebarProvider).
+- **SiteHeader** con botón Publish (Plus icon) que lleva a `/app/properties/new`
 
 #### 6.3.2 Sidebar por role (`app-sidebar.tsx`)
-- **Developer:** Dashboard (`/dashboard`), Properties (`/dashboard/properties`), Analytics (`/dashboard/analytics`)
-- **Broker:** Dashboard (`/dashboard`), Listings (`/dashboard/listings`), Clients (`/dashboard/clients`)
-- **Private Seller:** Dashboard (`/dashboard`), My Property (`/dashboard/my-property`)
-- **Común a todos:** Settings (`/dashboard/settings`) en NavSecondary
+- **Común a todos:** Dashboard (`/app`), Properties (`/app/properties`)
+- **Developer:** Dashboard, Properties, Analytics (`/app/analytics`)
+- **Broker:** Dashboard, Properties, Clients (`/app/clients`)
+- **Private Seller:** Dashboard, Properties
+- **Settings** (`/app/settings`) en NavSecondary, común a todos
 - **NavUser:** Dropdown con avatar, nombre, email y botón de logout
 
 #### 6.3.3 Dashboard page
-- Saludo personalizado con `profile.email`
-- SectionCards: 4 cards con métricas mockeadas (Revenue, Customers, Accounts, Growth)
-- ⚠️ Las sub-rutas del sidebar (properties, analytics, listings, clients, my-property) están definidas en la navegación pero las páginas aún no existen
+- Placeholder page en `/app`
+- ⚠️ Las sub-rutas del sidebar (analytics, clients, settings) están definidas en la navegación pero las páginas aún no existen
 
 #### 6.3.4 Legacy route redirects
-- `app/(auth)/login/page.tsx` → redirect a `/auth/login`
-- `app/(auth)/signup/page.tsx` → redirect a `/auth/sign-up/developer`
-- Estas rutas existen para compatibilidad con URLs legadas
+- `(auth)/login/page.tsx` y `(auth)/signup/page.tsx` eliminadas en cleanup
+- Legacy routes `/login` y `/signup` redirigen al sistema actual
 
 ### 6.4 Pricing plans (`lib/pricing-plans.ts`)
 
@@ -789,13 +798,12 @@ interface PropertyData {
 |---|---|---|
 | `/login` | Público | Redirect a `/auth/login` |
 | `/signup` | Público | Redirect a `/auth/sign-up/developer` |
-| `/dashboard` | Autenticado | Dashboard unificado con sidebar según role |
-| `/dashboard/settings` | Autenticado | Configuración (placeholder en sidebar) |
-| `/dashboard/properties` | Developer | Gestión de propiedades (pendiente) |
-| `/dashboard/analytics` | Developer | Analytics (pendiente) |
-| `/dashboard/listings` | Broker | Listings (pendiente) |
-| `/dashboard/clients` | Broker | Clientes (pendiente) |
-| `/dashboard/my-property` | Private Seller | Mi propiedad (pendiente) |
+| `/app` | Autenticado | Dashboard unificado con sidebar según role |
+| `/app/settings` | Autenticado | Configuración (placeholder en sidebar) |
+| `/app/properties` | Autenticado | Listado de propiedades del seller |
+| `/app/properties/new` | Autenticado | Publicar nueva propiedad (wizard multi-step) |
+| `/app/analytics` | Developer | Analytics (pendiente) |
+| `/app/clients` | Broker | Clientes (pendiente) |
 
 ### 7.4 Seguridad y acceso
 
@@ -805,9 +813,9 @@ interface PropertyData {
   - Geo-detección (público)
   - Auth middleware para rutas protegidas y dashboard
 - **Fix auth routes:** En `proxy.ts`, las rutas de auth ejecutan `updateSession()` antes de `intlMiddleware()` para resolver el locale correctamente antes de redirigir
-- **Protección del dashboard:** `updateSession()` en `lib/supabase/middleware.ts` verifica sesión en `/dashboard/*`. Si no hay usuario, redirige a `/login`. Si hay usuario en `/login` o `/signup`, redirige a `/dashboard`.
+- **Protección del dashboard:** `updateSession()` en `lib/supabase/middleware.ts` verifica sesión en `/app/*`. Si no hay usuario, redirige a `/auth/login`. Si hay usuario en `/auth/login` o `/auth/sign-up`, redirige a `/app`.
 - **Protección del sitio público:** `updateSession()` también protege `/[locale]/protected` y `/[locale]/auth/*` (excepto rutas públicas como login, sign-up, forgot-password, etc.)
-- **Onboarding gate:** El confirm route handler lee `user_profiles.profile_completed`. Si es `false`, redirige a `/auth/onboarding/{role}` en lugar de `/dashboard`.
+- **Onboarding gate:** El confirm route handler lee la cookie `NEXT_LOCALE` y `user_profiles.profile_completed`. Si es `false`, redirige a `/{locale}/auth/onboarding/{role}`. Si es `true`, redirige a `/{locale}/app`.
 - **Verificación de sesión:** `getUser()` server-side (no `getClaims()`) — el JWT puede estar expirado aunque los claims se decodifiquen
 - **Variables de entorno:** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - **RLS en user_profiles:** cada usuario solo puede leer/escribir su propio perfil
@@ -843,13 +851,13 @@ interface PropertyData {
 
 ```
 1. Usuario navega a /auth/sign-up/developer (o /broker, o /private-seller)
-2. Ve 3 tabs (Developer, Broker, Private Seller) — el tab activo corresponde a la URL
+2. Ve 3 tabs (Developer, Broker, Private Seller) — el tab activo corresponde a la URL. Labels traducidos via useTranslations("auth.sign_up")
 3. Si cambia de tab, navega a /auth/sign-up/{nuevo-role} (URL cambia)
 4. Completa formulario: full name, email, password, repeat password
-5. Submit → supabase.auth.signUp() con options.data.role = activeTab
+5. Submit → supabase.auth.signUp() con options.data.role = activeTab y emailRedirectTo = ${origin}/${locale}/auth/confirm
 6. Trigger handle_new_user() crea registro en user_profiles con role, email y campos vacíos
 7. Redirige a /auth/sign-up-success (email de confirmación pendiente)
-8. Usuario confirma email → /[locale]/auth/confirm route handler
+8. Usuario confirma email → /[locale]/auth/confirm route handler lee cookie NEXT_LOCALE
 ```
 
 **Servicios consumidos:** Supabase Auth, user_profiles (trigger)
@@ -857,16 +865,17 @@ interface PropertyData {
 ### Flujo C: Onboarding post-confirmación
 
 ```
-1. Confirm route handler verifica OTP con supabase.auth.verifyOtp()
-2. Lee user_profiles.role y user_profiles.profile_completed
-3. Si profile_completed === false → redirect a /auth/onboarding/{role}
-4. Si profile_completed === true → redirect a /dashboard
-5. Onboarding page muestra formulario con campos condicionales:
+1. Confirm route handler lee cookie NEXT_LOCALE (fallback: ae)
+2. Verifica OTP con supabase.auth.verifyOtp()
+3. Lee user_profiles.role y user_profiles.profile_completed
+4. Si profile_completed === false → redirect a /{locale}/auth/onboarding/{role}
+5. Si profile_completed === true → redirect a /{locale}/app
+6. Onboarding page muestra formulario con campos condicionales:
    - Developer: company name*, company website, operating country*, phone*
    - Broker: company name*, company website, operating country*, license number*, phone*
    - Private Seller: country of residence*, phone*
-6. Submit → actualiza user_profiles con campos + profile_completed = true
-7. Redirige a /dashboard
+7. Submit → actualiza user_profiles con campos + profile_completed = true
+8. Redirige a /app
 ```
 
 **Servicios consumidos:** Supabase Auth (verifyOtp), user_profiles (select + update)
@@ -874,15 +883,14 @@ interface PropertyData {
 ### Flujo D: Login de vendedor
 
 ```
-1. Usuario navega a /auth/login (o /login que redirige aquí)
+1. Usuario navega a /auth/login (o /login que redirige aquí). Textos traducidos via useTranslations("auth.login")
 2. Completa formulario con email y password
 3. Submit → supabase.auth.signInWithPassword()
-4. Si éxito → redirige a /dashboard
-5. Dashboard layout: getUser() → user_profiles query (full_name, email, role)
+4. Si éxito → redirige a /app
+5. App layout: getUser() → user_profiles query (full_name, email, role)
 6. AppSidebar renderiza navegación según role
-7. Dashboard page muestra SectionCards con datos mockeados
-8. Si error → mensaje en el formulario
-9. Si usuario ya autenticado visita /login o /signup → middleware redirige a /dashboard
+7. Si error → mensaje en el formulario
+8. Si usuario ya autenticado visita /login o /signup → middleware redirige a /app
 ```
 
 **Servicios consumidos:** Supabase Auth, user_profiles (RLS)
@@ -904,14 +912,13 @@ interface PropertyData {
 ### Flujo F: Sidebar adaptativo por role
 
 ```
-1. Dashboard layout carga perfil de user_profiles (incluye role)
-2. Pasa { name, email, avatar, role } a AppSidebar
-3. AppSidebar selecciona navegación de NAV_BY_ROLE[role]:
-   - Developer: Dashboard, Properties, Analytics
-   - Broker: Dashboard, Listings, Clients
-   - Private Seller: Dashboard, My Property
-4. NavSecondary muestra Settings (común a todos)
-5. NavUser muestra avatar, nombre, email y botón de logout
+1. App layout carga perfil de user_profiles (incluye role)
+2. AppSidebar selecciona navegación de NAV_BY_ROLE:
+   - Todos: Dashboard (/app), Properties (/app/properties)
+   - Developer: + Analytics
+   - Broker: + Clients
+3. NavSecondary muestra Settings (común a todos)
+4. NavUser muestra dropdown con avatar, nombre, email y botón de logout
 ```
 
 ---
@@ -931,11 +938,15 @@ interface PropertyData {
 11. **El dashboard y sus componentes (SectionCards, DataTable) usan datos mockeados.** Son placeholder visual.
 12. **Las sub-rutas del dashboard (properties, analytics, listings, clients, my-property) están definidas en la navegación del sidebar pero las páginas aún no existen.** Al navegar darán 404.
 13. **La tabla `user_profiles` se crea automáticamente al registrarse** vía trigger `handle_new_user()`. El role se extrae de `raw_user_meta_data->>'role'` (default: 'developer'). El onboarding se completa post-confirmación de email.
-14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/dashboard`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
-15. **El confirm route handler ejecuta `updateSession()` antes de verificar el OTP**, permitiendo leer el perfil del usuario recién creado.
+14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/app`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
+15. **El confirm route handler lee la cookie `NEXT_LOCALE`** para determinar el locale del usuario antes de redirigir. Fallback: `ae`.
 16. **Los pricing plans están configurados pero no se aplican.** Son referencia para futura implementación de planes pagos.
-17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el dashboard layout leen de `user_profiles`.
+17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el app layout leen de `user_profiles`.
 18. **Los componentes usan campos planos para acceder a datos de tablas relacionadas.** `PropertyData` incluye campos "joined" (`developer_name`, `development_name`, etc.) que replican datos de `developers` y `developments`. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vistas materializadas.
+19. **Auth forms están completamente traducidos.** Namespace `auth` en `messages/{locale}.json` con secciones: login, sign_up, forgot_password, update_password, back_to_home. Auth components usan `useTranslations("auth.*")`.
+20. **emailRedirectTo y redirectTo incluyen locale.** El sign-up form usa `useLocale()` para construir `${origin}/${locale}/auth/confirm`. El forgot-password form usa el mismo patrón para `${origin}/${locale}/auth/update-password`.
+21. **Componentes organizados por dominio.** `site/` (público), `properties/` (listado/detalle), `auth/` (formularios), `shared/` (currency), `platform/` (dashboard). `ui/` solo primitivas shadcn.
+22. **La ruta del dashboard es `/app`** (no `/dashboard`). Rename realizado para simplificar.
 
 ---
 
@@ -961,9 +972,9 @@ interface PropertyData {
 - Sin dashboard de inversor (favoritos, consultas)
 - Los botones de contacto (WhatsApp, Phone) no ejecutan acciones reales
 - El dashboard y su tabla de datos usan datos de relleno (no son propiedades reales)
-- Las sub-rutas del sidebar del dashboard (properties, analytics, listings, clients, my-property) no tienen páginas implementadas
+- Las sub-rutas del sidebar del dashboard (analytics, clients, settings) no tienen páginas implementadas
 - Los pricing plans están configurados pero no se cobran ni se aplican
-- Auth hardcodeado en inglés (sin traducciones i18n en formularios de auth)
+- La ruta `/app` no tiene page.tsx funcional (solo placeholder)
 
 ---
 
@@ -997,15 +1008,25 @@ interface PropertyData {
 - `property-card.tsx` migrado a campos planos (`developer_name`, `developer_logo`, `city`, `community`)
 - Detalle de propiedad migrado a campos planos (todas las referencias anidadas eliminadas)
 - `RelatedProperties` se renderiza correctamente
+- Auth i18n: namespace `auth` traducido a 7 locales (login, sign-up, forgot-password, update-password, back_to_home)
+- Auth components actualizados con `useTranslations("auth.*")`
+- Role labels traducidos en sign-up form
+- `emailRedirectTo` y `forgot-password` redirectTo incluyen locale
+- `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware
+- Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/)
+- Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx)
+- Route group `(auth)/` eliminada
+- shadcn defaults restaurados: Button (h-9/h-10), Input (h-9), custom spacing eliminado
+- UI primitives creados: textarea.tsx, dialog.tsx
+- Rename `/dashboard` → `/app`
+- Sidebar reestructurada: NAV_BY_ROLE simplificado, dropdown usuario con logout
 
 ### 🔜 Siguientes pasos
-- **Corto plazo:** Implementar páginas del sidebar: `/dashboard/properties`, `/dashboard/analytics` (Developer), `/dashboard/listings`, `/dashboard/clients` (Broker), `/dashboard/my-property` (Private Seller)
+- **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
 - **Corto plazo:** Crear rutas `/development/[slug]` y `/developer/[slug]` — actualmente dan 404 al navegar desde el detalle de propiedad
 - **Corto plazo:** Conectar tablas `developers`, `developments` y `properties` a la UI real (reemplazar datos planos mockeados con queries a Supabase)
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
-- **Corto plazo:** Migrar formularios de auth a traducciones (actualmente hardcodeados en inglés)
-- **Corto plazo:** Implementar página `/dashboard/settings`
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
 - **Mediano plazo:** Páginas de listado de comunidades
 - **Mediano plazo:** Panel de administración completo para vendedores (gestión de propiedades, consultas)
