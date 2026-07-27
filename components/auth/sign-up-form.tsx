@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,18 +17,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useRouter } from "@/i18n/navigation";
 import type { UserRole } from "@/lib/types";
-
-const ROLES: { value: UserRole; label: string }[] = [
-  { value: "developer", label: "Developer" },
-  { value: "broker", label: "Broker" },
-  { value: "private_seller", label: "Private Seller" },
-];
+import { useTranslations } from "next-intl";
 
 export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const t = useTranslations("auth.sign_up");
   const params = useParams();
+  const locale = useLocale();
   const initialRole = (params.role as UserRole) || "developer";
   const [activeTab, setActiveTab] = useState<UserRole>(initialRole);
   const [fullName, setFullName] = useState("");
@@ -65,7 +63,7 @@ export function SignUpForm({
             role: activeTab,
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `${window.location.origin}/${locale}/auth/confirm`,
         },
       });
       if (error) throw error;
@@ -94,19 +92,19 @@ export function SignUpForm({
   return (
     <div className={cn("flex flex-col gap-4", className)} {...props}>
       <div className="flex rounded-lg bg-muted p-1">
-        {ROLES.map((role) => (
+        {(["developer", "broker", "private_seller"] as UserRole[]).map((role) => (
           <button
-            key={role.value}
+            key={role}
             type="button"
-            onClick={() => handleTabChange(role.value)}
+            onClick={() => handleTabChange(role)}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 rounded-md px-2 py-1 text-sm font-medium transition-all",
-              activeTab === role.value
+              activeTab === role
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>{role.label}</span>
+            <span>{t(`roles.${role}`)}</span>
           </button>
         ))}
       </div>
@@ -114,16 +112,16 @@ export function SignUpForm({
       <Card className="p-3">
         <CardHeader className="p-0">
           <CardTitle className="text-2xl font-bold">
-            Create your account
+            {t("title")}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            List your properties and connect directly with investors.
+            {t("subtitle")}
           </p>
         </CardHeader>
         <CardContent className="p-0">
           <form onSubmit={handleSignUp} className="space-y-2">
             <div className="space-y-1">
-              <Label htmlFor="fullName">Full name</Label>
+              <Label htmlFor="fullName">{t("full_name")}</Label>
               <Input
                 id="fullName"
                 placeholder="John Doe"
@@ -134,7 +132,7 @@ export function SignUpForm({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -146,7 +144,7 @@ export function SignUpForm({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -157,7 +155,7 @@ export function SignUpForm({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="repeat-password">Repeat password</Label>
+              <Label htmlFor="repeat-password">{t("repeat_password")}</Label>
               <Input
                 id="repeat-password"
                 type="password"
@@ -169,19 +167,19 @@ export function SignUpForm({
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            <Button variant={"secondary"} type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
+            <Button variant={"default"} type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? t("loading") : t("submit")}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col border-none p-0 mt-2">
           <p className="text-center text-xs text-muted-foreground">
-            Already have an account?{" "}
+            {t("has_account")}{" "}
             <Link
               href="/auth/login"
               className="text-primary underline-offset-4 hover:underline"
             >
-              Login
+              {t("login")}
             </Link>
           </p>
         </CardFooter>

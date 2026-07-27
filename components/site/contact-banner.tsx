@@ -2,9 +2,9 @@ import { Link } from "@/i18n/navigation";
 
 export function ContactBanner() {
   return (
-    <section className="contactbanner-wrapper px-3 py-6 md:px-4 md:py-7 lg:px-6 lg:py-10">
+    <section className="px-3 py-6 md:px-4 md:py-7 lg:px-6 lg:py-10">
       <div
-        className="banner-contact flex flex-col items-start justify-between gap-3 rounded-2 bg-[--text-primary] p-2 md:p-4 lg:flex-row lg:items-center lg:p-6"
+        className="max-w-[1440px] mx-auto flex flex-col items-start justify-between gap-3 rounded-2 bg-[--text-primary] p-2 md:p-4 lg:flex-row lg:items-center lg:p-6"
         style={{
           backgroundImage:
             "url('/images/brand/iso-black-stroke.svg')",

@@ -27,7 +27,7 @@ export function Navbar() {
 
   return (
     <header id="navbar" className="bg-[--text-primary]">
-      <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-2 py-2 md:px-6">
+      <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-4 py-4 md:px-8">
         <Link href="/">
           <Image
             src="/images/brand/IsoLogotype-White&Color.png"
@@ -55,7 +55,7 @@ export function Navbar() {
           </svg>
         </button>
 
-        <nav className="hidden items-center gap-2 md:flex">
+        <nav className="hidden items-center gap-4 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -65,7 +65,9 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+
           <CurrencySwitcher />
+
           {user ? (
             <Link
               href="/app"
@@ -113,6 +115,7 @@ export function Navbar() {
                 <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
               </svg>
             </button>
+
             <nav className="flex flex-col pt-16">
               {navLinks.map((link) => (
                 <Link
@@ -124,9 +127,11 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+
               <div className="px-4 pt-3">
                 <CurrencySwitcher />
               </div>
+
               <div className="flex gap-2 px-4 pt-4">
                 {user ? (
                   <Link

@@ -48,6 +48,7 @@ function Dropdown({ label, multi, options, selected, onChange }: DropdownProps) 
           className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
+
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-1 bg-white shadow-lg">
           {options.map((option) => {
@@ -60,11 +61,10 @@ function Dropdown({ label, multi, options, selected, onChange }: DropdownProps) 
               >
                 {multi && (
                   <div
-                    className={`size-4 shrink-0 rounded border ${
-                      isSelected
-                        ? "border-[--primary-main] bg-[--primary-main]"
-                        : "border-gray-300"
-                    }`}
+                    className={`size-4 shrink-0 rounded border ${isSelected
+                      ? "border-[--primary-main] bg-[--primary-main]"
+                      : "border-gray-300"
+                      }`}
                   >
                     {isSelected && (
                       <svg viewBox="0 0 16 16" fill="white" className="size-4">
@@ -121,13 +121,13 @@ export function HeroHeader() {
   ];
 
   return (
-    <section className="flex items-center justify-center bg-[--text-primary] px-3 py-10 md:px-6 md:py-10"
-    style={{
-            backgroundImage: "url('/images/miscelaneous/worldBack.png')",
-            backgroundPosition: 'center',
-            backgroundSize: 'cover',
-            backgroundRepeat: 'no-repeat',
-          }}>
+    <section className="flex items-center justify-center bg-[--text-primary] px-3 py-10 md:px-6 md:py-32"
+      style={{
+        backgroundImage: "url('/images/miscelaneous/worldBack.png')",
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+      }}>
       <div className="flex w-full max-w-[900px] flex-col items-center gap-7">
         <div
           className="flex flex-col items-center gap-3 text-center"

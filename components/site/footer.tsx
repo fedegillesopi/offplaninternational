@@ -7,7 +7,7 @@ export async function Footer() {
 
   return (
     <footer id="footer" className="bg-[--text-primary]">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-6">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-10">
         <div className="flex w-full flex-col justify-between gap-5 text-[--grey-100] md:flex-row">
           <div className="flex w-full flex-col gap-5">
             <Image

@@ -11,10 +11,10 @@ export function AccordionItem({ question, answer }: AccordionItemProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="rounded-1 bg-white px-3 py-2 shadow-sm">
+    <div className="rounded-1 bg-white px-4 py-4 shadow-sm">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="accordion-item-trigger flex w-full cursor-pointer items-start justify-between border-none bg-transparent p-0 text-left"
+        className="flex w-full cursor-pointer items-start justify-between border-none bg-transparent p-0 text-left"
       >
         <h4 className="font-heading text-subtitle-1 font-bold text-text-primary">
           {question}
@@ -33,9 +33,8 @@ export function AccordionItem({ question, answer }: AccordionItemProps) {
         </div>
       </button>
       <div
-          className={`accordion-item-content overflow-hidden transition-all duration-300 ${
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        }`}
+        className={`accordion-item-content overflow-hidden transition-all duration-300 ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
       >
         <p className="font-body text-body-1 text-text-secondary mr-4 mt-1">
           {answer}

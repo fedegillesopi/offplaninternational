@@ -135,5 +135,55 @@
     "area_sqft": "Area:",
     "see_more": "See more",
     "development_label": "Development"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to manage your properties and listings.",
+      "email": "Email",
+      "password": "Password",
+      "forgot_password": "Forgot password?",
+      "submit": "Login",
+      "loading": "Logging in...",
+      "no_account": "Don't have an account?",
+      "sign_up": "Sign up"
+    },
+    "sign_up": {
+      "title": "Create your account",
+      "subtitle": "List your properties and connect directly with investors.",
+      "full_name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "repeat_password": "Repeat password",
+      "submit": "Create account",
+      "loading": "Creating account...",
+      "has_account": "Already have an account?",
+      "login": "Login",
+      "roles": {
+        "developer": "Developer",
+        "broker": "Broker",
+        "private_seller": "Private Seller"
+      }
+    },
+    "forgot_password": {
+      "title": "Reset Your Password",
+      "subtitle": "Type in your email and we'll send you a link to reset your password",
+      "email": "Email",
+      "submit": "Send reset email",
+      "loading": "Sending...",
+      "success_title": "Check Your Email",
+      "success_description": "Password reset instructions sent",
+      "success_message": "If you registered using your email and password, you will receive a password reset email.",
+      "has_account": "Already have an account?",
+      "login": "Login"
+    },
+    "update_password": {
+      "title": "Reset Your Password",
+      "subtitle": "Please enter your new password below.",
+      "password": "New password",
+      "submit": "Save new password",
+      "loading": "Saving..."
+    },
+    "back_to_home": "Back to home"
   }
 }
