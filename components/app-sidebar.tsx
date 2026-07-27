@@ -101,7 +101,7 @@ export function AppSidebar({ user, onNavClick }: AppSidebarProps) {
                 isActive && "bg-accent"
               )}
             >
-              <Icon className="size-2" />
+              <Icon className="size-4" />
               {item.label}
             </Link>
           )
@@ -117,7 +117,7 @@ export function AppSidebar({ user, onNavClick }: AppSidebarProps) {
             (pathname === "/app/settings" || pathname.startsWith("/app/settings/")) && "bg-accent"
           )}
         >
-          <Settings className="size-2" />
+          <Settings className="size-4" />
           Settings
         </Link>
       </div>
@@ -152,7 +152,7 @@ export function AppSidebar({ user, onNavClick }: AppSidebarProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer" variant="destructive">
               <div className="flex items-center gap-1">
-                <LogOut className="size-2" />
+                <LogOut className="size-4" />
                 Log out
               </div>
             </DropdownMenuItem>
