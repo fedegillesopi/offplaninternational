@@ -1,10 +1,10 @@
-import { Navbar } from "@/components/navbar";
-import { HeroHeader } from "@/components/hero-header";
-import { FeaturesSection } from "@/components/features-section";
-import { AboutSection } from "@/components/about-section";
-import { FaqSection } from "@/components/faq-section";
-import { ContactBanner } from "@/components/contact-banner";
-import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/site/navbar";
+import { HeroHeader } from "@/components/site/hero-header";
+import { FeaturesSection } from "@/components/site/features-section";
+import { AboutSection } from "@/components/site/about-section";
+import { FaqSection } from "@/components/site/faq-section";
+import { ContactBanner } from "@/components/site/contact-banner";
+import { Footer } from "@/components/site/footer";
 
 export default function Home() {
   return (

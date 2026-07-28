@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.2 — 22-Jul-2026
-**Estado:** MVP en desarrollo — Sistema de 3 roles y onboarding implementado
+**Versión:** 1.4 — 27-Jul-2026
+**Estado:** MVP en desarrollo — Auth i18n completo, componentes reorganizados, ruta /app
 
 ---
 
@@ -68,10 +68,22 @@
 | Signup URL-driven por role: `/auth/sign-up/developer`, `/auth/sign-up/broker`, `/auth/sign-up/private-seller` | Todos | ✅ Implementado |
 | Onboarding post-confirmación: `/auth/onboarding/[role]` con campos condicionales | Todos | ✅ Implementado |
 | Tabla `user_profiles` en Supabase con RLS, trigger y migración desde `developer_profiles` | Todos | ✅ Implementado |
+| Auth i18n: namespace `auth` traducido a 7 locales + auth components con `useTranslations` | Todos | ✅ Implementado |
+| Locale-aware redirects en auth: `emailRedirectTo`, `forgot-password` redirectTo, `confirm/route.ts` con `NEXT_LOCALE` | Todos | ✅ Implementado |
 | Dashboard unificado con sidebar basado en role (Developer/Broker/Private Seller) | Todos | ✅ Implementado |
+| Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/) | Frontend | ✅ Implementado |
+| Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx) | Frontend | ✅ Implementado |
+| shadcn defaults restaurados: Button (h-9/h-10), Input (h-9), custom spacing eliminado | Frontend | ✅ Implementado |
+| UI primitives creados: textarea.tsx, dialog.tsx (Radix UI) | Frontend | ✅ Implementado |
+| Rename `/dashboard` → `/app` | Todos | ✅ Implementado |
+| Sidebar reestructurada: NAV_BY_ROLE simplificado, dropdown usuario con logout | Todos | ✅ Implementado |
 | Pricing plans configurados por role × país (`lib/pricing-plans.ts`) | Todos | ✅ Implementado |
 | Legacy route redirects (`/login` → `/auth/login`, `/signup` → `/auth/sign-up/developer`) | Auth | ✅ Implementado |
 | Fix middleware: `updateSession()` antes de `intlMiddleware()` en auth routes | Auth | ✅ Implementado |
+| Tablas `developers`, `developments` en Supabase (migración 007) | Backend | ✅ Implementado |
+| Tabla `properties` recreada con FKs a `developers`, `developments` y `user_profiles` (migración 007) | Backend | ✅ Implementado |
+| Tabla `payment_plan_milestones` recreada con CHECK y RLS mejorado (migración 007) | Backend | ✅ Implementado |
+| Interfaz `PropertyData` migrada a campos planos + nuevas interfaces `Developer`, `Development`, `PaymentPlanMilestone` | Frontend | ✅ Implementado |
 | Página de listado de desarrollos `/development/[slug]` | Público | ❌ Pendiente |
 | Página de listado de promotoras `/developer/[slug]` | Público | ❌ Pendiente |
 | Página de listado de comunidades | Público | ❌ Pendiente |
@@ -242,7 +254,9 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Confirmación de email obligatoria
 - Rutas protegidas via middleware: `proxy.ts` ejecuta `updateSession()` antes de `intlMiddleware()` en rutas de auth para resolver locale correctamente
 - `getUser()` server-side para verificar sesión (no `getClaims()`)
-- Tras login exitoso → redirige a `/dashboard` (standalone, sin locale prefix)
+- Tras login exitoso → redirige a `/app` (standalone, sin locale prefix)
+- **i18n:** Todos los formularios de auth usan `useTranslations("auth.*")` con traducciones a 7 locales (ae, ar, br, es, gb, mx, pt)
+- **Locale-aware redirects:** `emailRedirectTo` (sign-up) y `redirectTo` (forgot-password) incluyen locale via `useLocale()`. `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects
 
 #### 6.1.4 Currency Switcher
 - 4 monedas disponibles: AED, USD, EUR, GBP
@@ -259,9 +273,10 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Barra de filtros completa: Location, Category, Price Range, Status
 - "+ More Filters" expande: Beds, Baths, Developer, Amenities
 - "Map View" botón (placeholder)
-- Cada PropertyCard muestra: imagen, categoría (badge), camas/baños/área, precio via CurrencyPrice, ubicación con MapPin, logo del developer, descripción, botones Contact y WhatsApp
+- Cada PropertyCard muestra: imagen, categoría (badge), camas/baños/área, precio via CurrencyPrice, ubicación con MapPin (city + community), logo y nombre del developer, descripción, botones Contact y WhatsApp
 - Datos mockeados en `lib/mock-properties.ts` (3 unidades)
 - Conversión de moneda en vivo al cambiar moneda global
+- **Campos planos:** PropertyCard accede a campos planos del objeto (`developer_name`, `developer_logo`, `city`, `community`) en lugar de joins anidados
 
 #### 6.1.6 Búsqueda
 - Campo de búsqueda por texto en homepage
@@ -280,6 +295,8 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Related properties grid (3 propiedades sugeridas)
 - Traducciones `property_detail` en 7 locales
 - Datos mockeados desde `lib/mock-properties.ts` con interfaz `PropertyData` compartida en `lib/types.ts`
+- Secciones de desarrollo y comunidad con datos completos (nombre, área total, amenities, descripción)
+- **Migración a campos planos (23-Jul-2026):** Todas las referencias a datos del developer, desarrollo y comunidad se resuelven vía campos planos en `PropertyData` (`developer_name`, `developer_slug`, `developer_logo`, `development_name`, `development_slug`, `development_total_area`, `development_amenities`, `community_name`, `community_slug`, `community_total_area`, `community_description`). RelatedProperties ahora se renderiza correctamente.
 
 ### 6.2 Auth unificado y onboarding (3 roles)
 
@@ -291,20 +308,20 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - **Submit:** `supabase.auth.signUp()` con `options.data.role = activeTab` y `full_name`. El role se guarda en `raw_user_meta_data` de Supabase.
 - **Redirect post-signup:** `/auth/sign-up-success` (email de confirmación pendiente)
 - **Redirect legacy:** `/[locale]/auth/sign-up` (sin role) redirige a `/auth/sign-up/developer`
-- **Componente:** `components/sign-up-form.tsx` (client, hardcodeado en inglés)
-- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha
+- **Componente:** `components/auth/sign-up-form.tsx` (client, usa `useTranslations("auth.sign_up")`)
+- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha. "Back to home" traducido via `getTranslations("auth")`
 
 #### 6.2.2 Login unificado
 - **Ruta:** `/[locale]/auth/login` — formulario con email y password
-- **Componente:** `components/login-form.tsx` (client, usa `Link` y `useRouter` de `@/i18n/navigation`)
-- **Submit:** `supabase.auth.signInWithPassword()` → redirect a `/dashboard`
+- **Componente:** `components/auth/login-form.tsx` (client, usa `useTranslations("auth.login")`, `Link` y `useRouter` de `@/i18n/navigation`)
+- **Submit:** `supabase.auth.signInWithPassword()` → redirect a `/app`
 - **Link a registro:** `/auth/sign-up` (redirige a `/auth/sign-up/developer`)
 - **Link a forgot password:** `/auth/forgot-password`
 - **Legacy route:** `(auth)/login/page.tsx` redirige a `/auth/login`
 
 #### 6.2.3 Onboarding post-confirmación
 - **Ruta:** `/[locale]/auth/onboarding/[role]`
-- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) lee `user_profiles.role` y `user_profiles.profile_completed` tras verificar el OTP. Si `profile_completed === false`, redirige a `/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/dashboard`.
+- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) lee la cookie `NEXT_LOCALE` (fallback: `ae`), verifica el OTP con Supabase, lee `user_profiles.role` y `user_profiles.profile_completed`. Si `profile_completed === false`, redirige a `/{locale}/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/{locale}/app`.
 - **Formulario unificado con campos condicionales por role:**
   - **Developer:** company name*, company website, operating country*, phone*
   - **Broker:** company name*, company website, operating country*, license number*, phone*
@@ -319,28 +336,27 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 ### 6.3 Dashboard unificado (rutas standalone)
 
 #### 6.3.1 Layout del dashboard
-- **Ruta:** `/dashboard` (sin locale prefix, sin i18n)
-- **Protección:** `dashboard/layout.tsx` verifica sesión vía `supabase.auth.getUser()`. Sin sesión → redirect a `/login`.
-- **Datos del perfil:** Query a `user_profiles` selectando `full_name`, `email`, `role`. Si no hay `role` → redirect a `/login`.
-- **Sidebar:** `AppSidebar` recibe `{ name, email, avatar, role }`. El sidebar renderiza navegación diferente según `role`.
-- **SidebarProvider** con `SiteHeader` y contenido
+- **Ruta:** `/app` (sin locale prefix, sin i18n)
+- **Protección:** `app/app/layout.tsx` verifica sesión vía `supabase.auth.getUser()`. Sin sesión → redirect a `/auth/login`.
+- **Datos del perfil:** Query a `user_profiles` selectando `full_name`, `email`, `role`. Si no hay `role` → redirect a `/auth/login`.
+- **Sidebar:** `AppSidebar` renderiza navegación diferente según `role`. Layout flex simple (no usa shadcn SidebarProvider).
+- **SiteHeader** con botón Publish (Plus icon) que lleva a `/app/properties/new`
 
 #### 6.3.2 Sidebar por role (`app-sidebar.tsx`)
-- **Developer:** Dashboard (`/dashboard`), Properties (`/dashboard/properties`), Analytics (`/dashboard/analytics`)
-- **Broker:** Dashboard (`/dashboard`), Listings (`/dashboard/listings`), Clients (`/dashboard/clients`)
-- **Private Seller:** Dashboard (`/dashboard`), My Property (`/dashboard/my-property`)
-- **Común a todos:** Settings (`/dashboard/settings`) en NavSecondary
+- **Común a todos:** Dashboard (`/app`), Properties (`/app/properties`)
+- **Developer:** Dashboard, Properties, Analytics (`/app/analytics`)
+- **Broker:** Dashboard, Properties, Clients (`/app/clients`)
+- **Private Seller:** Dashboard, Properties
+- **Settings** (`/app/settings`) en NavSecondary, común a todos
 - **NavUser:** Dropdown con avatar, nombre, email y botón de logout
 
 #### 6.3.3 Dashboard page
-- Saludo personalizado con `profile.email`
-- SectionCards: 4 cards con métricas mockeadas (Revenue, Customers, Accounts, Growth)
-- ⚠️ Las sub-rutas del sidebar (properties, analytics, listings, clients, my-property) están definidas en la navegación pero las páginas aún no existen
+- Placeholder page en `/app`
+- ⚠️ Las sub-rutas del sidebar (analytics, clients, settings) están definidas en la navegación pero las páginas aún no existen
 
 #### 6.3.4 Legacy route redirects
-- `app/(auth)/login/page.tsx` → redirect a `/auth/login`
-- `app/(auth)/signup/page.tsx` → redirect a `/auth/sign-up/developer`
-- Estas rutas existen para compatibilidad con URLs legadas
+- `(auth)/login/page.tsx` y `(auth)/signup/page.tsx` eliminadas en cleanup
+- Legacy routes `/login` y `/signup` redirigen al sistema actual
 
 ### 6.4 Pricing plans (`lib/pricing-plans.ts`)
 
@@ -398,7 +414,7 @@ Otras rutas:
 |---|---|---|
 | Framework | Next.js 16.2.6 (App Router) | SSR, Server Components, Server Actions |
 | Lenguaje | TypeScript ~5 | Strict mode |
-| Base de datos | Supabase (PostgreSQL) | Auth + tabla user_profiles |
+| Base de datos | Supabase (PostgreSQL) | Auth + tablas user_profiles, developers, developments, properties, payment_plan_milestones |
 | Estilos | Tailwind CSS 3.4 + tailwindcss-animate | Design system |
 | Componentes UI | Radix UI (shadcn-style): sidebar, sheet, dialog, drawer, select, tabs, table, avatar, separator, skeleton, chart | Primitivas accesibles |
 | Tabla de datos | @tanstack/react-table 8.21 | Tabla con sorting, filtering, pagination |
@@ -445,30 +461,197 @@ Creada via migración `002_user_profiles.sql`. Reemplaza a `developer_profiles` 
 - UPDATE: solo el propio usuario puede actualizar su perfil (`auth.uid() = id`)
 
 **Triggers:**
-- `set_updated_at_user_profiles`: actualiza `updated_at` automáticamente en cada UPDATE
+- `trigger_set_updated_at_user_profiles`: actualiza `updated_at` automáticamente en cada UPDATE
 - `handle_new_user()`: al crear un usuario en `auth.users`, inserta automáticamente un registro en `user_profiles` con `id`, `email`, `role` (desde `raw_user_meta_data->>'role'`, default 'developer') y campos vacíos
 
 **Migración de datos:** La migración 002 migra registros existentes de `developer_profiles` → `user_profiles` con `role = 'developer'` y `profile_completed` basado en si `company_name` no está vacío. La tabla `developer_profiles` se mantiene intacta (no se elimina).
 
-#### 7.2.3 Tabla legacy: developer_profiles
-Creada via migración `001_developer_profiles.sql`. Se mantiene por retrocompatibilidad pero `user_profiles` es la tabla principal.
+#### 7.2.3 Tabla: developers
 
-| Columna | Tipo | Descripción |
-|---|---|---|
-| id | uuid (PK, FK → auth.users) | ID del usuario |
-| full_name | text (not null) | Nombre completo |
-| company_name | text (not null) | Nombre de la empresa |
-| operating_country | text (not null) | Código ISO 2 letras |
-| email | text (not null) | Email del usuario |
-| created_at | timestamptz | Fecha de creación |
-| updated_at | timestamptz | Fecha de última actualización |
+Creada por migración `007_developers_developments_properties_rebuild.sql`.
 
-#### 7.2.4 Interfaz TypeScript: UserProfile
-Definida en `lib/types.ts`:
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del developer |
+| name | text | NOT NULL | Nombre de la promotora |
+| slug | text | NOT NULL, UNIQUE | Slug único |
+| logo_url | text | nullable | URL del logo |
+| website | text | nullable | Sitio web |
+| description | text | nullable | Descripción |
+| country | text | nullable | País de operación |
+| is_verified | boolean | NOT NULL DEFAULT false | Developer verificado |
+| user_profile_id | uuid | FK → user_profiles(id) ON DELETE SET NULL | Perfil de usuario asociado |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:** `slug`, `user_profile_id`, `country`
+**Trigger:** `trigger_set_updated_at_developers`
+**Políticas RLS:**
+- SELECT público: developers verificados (`is_verified = true`)
+- SELECT propio: developer ve su propio registro (`auth.uid() = user_profile_id`)
+- No hay INSERT/UPDATE desde cliente (solo service_role)
+
+#### 7.2.4 Tabla: developments
+
+Creada por migración `007_developers_developments_properties_rebuild.sql`.
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del desarrollo |
+| name | text | NOT NULL | Nombre del desarrollo |
+| slug | text | NOT NULL, UNIQUE | Slug único |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer asociado |
+| description | text | nullable | Descripción |
+| country | text | nullable | País |
+| city | text | nullable | Ciudad |
+| community | text | nullable | Zona o barrio |
+| cover_image | text | nullable | Imagen principal |
+| images | text[] | nullable | Lista de imágenes |
+| amenities | text[] | nullable | Amenities del desarrollo |
+| handover_date | date | nullable | Fecha estimada de entrega |
+| is_active | boolean | NOT NULL DEFAULT true | Desarrollo activo |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:** `slug`, `developer_id`, `country`, `city`
+**Trigger:** `trigger_set_updated_at_developments`
+**Políticas RLS:**
+- SELECT público: developments activos (`is_active = true`)
+
+#### 7.2.5 Tabla: properties
+
+Creada por migración `007_developers_developments_properties_rebuild.sql` (reemplaza 003).
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID de la propiedad |
+| listed_by_id | uuid | NOT NULL, FK → user_profiles(id) ON DELETE CASCADE | ID del vendedor |
+| listed_by_type | text | NOT NULL, CHECK IN ('developer', 'broker', 'private_seller') | Tipo de vendedor |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer constructor (opcional) |
+| development_id | uuid | FK → developments(id) ON DELETE SET NULL | Desarrollo/proyecto (opcional) |
+| status | text | NOT NULL DEFAULT 'available', CHECK IN ('available', 'sold', 'reserved', 'off_market') | Estado |
+| country | text | NOT NULL | País |
+| city | text | NOT NULL | Ciudad |
+| community | text | nullable | Zona o barrio |
+| address | text | nullable | Dirección |
+| title | text | NOT NULL | Título |
+| slug | text | NOT NULL, UNIQUE(listed_by_id, slug) | Slug único por seller |
+| description | text | nullable | Descripción |
+| property_type | text | NOT NULL, CHECK IN ('apartment', 'villa', 'townhouse', 'penthouse', 'duplex') | Tipo |
+| bedrooms | integer | nullable | Dormitorios |
+| bathrooms | integer | nullable | Baños |
+| area_sqft | numeric | nullable | Área en pies cuadrados |
+| area_sqm | numeric | nullable | Área en metros cuadrados |
+| floor | integer | nullable | Piso |
+| has_balcony | boolean | DEFAULT false | Tiene balcón |
+| has_garden | boolean | DEFAULT false | Tiene jardín |
+| price | numeric | NOT NULL | Precio |
+| currency | text | NOT NULL DEFAULT 'USD', CHECK IN ('AED', 'USD', 'EUR', 'GBP') | Moneda |
+| deposit_percentage | numeric | nullable | Porcentaje de depósito |
+| deposit_amount | numeric | nullable | Monto del depósito |
+| has_post_handover | boolean | DEFAULT false | Tiene plan post-entrega |
+| handover_date | date | nullable | Fecha de entrega |
+| payment_plan_months | integer | nullable | Meses del plan de pago |
+| amenities | text[] | nullable | Lista de amenities |
+| images | text[] | nullable | URLs de imágenes |
+| cover_image | text | nullable | URL de imagen principal |
+| tags | text[] | nullable | Tags |
+| is_featured | boolean | DEFAULT false | Propiedad destacada |
+| is_active | boolean | DEFAULT true | Propiedad activa |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:**
+- Simples: `listed_by_id`, `listed_by_type`, `developer_id`, `development_id`, `status`, `country`, `city`, `property_type`, `is_active`
+- Compuesto: `(listed_by_id, is_active)` — query del dashboard
+
+**Trigger:** `set_updated_at_properties`
+**Políticas RLS:**
+- SELECT público: propiedades activas (`is_active = true`)
+- SELECT privado: seller ve todas sus propiedades (`auth.uid() = listed_by_id`)
+- INSERT: seller inserta sus propiedades, verificando `listed_by_type = role`
+- UPDATE/DELETE: solo seller dueño
+
+#### 7.2.6 Tabla: payment_plan_milestones
+
+Creada por migración `007_developers_developments_properties_rebuild.sql` (reemplaza 004).
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del hito |
+| property_id | uuid | NOT NULL, FK → properties(id) ON DELETE CASCADE | ID de la propiedad |
+| milestone_name | text | NOT NULL | Nombre del hito (ej: 'On Booking') |
+| percentage | numeric | NOT NULL, CHECK (>= 0 AND <= 100) | Porcentaje del total |
+| amount | numeric | nullable | Monto en moneda de la propiedad |
+| due_date | date | nullable | Fecha de vencimiento |
+| description | text | nullable | Descripción |
+| sort_order | integer | NOT NULL DEFAULT 0 | Orden de los hitos |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+
+**Índice:** `property_id`
+**Políticas RLS:**
+- SELECT público: milestones de propiedades activas
+- INSERT/UPDATE/DELETE: seller dueño de la propiedad (check vía subquery a properties)
+
+#### 7.2.7 Interfaces TypeScript
+
+Definidas en `lib/types.ts`:
 
 ```typescript
+// --- Tipos base ---
 type UserRole = "developer" | "broker" | "private_seller";
+type PropertyStatus = "available" | "sold" | "reserved" | "off_market";
+type PropertyType = "apartment" | "villa" | "townhouse" | "penthouse" | "duplex";
+type PropertyCurrency = "AED" | "USD" | "EUR" | "GBP";
 
+// --- Tabla developers ---
+interface Developer {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  website: string | null;
+  description: string | null;
+  country: string | null;
+  is_verified: boolean;
+  user_profile_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Tabla developments ---
+interface Development {
+  id: string;
+  name: string;
+  slug: string;
+  developer_id: string | null;
+  description: string | null;
+  country: string | null;
+  city: string | null;
+  community: string | null;
+  cover_image: string | null;
+  images: string[] | null;
+  amenities: string[] | null;
+  handover_date: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Tabla payment_plan_milestones ---
+interface PaymentPlanMilestone {
+  id: string;
+  property_id: string;
+  milestone_name: string;
+  percentage: number;
+  amount: number | null;
+  due_date: string | null;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+// --- Tabla user_profiles ---
 interface UserProfile {
   id: string;
   role: UserRole;
@@ -484,12 +667,106 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
 }
+
+// --- Tabla properties (con campos planos joined) ---
+interface PropertyData {
+  // Identificación
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  descriptionFull: string;
+
+  // Relaciones (FKs)
+  listed_by_id: string;
+  listed_by_type: UserRole;
+  developer_id: string | null;
+  development_id: string | null;
+
+  // Ubicación
+  status: PropertyStatus;
+  country: string;
+  city: string;
+  community: string;
+  address: string | null;
+
+  // Características físicas
+  property_type: PropertyType;
+  category: string;
+  subcategory: string;
+  beds: number;
+  baths: number;
+  area: number;
+  area_sqft: number | null;
+  area_sqm: number | null;
+  floor: number | null;
+  has_balcony: boolean;
+  has_garden: boolean;
+
+  // Financiero
+  price: number;
+  currency: PropertyCurrency;
+  deposit_percentage: number | null;
+  deposit_amount: number | null;
+
+  // Entrega y plan de pago
+  has_post_handover: boolean;
+  handover_date: string | null;
+  handoverDate: string;
+  payment_plan_months: number | null;
+
+  // Multimedia y amenities
+  images: string[];
+  cover_image: string | null;
+  amenities: string[];
+  tags: string[];
+
+  // Metadata
+  is_featured: boolean;
+  is_active: boolean;
+  addedOn: string;
+  created_at: string;
+  updated_at: string;
+
+  // Campos planos (joined desde developers, developments, communities)
+  developer_name: string;
+  developer_slug: string;
+  developer_logo: string;
+  development_name: string;
+  development_slug: string;
+  development_total_area: number;
+  development_amenities: string[];
+  community_name: string;
+  community_slug: string;
+  community_total_area: number;
+  community_description: string;
+
+  // Plan de pago (objeto legacy para UI)
+  paymentPlan: {
+    length: string;
+    depositPercentage: string;
+    depositValue: string;
+    description: string;
+  };
+
+  // Contacto
+  phone: string;
+  whatsapp: string;
+}
 ```
 
-#### 7.2.5 Tablas pendientes de crear
-- `properties` — unidades individuales (precio, depósito, plan de pago, fecha entrega, ubicación, imágenes)
-- `developers` — información detallada de promotoras (logo, descripción, contacto, redes)
-- `developments` — proyectos/desarrollos (nombre, ubicación, amenities, fecha entrega estimada)
+**Patrón de campos planos:** `PropertyData` incluye tanto los campos propios de la tabla `properties` como campos "joined" que replican datos de las tablas `developers`, `developments` y `communities`. Esto evita joins en tiempo de render y simplifica el acceso en componentes Server. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vía vistas materializadas.
+
+#### 7.2.8 Tablas con datos migrados
+- `subscriptions` — suscripciones por usuario (inactiva en beta, preparada para Stripe) — migración 006
+- Storage bucket `property-images` — imágenes de propiedades (público, 5MB, folder-based RLS) — migración 005
+
+#### 7.2.9 Tablas legacy
+- `developer_profiles` — reemplazada por `user_profiles` (migración 002). Se mantiene por retrocompatibilidad.
+- `properties` (v003) — reemplazada por la versión 007 con FKs a `developers`, `developments` y `user_profiles`
+- `payment_plan_milestones` (v004) — reemplazada por la versión 007 con CHECK en percentage y RLS mejorado
+
+#### 7.2.10 Tablas pendientes de crear
 - `communities` — comunidades/zonas
 - `favorites` — favoritos del inversor
 - `inquiries` — consultas de inversores a vendedores
@@ -521,13 +798,12 @@ interface UserProfile {
 |---|---|---|
 | `/login` | Público | Redirect a `/auth/login` |
 | `/signup` | Público | Redirect a `/auth/sign-up/developer` |
-| `/dashboard` | Autenticado | Dashboard unificado con sidebar según role |
-| `/dashboard/settings` | Autenticado | Configuración (placeholder en sidebar) |
-| `/dashboard/properties` | Developer | Gestión de propiedades (pendiente) |
-| `/dashboard/analytics` | Developer | Analytics (pendiente) |
-| `/dashboard/listings` | Broker | Listings (pendiente) |
-| `/dashboard/clients` | Broker | Clientes (pendiente) |
-| `/dashboard/my-property` | Private Seller | Mi propiedad (pendiente) |
+| `/app` | Autenticado | Dashboard unificado con sidebar según role |
+| `/app/settings` | Autenticado | Configuración (placeholder en sidebar) |
+| `/app/properties` | Autenticado | Listado de propiedades del seller |
+| `/app/properties/new` | Autenticado | Publicar nueva propiedad (wizard multi-step) |
+| `/app/analytics` | Developer | Analytics (pendiente) |
+| `/app/clients` | Broker | Clientes (pendiente) |
 
 ### 7.4 Seguridad y acceso
 
@@ -537,12 +813,16 @@ interface UserProfile {
   - Geo-detección (público)
   - Auth middleware para rutas protegidas y dashboard
 - **Fix auth routes:** En `proxy.ts`, las rutas de auth ejecutan `updateSession()` antes de `intlMiddleware()` para resolver el locale correctamente antes de redirigir
-- **Protección del dashboard:** `updateSession()` en `lib/supabase/middleware.ts` verifica sesión en `/dashboard/*`. Si no hay usuario, redirige a `/login`. Si hay usuario en `/login` o `/signup`, redirige a `/dashboard`.
+- **Protección del dashboard:** `updateSession()` en `lib/supabase/middleware.ts` verifica sesión en `/app/*`. Si no hay usuario, redirige a `/auth/login`. Si hay usuario en `/auth/login` o `/auth/sign-up`, redirige a `/app`.
 - **Protección del sitio público:** `updateSession()` también protege `/[locale]/protected` y `/[locale]/auth/*` (excepto rutas públicas como login, sign-up, forgot-password, etc.)
-- **Onboarding gate:** El confirm route handler lee `user_profiles.profile_completed`. Si es `false`, redirige a `/auth/onboarding/{role}` en lugar de `/dashboard`.
+- **Onboarding gate:** El confirm route handler lee la cookie `NEXT_LOCALE` y `user_profiles.profile_completed`. Si es `false`, redirige a `/{locale}/auth/onboarding/{role}`. Si es `true`, redirige a `/{locale}/app`.
 - **Verificación de sesión:** `getUser()` server-side (no `getClaims()`) — el JWT puede estar expirado aunque los claims se decodifiquen
 - **Variables de entorno:** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - **RLS en user_profiles:** cada usuario solo puede leer/escribir su propio perfil
+- **RLS en developers:** público para verificados, propio para el developer dueño
+- **RLS en developments:** público para activos
+- **RLS en properties:** público para activos, propio para el seller dueño
+- **RLS en payment_plan_milestones:** público para propiedades activas, propio vía subquery a properties
 - **Role en Supabase Auth:** El role se guarda en `raw_user_meta_data` del usuario al registrarse (`options.data.role`). El trigger `handle_new_user()` lo lee con `coalesce(new.raw_user_meta_data->>'role', 'developer')`.
 
 ---
@@ -571,13 +851,13 @@ interface UserProfile {
 
 ```
 1. Usuario navega a /auth/sign-up/developer (o /broker, o /private-seller)
-2. Ve 3 tabs (Developer, Broker, Private Seller) — el tab activo corresponde a la URL
+2. Ve 3 tabs (Developer, Broker, Private Seller) — el tab activo corresponde a la URL. Labels traducidos via useTranslations("auth.sign_up")
 3. Si cambia de tab, navega a /auth/sign-up/{nuevo-role} (URL cambia)
 4. Completa formulario: full name, email, password, repeat password
-5. Submit → supabase.auth.signUp() con options.data.role = activeTab
+5. Submit → supabase.auth.signUp() con options.data.role = activeTab y emailRedirectTo = ${origin}/${locale}/auth/confirm
 6. Trigger handle_new_user() crea registro en user_profiles con role, email y campos vacíos
 7. Redirige a /auth/sign-up-success (email de confirmación pendiente)
-8. Usuario confirma email → /[locale]/auth/confirm route handler
+8. Usuario confirma email → /[locale]/auth/confirm route handler lee cookie NEXT_LOCALE
 ```
 
 **Servicios consumidos:** Supabase Auth, user_profiles (trigger)
@@ -585,16 +865,17 @@ interface UserProfile {
 ### Flujo C: Onboarding post-confirmación
 
 ```
-1. Confirm route handler verifica OTP con supabase.auth.verifyOtp()
-2. Lee user_profiles.role y user_profiles.profile_completed
-3. Si profile_completed === false → redirect a /auth/onboarding/{role}
-4. Si profile_completed === true → redirect a /dashboard
-5. Onboarding page muestra formulario con campos condicionales:
+1. Confirm route handler lee cookie NEXT_LOCALE (fallback: ae)
+2. Verifica OTP con supabase.auth.verifyOtp()
+3. Lee user_profiles.role y user_profiles.profile_completed
+4. Si profile_completed === false → redirect a /{locale}/auth/onboarding/{role}
+5. Si profile_completed === true → redirect a /{locale}/app
+6. Onboarding page muestra formulario con campos condicionales:
    - Developer: company name*, company website, operating country*, phone*
    - Broker: company name*, company website, operating country*, license number*, phone*
    - Private Seller: country of residence*, phone*
-6. Submit → actualiza user_profiles con campos + profile_completed = true
-7. Redirige a /dashboard
+7. Submit → actualiza user_profiles con campos + profile_completed = true
+8. Redirige a /app
 ```
 
 **Servicios consumidos:** Supabase Auth (verifyOtp), user_profiles (select + update)
@@ -602,15 +883,14 @@ interface UserProfile {
 ### Flujo D: Login de vendedor
 
 ```
-1. Usuario navega a /auth/login (o /login que redirige aquí)
+1. Usuario navega a /auth/login (o /login que redirige aquí). Textos traducidos via useTranslations("auth.login")
 2. Completa formulario con email y password
 3. Submit → supabase.auth.signInWithPassword()
-4. Si éxito → redirige a /dashboard
-5. Dashboard layout: getUser() → user_profiles query (full_name, email, role)
+4. Si éxito → redirige a /app
+5. App layout: getUser() → user_profiles query (full_name, email, role)
 6. AppSidebar renderiza navegación según role
-7. Dashboard page muestra SectionCards con datos mockeados
-8. Si error → mensaje en el formulario
-9. Si usuario ya autenticado visita /login o /signup → middleware redirige a /dashboard
+7. Si error → mensaje en el formulario
+8. Si usuario ya autenticado visita /login o /signup → middleware redirige a /app
 ```
 
 **Servicios consumidos:** Supabase Auth, user_profiles (RLS)
@@ -632,14 +912,13 @@ interface UserProfile {
 ### Flujo F: Sidebar adaptativo por role
 
 ```
-1. Dashboard layout carga perfil de user_profiles (incluye role)
-2. Pasa { name, email, avatar, role } a AppSidebar
-3. AppSidebar selecciona navegación de NAV_BY_ROLE[role]:
-   - Developer: Dashboard, Properties, Analytics
-   - Broker: Dashboard, Listings, Clients
-   - Private Seller: Dashboard, My Property
-4. NavSecondary muestra Settings (común a todos)
-5. NavUser muestra avatar, nombre, email y botón de logout
+1. App layout carga perfil de user_profiles (incluye role)
+2. AppSidebar selecciona navegación de NAV_BY_ROLE:
+   - Todos: Dashboard (/app), Properties (/app/properties)
+   - Developer: + Analytics
+   - Broker: + Clients
+3. NavSecondary muestra Settings (común a todos)
+4. NavUser muestra dropdown con avatar, nombre, email y botón de logout
 ```
 
 ---
@@ -659,10 +938,15 @@ interface UserProfile {
 11. **El dashboard y sus componentes (SectionCards, DataTable) usan datos mockeados.** Son placeholder visual.
 12. **Las sub-rutas del dashboard (properties, analytics, listings, clients, my-property) están definidas en la navegación del sidebar pero las páginas aún no existen.** Al navegar darán 404.
 13. **La tabla `user_profiles` se crea automáticamente al registrarse** vía trigger `handle_new_user()`. El role se extrae de `raw_user_meta_data->>'role'` (default: 'developer'). El onboarding se completa post-confirmación de email.
-14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/dashboard`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
-15. **El confirm route handler ejecuta `updateSession()` antes de verificar el OTP**, permitiendo leer el perfil del usuario recién creado.
+14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/app`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
+15. **El confirm route handler lee la cookie `NEXT_LOCALE`** para determinar el locale del usuario antes de redirigir. Fallback: `ae`.
 16. **Los pricing plans están configurados pero no se aplican.** Son referencia para futura implementación de planes pagos.
-17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el dashboard layout leen de `user_profiles`.
+17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el app layout leen de `user_profiles`.
+18. **Los componentes usan campos planos para acceder a datos de tablas relacionadas.** `PropertyData` incluye campos "joined" (`developer_name`, `development_name`, etc.) que replican datos de `developers` y `developments`. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vistas materializadas.
+19. **Auth forms están completamente traducidos.** Namespace `auth` en `messages/{locale}.json` con secciones: login, sign_up, forgot_password, update_password, back_to_home. Auth components usan `useTranslations("auth.*")`.
+20. **emailRedirectTo y redirectTo incluyen locale.** El sign-up form usa `useLocale()` para construir `${origin}/${locale}/auth/confirm`. El forgot-password form usa el mismo patrón para `${origin}/${locale}/auth/update-password`.
+21. **Componentes organizados por dominio.** `site/` (público), `properties/` (listado/detalle), `auth/` (formularios), `shared/` (currency), `platform/` (dashboard). `ui/` solo primitivas shadcn.
+22. **La ruta del dashboard es `/app`** (no `/dashboard`). Rename realizado para simplificar.
 
 ---
 
@@ -676,7 +960,7 @@ interface UserProfile {
 - El locale/idioma se puede inferir por geolocalización del país de origen
 
 **Restricciones:**
-- Datos mockeados para MVP — sin base de datos propia de propiedades
+- Datos mockeados para MVP — las tablas existen en Supabase pero la UI aún no las consulta
 - Sin mapa funcional en MVP (pendiente geolocalización)
 - Sin pagos integrados en la plataforma
 - Sin comparador de propiedades
@@ -688,9 +972,9 @@ interface UserProfile {
 - Sin dashboard de inversor (favoritos, consultas)
 - Los botones de contacto (WhatsApp, Phone) no ejecutan acciones reales
 - El dashboard y su tabla de datos usan datos de relleno (no son propiedades reales)
-- Las sub-rutas del sidebar del dashboard (properties, analytics, listings, clients, my-property) no tienen páginas implementadas
+- Las sub-rutas del sidebar del dashboard (analytics, clients, settings) no tienen páginas implementadas
 - Los pricing plans están configurados pero no se cobran ni se aplican
-- Auth hardcodeado en inglés (sin traducciones i18n en formularios de auth)
+- La ruta `/app` no tiene page.tsx funcional (solo placeholder)
 
 ---
 
@@ -714,15 +998,35 @@ interface UserProfile {
 - Fix middleware auth routes (updateSession antes de intlMiddleware)
 - Pricing plans configurados por role × país
 - Confirm route handler con onboarding gate
+- Tablas `developers`, `developments` creadas en Supabase (migración 007)
+- Tabla `properties` recreada con FKs a `developers`, `developments` y `user_profiles` (migración 007, reemplaza 003)
+- Tabla `payment_plan_milestones` recreada con CHECK en percentage (0-100) y RLS con ownership check vía subquery (migración 007, reemplaza 004)
+- Función `trigger_set_updated_at()` renombrada a `trigger_set_updated_at_user_profiles()` para evitar conflictos de nombres
+- Interfaz `PropertyData` migrada a campos planos: `developer_name`, `developer_slug`, `developer_logo`, `development_name`, `development_slug`, `development_total_area`, `development_amenities`, `community_name`, `community_slug`, `community_total_area`, `community_description`
+- Nuevas interfaces TypeScript: `Developer`, `Development`, `PaymentPlanMilestone`
+- Nuevos tipos TypeScript: `PropertyStatus`, `PropertyType`, `PropertyCurrency`
+- `property-card.tsx` migrado a campos planos (`developer_name`, `developer_logo`, `city`, `community`)
+- Detalle de propiedad migrado a campos planos (todas las referencias anidadas eliminadas)
+- `RelatedProperties` se renderiza correctamente
+- Auth i18n: namespace `auth` traducido a 7 locales (login, sign-up, forgot-password, update-password, back_to_home)
+- Auth components actualizados con `useTranslations("auth.*")`
+- Role labels traducidos en sign-up form
+- `emailRedirectTo` y `forgot-password` redirectTo incluyen locale
+- `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware
+- Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/)
+- Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx)
+- Route group `(auth)/` eliminada
+- shadcn defaults restaurados: Button (h-9/h-10), Input (h-9), custom spacing eliminado
+- UI primitives creados: textarea.tsx, dialog.tsx
+- Rename `/dashboard` → `/app`
+- Sidebar reestructurada: NAV_BY_ROLE simplificado, dropdown usuario con logout
 
 ### 🔜 Siguientes pasos
-- **Corto plazo:** Implementar páginas del sidebar: `/dashboard/properties`, `/dashboard/analytics` (Developer), `/dashboard/listings`, `/dashboard/clients` (Broker), `/dashboard/my-property` (Private Seller)
+- **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
 - **Corto plazo:** Crear rutas `/development/[slug]` y `/developer/[slug]` — actualmente dan 404 al navegar desde el detalle de propiedad
+- **Corto plazo:** Conectar tablas `developers`, `developments` y `properties` a la UI real (reemplazar datos planos mockeados con queries a Supabase)
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
-- **Corto plazo:** Conectar datos de propiedades a Supabase (reemplazar mock data con queries reales)
-- **Corto plazo:** Migrar formularios de auth a traducciones (actualmente hardcodeados en inglés)
-- **Corto plazo:** Implementar página `/dashboard/settings`
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
 - **Mediano plazo:** Páginas de listado de comunidades
 - **Mediano plazo:** Panel de administración completo para vendedores (gestión de propiedades, consultas)
@@ -761,3 +1065,4 @@ interface UserProfile {
 | DataTable | Tabla interactiva con drag & drop, filtros, paginación y edición inline |
 | Onboarding | Flujo post-registro donde el usuario completa los datos de su perfil según su role |
 | Pricing Plans | Matriz de precios configurada por role × país para futuros planes pagos |
+| Campos planos | Patrón de diseño donde `PropertyData` incluye datos "joined" de tablas relacionadas (`developer_name`, `development_name`, etc.) para evitar joins en tiempo de render |

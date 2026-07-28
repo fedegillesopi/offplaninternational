@@ -1,9 +1,12 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { Link } from "@/i18n/navigation";
-import { SignUpForm } from "@/components/sign-up-form";
+import { SignUpForm } from "@/components/auth/sign-up-form";
+import { getTranslations } from "next-intl/server";
 
-export default function Page() {
+export default async function Page() {
+  const t = await getTranslations("auth");
+
   return (
     <div className="flex min-h-svh w-full">
       <div className="relative hidden lg:flex lg:w-1/2 items-center justify-center">
@@ -41,7 +44,7 @@ export default function Page() {
                 <path d="m12 19-7-7 7-7" />
                 <path d="M19 12H5" />
               </svg>
-              Back to home
+              {t("back_to_home")}
             </Link>
           </div>
         </div>

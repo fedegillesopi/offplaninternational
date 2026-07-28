@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
-import { BackToHome } from "@/components/back-to-home";
-import { Breadcrumb } from "@/components/breadcrumb";
-import { PropertyGallery } from "@/components/property-gallery";
-import { PropertySidebar } from "@/components/property-sidebar";
-import { PropertyDetailsTable } from "@/components/property-details-table";
-import { PropertyAmenitiesGrid } from "@/components/property-amenities-grid";
-import { PropertyPaymentPlan } from "@/components/property-payment-plan";
-import { PropertyTags } from "@/components/property-tags";
-import { RelatedProperties } from "@/components/related-properties";
+import { Navbar } from "@/components/site/navbar";
+import { Footer } from "@/components/site/footer";
+import { BackToHome } from "@/components/site/back-to-home";
+import { Breadcrumb } from "@/components/site/breadcrumb";
+import { PropertyGallery } from "@/components/properties/property-gallery";
+import { PropertySidebar } from "@/components/properties/property-sidebar";
+import { PropertyDetailsTable } from "@/components/properties/property-details-table";
+import { PropertyAmenitiesGrid } from "@/components/properties/property-amenities-grid";
+import { PropertyPaymentPlan } from "@/components/properties/property-payment-plan";
+import { PropertyTags } from "@/components/properties/property-tags";
+import { RelatedProperties } from "@/components/properties/related-properties";
 import { mockProperties } from "@/lib/mock-properties";
 import { Link } from "@/i18n/navigation";
 import { Bed, Bath, MapPin } from "lucide-react";
@@ -30,7 +30,6 @@ export default async function PropertyDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const t = await getTranslations("properties");
   const td = await getTranslations("property_detail");
   const property = getPropertyBySlug(slug);
 
@@ -42,7 +41,7 @@ export default async function PropertyDetailPage({
     <div className="body-wrapper mx-auto w-full">
       <Navbar />
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-2 py-2 md:px-6 md:py-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-between">
               <BackToHome
@@ -65,17 +64,18 @@ export default async function PropertyDetailPage({
 
         <PropertyGallery images={property.images} title={property.title} />
 
-        <div className="flex flex-col gap-6 md:flex-row">
-          <div className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-col gap-8 md:flex-row mt-6">
+          <div className="flex flex-1 flex-col gap-8">
             <div className="flex flex-1 flex-col gap-2">
+
               <div className="flex flex-wrap items-center gap-2 font-body text-sm font-light text-[--text-primary]">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4 text-[--primary-main]" />
-                  <span>{property.location.country}</span>
+                  <span>{property.country}</span>
                   <span>,</span>
-                  <span>{property.location.city}</span>
+                  <span>{property.city}</span>
                   <span>,</span>
-                  <span>{property.location.community}</span>
+                  <span>{property.community}</span>
                 </div>
 
                 <span className="text-[--grey-200]">|</span>
@@ -87,9 +87,9 @@ export default async function PropertyDetailPage({
                 <span className="text-[--grey-200]">|</span>
 
                 <div className="flex items-center gap-1">
-                  <Bed className="h-3 w-3" />
+                  <Bed className="h-4 w-4" />
                   <span>{property.beds}</span>
-                  <Bath className="h-3 w-3" />
+                  <Bath className="h-4 w-4" />
                   <span>{property.baths}</span>
                 </div>
 
@@ -125,7 +125,7 @@ export default async function PropertyDetailPage({
             <div className="h-px w-full bg-[--grey-50]" />
 
             <div>
-              <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+              <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
                 {td("development_details")}
               </h3>
               <div className="divide-y divide-[--grey-50] rounded-2 border border-[--grey-50] w-full max-w-lg">
@@ -134,7 +134,7 @@ export default async function PropertyDetailPage({
                     {td("development_name")}
                   </span>
                   <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development.name}
+                    {property.development_name}
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
@@ -142,7 +142,7 @@ export default async function PropertyDetailPage({
                     {td("total_development_area")}
                   </span>
                   <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development.totalArea.toLocaleString()} sqft
+                    {property.development_total_area.toLocaleString()} sqft
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
@@ -150,17 +150,17 @@ export default async function PropertyDetailPage({
                     {td("developer_label")}
                   </span>
                   <Link
-                    href={`/developer/${property.developer.slug}`}
+                    href={`/developer/${property.developer_slug}`}
                     className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
                   >
-                    {property.developer.name}
+                    {property.developer_name}
                   </Link>
                 </div>
               </div>
             </div>
 
             <PropertyAmenitiesGrid
-              amenities={property.development.amenities}
+              amenities={property.development_amenities}
               title={td("development_amenities")}
             />
 
@@ -168,7 +168,7 @@ export default async function PropertyDetailPage({
 
             <div className="flex flex-wrap gap-2 justify-between">
               <div className="flex flex-col">
-                <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+                <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
                   {td("community_details")}
                 </h3>
 
@@ -178,7 +178,7 @@ export default async function PropertyDetailPage({
                       {td("development_name")}
                     </span>
                     <span className="font-body text-sm font-medium text-[--text-primary]">
-                      {property.community.name}
+                      {property.community_name}
                     </span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2">
@@ -186,7 +186,7 @@ export default async function PropertyDetailPage({
                       {td("total_development_area")}
                     </span>
                     <span className="font-body text-sm font-medium text-[--text-primary]">
-                      {property.community.totalArea.toLocaleString()} sqft
+                      {property.community_total_area.toLocaleString()} sqft
                     </span>
                   </div>
                   <div className="px-3 py-2">
@@ -194,7 +194,7 @@ export default async function PropertyDetailPage({
                       {td("description_label")}
                     </span>
                     <p className="mt-1 font-body text-sm font-regular text-[--text-primary]">
-                      {property.community.description}
+                      {property.community_description}
                     </p>
                   </div>
                 </div>
@@ -214,15 +214,19 @@ export default async function PropertyDetailPage({
             <PropertySidebar
               price={property.price}
               currency={property.currency}
-              developmentName={property.development.name}
-              developmentSlug={property.development.slug}
-              developerName={property.developer.name}
-              developerSlug={property.developer.slug}
+              developmentName={property.development_name}
+              developmentSlug={property.development_slug}
+              developerName={property.developer_name}
+              developerSlug={property.developer_slug}
               phone={property.phone}
               whatsapp={property.whatsapp}
             />
           </aside>
         </div>
+
+        <div className="h-px w-full bg-[--grey-50]" />
+
+        <RelatedProperties properties={related} />
       </main>
       <Footer />
     </div>

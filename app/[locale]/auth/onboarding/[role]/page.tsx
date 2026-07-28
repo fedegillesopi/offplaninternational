@@ -106,7 +106,7 @@ export default function OnboardingPage() {
 
       if (updateError) throw updateError;
 
-      router.push("/dashboard");
+      router.push("/app");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

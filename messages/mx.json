@@ -135,5 +135,55 @@
     "area_sqft": "Área:",
     "see_more": "Ver más",
     "development_label": "Desarrollo"
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenido de vuelta",
+      "subtitle": "Inicia sesión para gestionar tus propiedades y publicaciones.",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "forgot_password": "¿Olvidaste tu contraseña?",
+      "submit": "Iniciar sesión",
+      "loading": "Iniciando sesión...",
+      "no_account": "¿No tienes cuenta?",
+      "sign_up": "Regístrate"
+    },
+    "sign_up": {
+      "title": "Crea tu cuenta",
+      "subtitle": "Publica tus propiedades y conecta directamente con inversores.",
+      "full_name": "Nombre completo",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "repeat_password": "Repetir contraseña",
+      "submit": "Crear cuenta",
+      "loading": "Creando cuenta...",
+      "has_account": "¿Ya tienes cuenta?",
+      "login": "Iniciar sesión",
+      "roles": {
+        "developer": "Desarrollador",
+        "broker": "Corredor",
+        "private_seller": "Vendedor particular"
+      }
+    },
+    "forgot_password": {
+      "title": "Restablecer contraseña",
+      "subtitle": "Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña",
+      "email": "Correo electrónico",
+      "submit": "Enviar correo de restablecimiento",
+      "loading": "Enviando...",
+      "success_title": "Revisa tu correo",
+      "success_description": "Instrucciones de restablecimiento enviadas",
+      "success_message": "Si te registraste con tu correo y contraseña, recibirás un correo para restablecer tu contraseña.",
+      "has_account": "¿Ya tienes cuenta?",
+      "login": "Iniciar sesión"
+    },
+    "update_password": {
+      "title": "Restablecer contraseña",
+      "subtitle": "Ingresa tu nueva contraseña a continuación.",
+      "password": "Nueva contraseña",
+      "submit": "Guardar nueva contraseña",
+      "loading": "Guardando..."
+    },
+    "back_to_home": "Volver al inicio"
   }
 }

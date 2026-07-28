@@ -135,5 +135,55 @@
     "area_sqft": "Área:",
     "see_more": "Ver mais",
     "development_label": "Empreendimento"
+  },
+  "auth": {
+    "login": {
+      "title": "Bem-vindo de volta",
+      "subtitle": "Faça login para gerenciar suas propriedades e anúncios.",
+      "email": "E-mail",
+      "password": "Senha",
+      "forgot_password": "Esqueceu a senha?",
+      "submit": "Entrar",
+      "loading": "Entrando...",
+      "no_account": "Não tem uma conta?",
+      "sign_up": "Cadastre-se"
+    },
+    "sign_up": {
+      "title": "Crie sua conta",
+      "subtitle": "Anuncie suas propriedades e conecte-se diretamente com investidores.",
+      "full_name": "Nome completo",
+      "email": "E-mail",
+      "password": "Senha",
+      "repeat_password": "Repetir senha",
+      "submit": "Criar conta",
+      "loading": "Criando conta...",
+      "has_account": "Já tem uma conta?",
+      "login": "Entrar",
+      "roles": {
+        "developer": "Incorporadora",
+        "broker": "Corretor",
+        "private_seller": "Vendedor particular"
+      }
+    },
+    "forgot_password": {
+      "title": "Redefinir senha",
+      "subtitle": "Digite seu e-mail e enviaremos um link para redefinir sua senha",
+      "email": "E-mail",
+      "submit": "Enviar e-mail de redefinição",
+      "loading": "Enviando...",
+      "success_title": "Verifique seu e-mail",
+      "success_description": "Instruções de redefinição de senha enviadas",
+      "success_message": "Se você se registrou usando e-mail e senha, receberá um e-mail para redefinir sua senha.",
+      "has_account": "Já tem uma conta?",
+      "login": "Entrar"
+    },
+    "update_password": {
+      "title": "Redefinir senha",
+      "subtitle": "Por favor, insira sua nova senha abaixo.",
+      "password": "Nova senha",
+      "submit": "Salvar nova senha",
+      "loading": "Salvando..."
+    },
+    "back_to_home": "Voltar ao início"
   }
 }

@@ -1,6 +1,6 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getLocale } from "next-intl/server";
-import { CurrencyProvider } from "@/components/currency-provider";
+import { CurrencyProvider } from "@/components/shared/currency-provider";
 
 export default async function LocaleLayout({
   children,

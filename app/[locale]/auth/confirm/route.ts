@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     ? (rawType as EmailOtpType)
     : null;
 
+  const locale = request.cookies.get("NEXT_LOCALE")?.value || "ae";
+
   if (token_hash && type) {
     const supabase = await createClient();
 
@@ -31,17 +33,17 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (profile && !profile.profile_completed) {
-          redirect(`/auth/onboarding/${profile.role}`);
+          redirect(`/${locale}/auth/onboarding/${profile.role}`);
         }
 
-        redirect("/dashboard");
+        redirect(`/${locale}/app`);
       }
 
-      redirect("/dashboard");
+      redirect(`/${locale}/app`);
     } else {
-      redirect(`/auth/error?error=${error?.message}`);
+      redirect(`/${locale}/auth/error?error=${error?.message}`);
     }
   }
 
-  redirect("/auth/error?error=No token hash or type");
+  redirect(`/${locale}/auth/error?error=No token hash or type`);
 }

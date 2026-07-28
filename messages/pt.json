@@ -135,5 +135,55 @@
     "area_sqft": "Área:",
     "see_more": "Ver mais",
     "development_label": "Empreendimento"
+  },
+  "auth": {
+    "login": {
+      "title": "Bem-vindo de volta",
+      "subtitle": "Inicie sessão para gerir as suas propriedades e anúncios.",
+      "email": "E-mail",
+      "password": "Palavra-passe",
+      "forgot_password": "Esqueceu a palavra-passe?",
+      "submit": "Iniciar sessão",
+      "loading": "A iniciar sessão...",
+      "no_account": "Não tem conta?",
+      "sign_up": "Registar"
+    },
+    "sign_up": {
+      "title": "Crie a sua conta",
+      "subtitle": "Anuncie as suas propriedades e conecte-se diretamente com investidores.",
+      "full_name": "Nome completo",
+      "email": "E-mail",
+      "password": "Palavra-passe",
+      "repeat_password": "Repetir palavra-passe",
+      "submit": "Criar conta",
+      "loading": "A criar conta...",
+      "has_account": "Já tem conta?",
+      "login": "Iniciar sessão",
+      "roles": {
+        "developer": "Promotora",
+        "broker": "Corretor",
+        "private_seller": "Vendedor particular"
+      }
+    },
+    "forgot_password": {
+      "title": "Repor palavra-passe",
+      "subtitle": "Introduza o seu e-mail e enviaremos um link para repor a sua palavra-passe",
+      "email": "E-mail",
+      "submit": "Enviar e-mail de reposição",
+      "loading": "A enviar...",
+      "success_title": "Verifique o seu e-mail",
+      "success_description": "Instruções de reposição de palavra-passe enviadas",
+      "success_message": "Se se registou com e-mail e palavra-passe, receberá um e-mail para repor a sua palavra-passe.",
+      "has_account": "Já tem conta?",
+      "login": "Iniciar sessão"
+    },
+    "update_password": {
+      "title": "Repor palavra-passe",
+      "subtitle": "Por favor, introduza a sua nova palavra-passe abaixo.",
+      "password": "Nova palavra-passe",
+      "submit": "Guardar nova palavra-passe",
+      "loading": "A guardar..."
+    },
+    "back_to_home": "Voltar ao início"
   }
 }
