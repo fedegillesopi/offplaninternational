@@ -66,9 +66,10 @@ export function PropertyAmenitiesGrid({
   return (
     <>
       <div>
-        <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+        <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
           {title}
         </h3>
+
         <div className="flex flex-wrap gap-2">
           {visible.map((key) => {
             const amenity = amenityIconMap[key];
@@ -79,7 +80,7 @@ export function PropertyAmenitiesGrid({
                 className="flex flex-col items-center gap-1 rounded-1 bg-[--primary-light] p-2 text-center"
                 style={{ width: "100px", height: "100px" }}
               >
-                <Icon className="h-4 w-4 text-[--primary-main]" />
+                <Icon className="h-8 w-8 text-[--primary-main]" />
                 <span className="font-body text-sm font-regular text-[--primary-main]">
                   {amenity.label}
                 </span>
@@ -89,13 +90,13 @@ export function PropertyAmenitiesGrid({
           {hasMore && (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex flex-col items-center gap-1 rounded-1 border-2 border-[--primary-main] bg-white p-2 text-center transition-colors hover:bg-[--primary-light]"
+              className="flex flex-col items-center justify-center rounded-1 border-2 border-[--primary-main] bg-white p-2 text-center transition-colors hover:bg-[--primary-light]"
               style={{ width: "100px", height: "100px" }}
             >
-              <span className="font-body text-sm font-semibold text-[--primary-main]">
+              <span className="font-body text-lg font-semibold text-[--primary-main]">
                 +{filtered.length - VISIBLE_COUNT}
               </span>
-              <span className="font-body text-sm font-regular text-[--primary-main]">
+              <span className="font-body text-md font-regular text-[--primary-main]">
                 {t("see_more")}
               </span>
             </button>
@@ -113,7 +114,7 @@ export function PropertyAmenitiesGrid({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="font-heading text-h6 font-bold text-[--text-primary]">
+              <h3 className="font-heading text-h5 font-bold text-[--text-primary]">
                 {title}
               </h3>
               <button

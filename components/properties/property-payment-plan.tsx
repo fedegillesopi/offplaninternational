@@ -20,11 +20,11 @@ export async function PropertyPaymentPlan({
   ];
 
   return (
-    <div>
-      <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+    <div className="flex flex-col gap-4">
+      <h3 className=" font-heading text-h4 font-bold text-[--text-primary]">
         {t("mortgage_information")}
       </h3>
-      <h4 className="mb-2 font-heading text-subtitle-2 font-semibold text-[--primary-main]">
+      <h4 className=" font-heading text-subtitle-2 font-semibold text-[--primary-main]">
         {t("off_plan_payment_plan")}
       </h4>
       <div className="divide-y divide-[--grey-50] rounded-2 border border-[--grey-50]">

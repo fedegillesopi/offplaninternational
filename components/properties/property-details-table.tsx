@@ -23,7 +23,7 @@ export async function PropertyDetailsTable({
 
   return (
     <div>
-      <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+      <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
         {t("property_details")}
       </h3>
       <div className="divide-y divide-[--grey-50] rounded-2 border border-[--grey-50]">

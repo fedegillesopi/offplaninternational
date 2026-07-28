@@ -12,15 +12,17 @@ export default async function PropertiesListPage() {
   return (
     <div className="body-wrapper mx-auto w-full">
       <Navbar />
-      <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-2 px-2 py-2 md:px-6 md:py-2">
+      <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-2 py-2 md:px-6 md:py-6">
         <BackToHome label={t("back_to_home")} />
+
         <div className="h-px w-full bg-[--grey-50]" />
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-h3 text-[--text-primary]">
-            {t("all_properties")}
-          </h1>
-        </div>
+
+        <h1 className="font-heading text-h3 text-[--text-primary]">
+          {t("all_properties")}
+        </h1>
+
         <PropertyFilters />
+
         <div className="flex flex-col gap-4 mb-10">
           {mockProperties.map((property) => (
             <PropertyCard key={property.id} property={property} />

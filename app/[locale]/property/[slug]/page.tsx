@@ -41,7 +41,7 @@ export default async function PropertyDetailPage({
     <div className="body-wrapper mx-auto w-full">
       <Navbar />
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-2 py-2 md:px-6 md:py-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-between">
               <BackToHome
@@ -64,9 +64,10 @@ export default async function PropertyDetailPage({
 
         <PropertyGallery images={property.images} title={property.title} />
 
-        <div className="flex flex-col gap-6 md:flex-row">
-          <div className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-col gap-8 md:flex-row mt-6">
+          <div className="flex flex-1 flex-col gap-8">
             <div className="flex flex-1 flex-col gap-2">
+
               <div className="flex flex-wrap items-center gap-2 font-body text-sm font-light text-[--text-primary]">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4 text-[--primary-main]" />
@@ -86,9 +87,9 @@ export default async function PropertyDetailPage({
                 <span className="text-[--grey-200]">|</span>
 
                 <div className="flex items-center gap-1">
-                  <Bed className="h-3 w-3" />
+                  <Bed className="h-4 w-4" />
                   <span>{property.beds}</span>
-                  <Bath className="h-3 w-3" />
+                  <Bath className="h-4 w-4" />
                   <span>{property.baths}</span>
                 </div>
 
@@ -124,7 +125,7 @@ export default async function PropertyDetailPage({
             <div className="h-px w-full bg-[--grey-50]" />
 
             <div>
-              <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+              <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
                 {td("development_details")}
               </h3>
               <div className="divide-y divide-[--grey-50] rounded-2 border border-[--grey-50] w-full max-w-lg">
@@ -167,7 +168,7 @@ export default async function PropertyDetailPage({
 
             <div className="flex flex-wrap gap-2 justify-between">
               <div className="flex flex-col">
-                <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+                <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
                   {td("community_details")}
                 </h3>
 

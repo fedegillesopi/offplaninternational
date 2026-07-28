@@ -13,9 +13,9 @@ export function BackToHome({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 font-body text-base font-regular text-[--text-primary] no-underline transition-colors hover:text-[--primary-main]"
+      className="inline-flex items-center gap-2 font-body text-base font-regular text-[--text-primary] no-underline transition-colors hover:text-[--primary-main]"
     >
-      <ArrowLeft className="h-3 w-3" />
+      <ArrowLeft className="h-4 w-4" />
       {label}
     </Link>
   );

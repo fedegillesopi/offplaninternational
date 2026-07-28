@@ -6,7 +6,7 @@ export async function PropertyTags({ tags }: { tags: string[] }) {
 
   return (
     <div>
-      <h3 className="mb-2 font-heading text-h4 font-bold text-[--text-primary]">
+      <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
         {t("tags")}
       </h3>
       <div className="flex flex-wrap gap-2">

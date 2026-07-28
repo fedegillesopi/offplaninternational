@@ -23,40 +23,40 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
         />
       </Link>
 
-      <div className="flex flex-1 flex-col gap-2 p-2">
-          <div className="flex items-center gap-1 font-body text-sm font-light text-[--text-primary]">
-            <span className="font-medium text-[--primary-main]">{property.category}</span>
-            <span className="text-[--grey-200]">|</span>
-            <Bed className="h-2 w-2" />
-            <span className="text-sm font-medium">{property.beds}</span>
-            <Bath className="h-2 w-2" />
-            <span className="text-sm font-medium">{property.baths}</span>
-            <span className="hidden text-[--grey-200] md:inline">|</span>
-            <span className="hidden text-[--text-primary] md:inline">
-              {t("area_label")} {property.area} sqft
-            </span>
-          </div>
+      <div className="flex flex-1 flex-col gap-2 px-2 py-4 md:gap-4 md:p-6">
+        <div className="flex items-center gap-1 font-body text-sm font-light text-[--text-primary]">
+          <span className="font-medium text-[--primary-main]">{property.category}</span>
+          <span className="text-[--grey-200]">|</span>
+          <Bed className="h-4 w-4" />
+          <span className="text-md font-medium">{property.beds}</span>
+          <Bath className="h-4 w-4" />
+          <span className="text-md font-medium">{property.baths}</span>
+          <span className="hidden text-[--grey-200] md:inline">|</span>
+          <span className="hidden text-[--text-primary] md:inline">
+            {t("area_label")} {property.area} sqft
+          </span>
+        </div>
 
-          <div className="flex flex-wrap items-center justify-start gap-1">
-            <div className="flex items-baseline gap-1">
-              <CurrencyPrice
-                basePrice={property.price}
-                baseCurrency={property.currency}
-                className="font-heading text-h4 font-bold text-[--text-primary]"
-              />
-            </div>
-            <div className="flex items-center gap-1 font-body text-sm font-light text-[--grey-300]">
-              <MapPin className="h-4 w-4 text-[--primary-main]" />
-              <span>{property.city}</span>
-              <span>{property.community}</span>
-            </div>
-            <Image
-              src={property.developer_logo}
-              alt={property.developer_name}
-              width={60}
-              height={30}
-              className="h-auto w-[80px] rounded-1 p-2 shadow-lg"
+        <div className="flex items-center gap-4">
+          <div className="flex items-baseline gap-1">
+            <CurrencyPrice
+              basePrice={property.price}
+              baseCurrency={property.currency}
+              className="font-heading text-h4 font-bold text-[--text-primary]"
             />
+          </div>
+          <div className="flex items-center gap-1 font-body text-sm font-light text-[--grey-300]">
+            <MapPin className="h-4 w-4 text-[--primary-main]" />
+            <span>{property.city}</span>
+            <span>{property.community}</span>
+          </div>
+          <Image
+            src={property.developer_logo}
+            alt={property.developer_name}
+            width={60}
+            height={30}
+            className="h-auto w-[80px] rounded-1 p-2 shadow-lg"
+          />
         </div>
 
         <p className="font-body text-base font-regular text-[--text-primary]">
