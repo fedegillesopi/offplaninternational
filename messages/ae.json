@@ -163,6 +163,39 @@
     "see_more": "See more",
     "development_label": "Development"
   },
+  "development_detail": {
+    "back_to_list": "Back to List",
+    "all_developments": "All Developments",
+    "about_development": "About this Development",
+    "development_amenities": "Development amenities",
+    "property_starting_price": "Property Starting Price",
+    "type_of_property": "Type of Property",
+    "total_development_area": "Total Development Area",
+    "developer_label": "Developer",
+    "see_properties": "See development properties",
+    "gallery": "Gallery"
+  },
+  "developer_detail": {
+    "back_to_list": "Back to List",
+    "all_developers": "All Developers",
+    "about_developer": "About this Developer",
+    "on_time_completion": "On-Time Completion",
+    "email": "Email",
+    "phone": "Phone",
+    "website": "Website",
+    "see_properties": "See developer properties"
+  },
+  "community_detail": {
+    "back_to_list": "Back to List",
+    "all_communities": "All Communities",
+    "average_price_range": "Average Price Range",
+    "main_developer": "Main Developer",
+    "see_properties": "See properties in community",
+    "about_community": "About this Community",
+    "total_area": "Total area:",
+    "gallery": "Gallery",
+    "community_location": "Location"
+  },
   "auth": {
     "login": {
       "title": "Welcome back",

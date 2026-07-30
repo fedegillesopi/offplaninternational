@@ -138,3 +138,65 @@ export interface PropertyData {
   phone: string;
   whatsapp: string;
 }
+
+export interface DevelopmentDetailData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  images: string[];
+  amenities: string[];
+  location: string;
+  startingPrice: number;
+  startingPriceCurrency: PropertyCurrency;
+  propertyTypes: string[];
+  totalArea: number;
+  developerName: string;
+  developerSlug: string;
+  developerLogo: string;
+}
+
+export interface DeveloperDetailData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  logo: string;
+  location: string;
+  onTimeCompletion: number;
+  email: string;
+  phone: string;
+  website: string;
+}
+
+export interface MarketNewsArticle {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  body: string;
+  image: string;
+  author: string;
+  date: string;
+  category: string;
+}
+
+export type MarketNewsCardSize = "sm" | "md" | "lg";
+
+export interface CommunityData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  images: string[];
+  location: string;
+  mapQuery: string;
+  averagePriceRange: string;
+  developerName: string;
+  developerSlug: string;
+  developerLogo: string;
+  totalArea: number;
+}

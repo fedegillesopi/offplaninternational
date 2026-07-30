@@ -163,6 +163,39 @@
     "see_more": "Ver más",
     "development_label": "Desarrollo"
   },
+  "development_detail": {
+    "back_to_list": "Volver a la lista",
+    "all_developments": "Todos los Desarrollos",
+    "about_development": "Acerca de este Desarrollo",
+    "development_amenities": "Servicios del desarrollo",
+    "property_starting_price": "Precio de salida",
+    "type_of_property": "Tipo de Propiedad",
+    "total_development_area": "Área Total del Desarrollo",
+    "developer_label": "Promotora",
+    "see_properties": "Ver propiedades del desarrollo",
+    "gallery": "Galería"
+  },
+  "developer_detail": {
+    "back_to_list": "Volver a la lista",
+    "all_developers": "Todas las Promotoras",
+    "about_developer": "Acerca de esta Promotora",
+    "on_time_completion": "Finalización a Tiempo",
+    "email": "Email",
+    "phone": "Teléfono",
+    "website": "Sitio web",
+    "see_properties": "Ver propiedades de la promotora"
+  },
+  "community_detail": {
+    "back_to_list": "Volver a la lista",
+    "all_communities": "Todas las Comunidades",
+    "average_price_range": "Rango de Precio Promedio",
+    "main_developer": "Promotora Principal",
+    "see_properties": "Ver propiedades en esta comunidad",
+    "about_community": "Acerca de esta Comunidad",
+    "total_area": "Área total:",
+    "gallery": "Galería",
+    "community_location": "Ubicación"
+  },
   "auth": {
     "login": {
       "title": "Bienvenido de vuelta",
