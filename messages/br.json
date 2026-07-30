@@ -163,7 +163,8 @@
         "developer": "Incorporadora",
         "broker": "Corretor",
         "private_seller": "Vendedor particular"
-      }
+      },
+      "email_exists": "Este e-mail já está registrado"
     },
     "forgot_password": {
       "title": "Redefinir senha",
@@ -183,6 +184,21 @@
       "password": "Nova senha",
       "submit": "Salvar nova senha",
       "loading": "Salvando..."
+    },
+    "confirm_email": {
+      "title": "Verifique seu e-mail",
+      "description": "Enviamos um link de confirmação para:",
+      "instruction": "Clique no link do e-mail para verificar sua conta e continuar com a integração.",
+      "resend": "Não recebi o e-mail",
+      "success": "E-mail reenviado com sucesso"
+    },
+    "payment": {
+      "title": "Escolha seu plano",
+      "subtitle": "Selecione um plano adequado para começar a publicar propriedades.",
+      "select_plan": "Selecionar plano",
+      "skip": "Pular por agora",
+      "month": "mês",
+      "year": "ano"
     },
     "back_to_home": "Voltar ao início"
   }

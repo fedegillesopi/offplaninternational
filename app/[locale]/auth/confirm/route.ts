@@ -1,19 +1,47 @@
 import { createClient } from "@/lib/supabase/server";
 import { type EmailOtpType } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const rawType = searchParams.get("type");
+  const locale = request.cookies.get("NEXT_LOCALE")?.value || "ae";
+
   const VALID_TYPES: EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change"];
   const type = rawType && VALID_TYPES.includes(rawType as EmailOtpType)
     ? (rawType as EmailOtpType)
     : null;
 
-  const locale = request.cookies.get("NEXT_LOCALE")?.value || "ae";
+  // PKCE flow: exchange code for session
+  if (code) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
+    if (error) {
+      return NextResponse.redirect(
+        new URL(`/${locale}/auth/error?error=${encodeURIComponent(error.message)}`, origin),
+      );
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("role, profile_completed")
+        .eq("id", user.id)
+        .single();
+
+      if (profile && !profile.profile_completed) {
+        return NextResponse.redirect(new URL(`/${locale}/auth/onboarding/${profile.role}`, origin));
+      }
+    }
+
+    return NextResponse.redirect(new URL("/app", origin));
+  }
+
+  // Legacy flow: verify OTP with token_hash
   if (token_hash && type) {
     const supabase = await createClient();
 
@@ -22,28 +50,31 @@ export async function GET(request: NextRequest) {
       token_hash,
     });
 
-    if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("role, profile_completed")
-          .eq("id", user.id)
-          .single();
-
-        if (profile && !profile.profile_completed) {
-          redirect(`/${locale}/auth/onboarding/${profile.role}`);
-        }
-
-        redirect(`/${locale}/app`);
-      }
-
-      redirect(`/${locale}/app`);
-    } else {
-      redirect(`/${locale}/auth/error?error=${error?.message}`);
+    if (error) {
+      return NextResponse.redirect(
+        new URL(`/${locale}/auth/error?error=${encodeURIComponent(error.message)}`, origin),
+      );
     }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("role, profile_completed")
+        .eq("id", user.id)
+        .single();
+
+      if (profile && !profile.profile_completed) {
+        return NextResponse.redirect(new URL(`/${locale}/auth/onboarding/${profile.role}`, origin));
+      }
+    }
+
+    return NextResponse.redirect(new URL("/app", origin));
   }
 
-  redirect(`/${locale}/auth/error?error=No token hash or type`);
+  // No PKCE code or token_hash found — might be implicit flow with hash fragment.
+  // Redirect to a client page that can read window.location.hash.
+  return NextResponse.redirect(
+    new URL(`/${locale}/auth/confirm-client?redirect=${encodeURIComponent(request.url)}`, origin),
+  );
 }

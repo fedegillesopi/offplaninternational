@@ -66,8 +66,15 @@ export function SignUpForm({
           emailRedirectTo: `${window.location.origin}/${locale}/auth/confirm`,
         },
       });
+
+      if (error?.message?.toLowerCase().includes("already registered")) {
+        setError(t("email_exists"));
+        setIsLoading(false);
+        return;
+      }
+
       if (error) throw error;
-      router.push("/auth/sign-up-success");
+      router.push(`/auth/confirm-email?email=${encodeURIComponent(email)}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

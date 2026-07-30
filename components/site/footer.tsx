@@ -9,7 +9,7 @@ export async function Footer() {
     <footer id="footer" className="bg-[--text-primary]">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-10">
         <div className="flex w-full flex-col justify-between gap-5 text-[--grey-100] md:flex-row">
-          <div className="flex w-full flex-col gap-5">
+          <div className="flex w-full flex-col gap-5 md:gap-6 mb-8">
             <Image
               src="/images/brand/IsoLogotype-White&Color.png"
               alt="Off Plan International"
@@ -74,7 +74,7 @@ export async function Footer() {
             </div>
           </div>
 
-          <div className="flex w-full justify-between gap-6 md:justify-end">
+          <div className="flex w-full justify-between gap-6 max-w-[600px]">
             <div className="flex flex-col gap-2">
               <p className="font-body text-base font-light text-[--primary-main]">
                 {t("quick_search")}
@@ -163,7 +163,7 @@ export async function Footer() {
 
         <div className="h-px w-full bg-[--grey-100]" />
 
-        <p className="font-body text-base font-light text-white">
+        <p className="font-body text-base font-light text-white md:py-6">
           {t("copyright")}
         </p>
       </div>

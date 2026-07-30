@@ -163,7 +163,8 @@
         "developer": "Developer",
         "broker": "Broker",
         "private_seller": "Private Seller"
-      }
+      },
+      "email_exists": "This email is already registered"
     },
     "forgot_password": {
       "title": "Reset Your Password",
@@ -183,6 +184,21 @@
       "password": "New password",
       "submit": "Save new password",
       "loading": "Saving..."
+    },
+    "confirm_email": {
+      "title": "Check your email",
+      "description": "We sent a confirmation link to:",
+      "instruction": "Click the link in the email to verify your account and continue with the onboarding.",
+      "resend": "I didn't receive the email",
+      "success": "Email resent successfully"
+    },
+    "payment": {
+      "title": "Choose your plan",
+      "subtitle": "Select a plan that fits your needs to start listing properties.",
+      "select_plan": "Select Plan",
+      "skip": "Skip for now",
+      "month": "month",
+      "year": "year"
     },
     "back_to_home": "Back to home"
   }
