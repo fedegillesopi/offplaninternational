@@ -163,6 +163,17 @@
     "see_more": "Ver mais",
     "development_label": "Empreendimento"
   },
+  "community_detail": {
+    "back_to_list": "Voltar à lista",
+    "all_communities": "Todas as Comunidades",
+    "average_price_range": "Faixa de Preço Médio",
+    "main_developer": "Principal Incorporadora",
+    "see_properties": "Ver propriedades nesta comunidade",
+    "about_community": "Sobre esta Comunidade",
+    "total_area": "Área total:",
+    "gallery": "Galeria",
+    "community_location": "Localização"
+  },
   "auth": {
     "login": {
       "title": "Bem-vindo de volta",

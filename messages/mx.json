@@ -163,6 +163,17 @@
     "see_more": "Ver más",
     "development_label": "Desarrollo"
   },
+  "community_detail": {
+    "back_to_list": "Volver a la lista",
+    "all_communities": "Todas las Comunidades",
+    "average_price_range": "Rango de Precio Promedio",
+    "main_developer": "Desarrollador Principal",
+    "see_properties": "Ver propiedades en esta comunidad",
+    "about_community": "Acerca de esta Comunidad",
+    "total_area": "Área total:",
+    "gallery": "Galería",
+    "community_location": "Ubicación"
+  },
   "auth": {
     "login": {
       "title": "Bienvenido de vuelta",

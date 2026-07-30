@@ -163,6 +163,17 @@
     "see_more": "Ver más",
     "development_label": "Desarrollo"
   },
+  "community_detail": {
+    "back_to_list": "العودة إلى القائمة",
+    "all_communities": "جميع المجتمعات",
+    "average_price_range": "متوسط نطاق السعر",
+    "main_developer": "المطور الرئيسي",
+    "see_properties": "عرض العقارات في هذا المجتمع",
+    "about_community": "حول هذا المجتمع",
+    "total_area": "المساحة الكلية:",
+    "gallery": "معرض الصور",
+    "community_location": "الموقع"
+  },
   "auth": {
     "login": {
       "title": "Bienvenido de vuelta",

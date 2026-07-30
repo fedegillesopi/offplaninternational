@@ -163,6 +163,17 @@
     "see_more": "See more",
     "development_label": "Development"
   },
+  "community_detail": {
+    "back_to_list": "Back to List",
+    "all_communities": "All Communities",
+    "average_price_range": "Average Price Range",
+    "main_developer": "Main Developer",
+    "see_properties": "See properties in community",
+    "about_community": "About this Community",
+    "total_area": "Total area:",
+    "gallery": "Gallery",
+    "community_location": "Location"
+  },
   "auth": {
     "login": {
       "title": "Welcome back",
