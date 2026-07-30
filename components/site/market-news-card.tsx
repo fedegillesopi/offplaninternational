@@ -11,6 +11,7 @@ interface MarketNewsCardProps {
 const spanMap: Record<MarketNewsCardSize, string> = {
   sm: "lg:col-span-1",
   md: "lg:col-span-2",
+  lg: "lg:col-span-3",
 }
 
 export function MarketNewsCard({ article, size }: MarketNewsCardProps) {
