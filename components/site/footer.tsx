@@ -9,7 +9,7 @@ export async function Footer() {
     <footer id="footer" className="bg-[--text-primary]">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-10">
         <div className="flex w-full flex-col justify-between gap-5 text-[--grey-100] md:flex-row">
-          <div className="flex w-full flex-col gap-5">
+          <div className="flex w-full flex-col gap-5 md:gap-6 mb-8">
             <Image
               src="/images/brand/IsoLogotype-White&Color.png"
               alt="Off Plan International"
@@ -74,7 +74,7 @@ export async function Footer() {
             </div>
           </div>
 
-          <div className="flex w-full justify-between gap-6 md:justify-end">
+          <div className="flex w-full justify-between gap-6 max-w-[600px]">
             <div className="flex flex-col gap-2">
               <p className="font-body text-base font-light text-[--primary-main]">
                 {t("quick_search")}
@@ -87,25 +87,25 @@ export async function Footer() {
                   {t("home")}
                 </Link>
                 <Link
-                  href="/properties/properties-list"
+                  href="/properties"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("properties")}
                 </Link>
                 <Link
-                  href="/developments/developments-list"
+                  href="/developments"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("developments")}
                 </Link>
                 <Link
-                  href="/developers/developers-list"
+                  href="/developers"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("developers")}
                 </Link>
                 <Link
-                  href="/communities/communities-list"
+                  href="/communities"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("communities")}
@@ -119,13 +119,13 @@ export async function Footer() {
               </p>
               <div className="flex flex-col gap-2">
                 <Link
-                  href="/legal/terms-conditions"
+                  href="/terms"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("terms")}
                 </Link>
                 <Link
-                  href="/legal/privacy-policy"
+                  href="/privacy"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("privacy")}
@@ -136,12 +136,6 @@ export async function Footer() {
                 >
                   {t("contact")}
                 </Link>
-                <Link
-                  href="#"
-                  className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
-                >
-                  {t("faq")}
-                </Link>
               </div>
             </div>
 
@@ -151,7 +145,7 @@ export async function Footer() {
               </p>
               <div className="flex flex-col gap-2">
                 <Link
-                  href="#"
+                  href="/market-news"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("market_news")}
@@ -163,7 +157,7 @@ export async function Footer() {
 
         <div className="h-px w-full bg-[--grey-100]" />
 
-        <p className="font-body text-base font-light text-white">
+        <p className="font-body text-base font-light text-white md:py-6">
           {t("copyright")}
         </p>
       </div>

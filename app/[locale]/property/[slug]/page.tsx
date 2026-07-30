@@ -40,12 +40,12 @@ export default async function PropertyDetailPage({
   return (
     <div className="body-wrapper mx-auto w-full">
       <Navbar />
-      <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-2 py-2 md:px-6 md:py-4">
+      <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-2 py-2 md:px-6 md:py-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-between">
               <BackToHome
-                href="/properties/properties-list"
+                href="/properties"
                 label={td("back_to_list")}
               />
             </div>
@@ -53,7 +53,7 @@ export default async function PropertyDetailPage({
             <Breadcrumb
               items={[
                 { label: "Off Plan International", href: "/" },
-                { label: td("all_properties"), href: "/properties/properties-list" },
+                { label: td("all_properties"), href: "/properties" },
                 { label: property.title },
               ]}
             />
