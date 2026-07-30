@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { PrimaryCtaLink } from "@/components/shared/primary-cta-link";
 
 interface CommunityInfoCardProps {
   averagePriceRange: string;
@@ -44,13 +44,9 @@ export async function CommunityInfoCard({
 
       <div className="h-px w-full bg-[--grey-50]" />
 
-      <Link
-        href={`/properties-list?community=${communitySlug}`}
-        className="inline-flex items-center justify-center gap-2 rounded-1 bg-[--primary-main] px-4 py-3 font-body text-base font-medium no-underline transition-colors hover:bg-[--primary-dark] text-white"
-      >
+      <PrimaryCtaLink href={`/properties-list?community=${communitySlug}`}>
         {t("see_properties")}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+      </PrimaryCtaLink>
     </div>
   );
 }

@@ -163,6 +163,18 @@
     "see_more": "Ver más",
     "development_label": "Desarrollo"
   },
+  "development_detail": {
+    "back_to_list": "Volver a la lista",
+    "all_developments": "Todos los Desarrollos",
+    "about_development": "Acerca de este Desarrollo",
+    "development_amenities": "Servicios del desarrollo",
+    "property_starting_price": "Precio de salida",
+    "type_of_property": "Tipo de Propiedad",
+    "total_development_area": "Área Total del Desarrollo",
+    "developer_label": "Desarrollador",
+    "see_properties": "Ver propiedades del desarrollo",
+    "gallery": "Galería"
+  },
   "community_detail": {
     "back_to_list": "Volver a la lista",
     "all_communities": "Todas las Comunidades",

@@ -163,6 +163,18 @@
     "see_more": "See more",
     "development_label": "Development"
   },
+  "development_detail": {
+    "back_to_list": "Back to List",
+    "all_developments": "All Developments",
+    "about_development": "About this Development",
+    "development_amenities": "Development amenities",
+    "property_starting_price": "Property Starting Price",
+    "type_of_property": "Type of Property",
+    "total_development_area": "Total Development Area",
+    "developer_label": "Developer",
+    "see_properties": "See development properties",
+    "gallery": "Gallery"
+  },
   "community_detail": {
     "back_to_list": "Back to List",
     "all_communities": "All Communities",

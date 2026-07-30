@@ -163,6 +163,18 @@
     "see_more": "Ver mais",
     "development_label": "Empreendimento"
   },
+  "development_detail": {
+    "back_to_list": "Voltar à lista",
+    "all_developments": "Todos os Empreendimentos",
+    "about_development": "Sobre este Empreendimento",
+    "development_amenities": "Comodidades do empreendimento",
+    "property_starting_price": "Preço inicial",
+    "type_of_property": "Tipo de Propriedade",
+    "total_development_area": "Área Total do Empreendimento",
+    "developer_label": "Incorporadora",
+    "see_properties": "Ver propriedades do empreendimento",
+    "gallery": "Galeria"
+  },
   "community_detail": {
     "back_to_list": "Voltar à lista",
     "all_communities": "Todas as Comunidades",

@@ -139,6 +139,24 @@ export interface PropertyData {
   whatsapp: string;
 }
 
+export interface DevelopmentDetailData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  images: string[];
+  amenities: string[];
+  location: string;
+  startingPrice: number;
+  startingPriceCurrency: PropertyCurrency;
+  propertyTypes: string[];
+  totalArea: number;
+  developerName: string;
+  developerSlug: string;
+  developerLogo: string;
+}
+
 export interface CommunityData {
   id: string;
   name: string;

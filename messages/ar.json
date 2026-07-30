@@ -163,6 +163,18 @@
     "see_more": "Ver más",
     "development_label": "Desarrollo"
   },
+  "development_detail": {
+    "back_to_list": "العودة إلى القائمة",
+    "all_developments": "جميع التطويرات",
+    "about_development": "حول هذا التطوير",
+    "development_amenities": "مرافق التطوير",
+    "property_starting_price": "سعر البداية للعقار",
+    "type_of_property": "نوع العقار",
+    "total_development_area": "المساحة الإجمالية للتطوير",
+    "developer_label": "المطور",
+    "see_properties": "عرض عقارات التطوير",
+    "gallery": "معرض الصور"
+  },
   "community_detail": {
     "back_to_list": "العودة إلى القائمة",
     "all_communities": "جميع المجتمعات",

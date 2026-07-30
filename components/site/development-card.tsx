@@ -14,7 +14,7 @@ interface DevelopmentCardProps {
 export function DevelopmentCard({ name, description, image, logo, location, slug }: DevelopmentCardProps) {
   return (
     <Link
-      href={`/developments/${slug}`}
+      href={`/development/${slug}`}
       className="group block rounded-2 bg-white p-4 no-underline transition-shadow shadow-md hover:shadow-lg"
     >
       <div className="relative mb-3 overflow-hidden rounded-xl">
