@@ -75,11 +75,15 @@
 - [x] shadcn defaults restaurados: Button (`h-9`/`h-10`), Input (`h-9`), secondary variant, custom spacing eliminado de globals.css y tailwind.config.ts
 - [x] UI primitives creados: `textarea.tsx`, `dialog.tsx` (Radix UI)
 - [x] Rename `/dashboard` → `/app` en todas las rutas y referencias
+- [x] Página de listado de promotoras (`app/[locale]/developers/page.tsx`) — grid con 2 developers hardcodeados, search input (max-w-md, rounded-1, border-grey-200), BackToHome
+- [x] Página de listado de desarrollos (`app/[locale]/developments/page.tsx`) — grid con 2 desarrollos hardcodeados, mismo patrón de layout, search input
+- [x] Página de listado de comunidades (`app/[locale]/communities/page.tsx`) — grid con 2 comunidades hardcodeadas, mismo patrón de layout, search input
+- [x] `DevelopmentCard` en `components/site/development-card.tsx` — card con MapPin location badge (#FAAD17), imagen, logo overlay (absolute bottom-right), título, descripción
+- [x] `CommunityCard` en `components/site/community-card.tsx` — misma estructura que DevelopmentCard pero SIN logo overlay
+- [x] `DeveloperCard` revampado — p-4, shadow-md, description en text-grey-200
+- [x] Namespaces `developments` y `communities` en traducciones (7 locales) con back_to_home, all_*, search_placeholder
 
 ### Pendiente
-- [ ] Página de listado de desarrollos
-- [ ] Página de listado de promotoras
-- [ ] Página de listado de comunidades
 - [ ] Panel de administración para promotoras
 - [ ] Mapa global con unidades geolocalizadas
 - [ ] Reemplazar componentes de tutorial de Supabase starter kit
@@ -374,6 +378,12 @@ offplaninternational/
 │       │   ├── update-password/page.tsx
 │       │   ├── confirm/route.ts       # Callback de confirmacion (lee NEXT_LOCALE cookie)
 │       │   └── error/page.tsx
+│       ├── communities/
+│       │   └── page.tsx           # Listado de comunidades (2 hardcodeadas, search, BackToHome)
+│       ├── developers/
+│       │   └── page.tsx           # Listado de promotoras (2 hardcodeadas, search, BackToHome)
+│       ├── developments/
+│       │   └── page.tsx           # Listado de desarrollos (2 hardcodeados, search, BackToHome)
 │       ├── properties/
 │       │   └── properties-list/
 │       │       └── page.tsx           # Listado de propiedades con filtros + cards
@@ -394,7 +404,10 @@ offplaninternational/
 │   │   ├── contact-banner.tsx         # Banner de contacto
 │   │   ├── footer.tsx                 # Footer (server, async)
 │   │   ├── breadcrumb.tsx             # Breadcrumb con separador "/"
-│   │   └── back-to-home.tsx           # Boton reutilizable con flecha (client)
+│   │   ├── back-to-home.tsx           # Boton reutilizable con flecha (client)
+│   │   ├── community-card.tsx         # Card de comunidad (imagen, titulo, descripcion, MapPin #FAAD17, SIN logo overlay)
+│   │   ├── developer-card.tsx         # Card de promotora (p-4, shadow-md, desc text-grey-200, imagen + logo overlay)
+│   │   └── development-card.tsx       # Card de desarrollo (p-4, shadow-md, MapPin #FAAD17, imagen + logo overlay)
 │   ├── properties/                    # Componentes de propiedades
 │   │   ├── property-card.tsx          # Card de propiedad horizontal (server, async)
 │   │   ├── property-gallery.tsx       # Galeria de imagenes (client)
@@ -542,6 +555,11 @@ offplaninternational/
 | 2026-07-27 | `emailRedirectTo` y `forgot-password` redirectTo incluyen locale via `useLocale()` | Los links de email mantienen el locale del usuario; evitan perder contexto al confirmar |
 | 2026-07-27 | `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware | El usuario mantiene su locale al ser redirigido tras confirmar email o completar onboarding |
 | 2026-07-27 | UI primitives creados: `textarea.tsx` (shadcn pattern), `dialog.tsx` (Radix UI) | Completan el set de componentes base para formularios y modales |
+| 2026-07-29 | Páginas de listado: developments, communities, developers con cards dedicadas | MVP necesita landing pages por vertical (desarrollos/comunidades/promotoras) para navegación temprana del usuario |
+| 2026-07-29 | `DevelopmentCard` con logo overlay absolute (bottom-right) y `CommunityCard` sin logo | Desarrollo siempre tiene promotora asociada (logo); comunidad es geográfica sin marca |
+| 2026-07-29 | Search input deshabilitado en listados | Placeholder visual; la búsqueda funcional se implementará cuando haya datos reales |
+| 2026-07-29 | Cards con p-4, shadow-md y border radius rounded-2/rounded-xl | Consistencia visual con el sistema de diseño existente (targeta blanca con sombra suave) |
+| 2026-07-29 | MapPin color `#FAAD17` en DevelopmentCard y CommunityCard | Color acento para indicadores de ubicación, diferenciado del primary-main (#ebc03f) |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -647,7 +665,17 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 5. CurrencyPrice usa `useCurrency()` del context y llama a `convertPrice()` + `formatPrice()`
 6. Mock data: 3 propiedades en `lib/mock-properties.ts`
 
-### 7.12 Detalle de propiedad
+### 7.12 Listados de desarrollos, comunidades y promotoras
+
+1. Usuario navega a `/[locale]/developments`, `/[locale]/communities` o `/[locale]/developers` (sin locale prefix; el middleware resuelve el locale)
+2. Layout consistente en las 3 páginas: Navbar, BackToHome, separador hr, heading traducido (t("all_developments/communities/developers")), search input deshabilitado (max-w-md, rounded-1, border-grey-200), grid responsivo 1/2/3 columnas, Footer
+3. Cada página mapea un array hardcodeado de 2 items a su card correspondiente
+4. **DevelopmentCard** (p-4, shadow-md): imagen, logo overlay (absolute bottom-right sobre badge blanco), MapPin con color #FAAD17, nombre en heading, descripción en text-grey-200 line-clamp-2. Link a `/developments/{slug}`
+5. **CommunityCard** (p-4, shadow-md): misma estructura que DevelopmentCard pero SIN logo overlay
+6. **DeveloperCard** (p-4, shadow-md): misma estructura que DevelopmentCard (con logo overlay) pero SIN MapPin
+7. Todos los textos usan namespace propio (`developments.*`, `communities.*`, `developers.*`) traducido a 7 locales
+
+### 7.13 Detalle de propiedad
 
 1. Usuario navega a `/[locale]/property/[slug]`
 2. Server component async que busca propiedad en mock data por slug

@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.4 — 27-Jul-2026
-**Estado:** MVP en desarrollo — Auth i18n completo, componentes reorganizados, ruta /app
+**Versión:** 1.5 — 29-Jul-2026
+**Estado:** MVP en desarrollo — Listing pages de Developments, Communities, Developers
 
 ---
 
@@ -84,11 +84,16 @@
 | Tabla `properties` recreada con FKs a `developers`, `developments` y `user_profiles` (migración 007) | Backend | ✅ Implementado |
 | Tabla `payment_plan_milestones` recreada con CHECK y RLS mejorado (migración 007) | Backend | ✅ Implementado |
 | Interfaz `PropertyData` migrada a campos planos + nuevas interfaces `Developer`, `Development`, `PaymentPlanMilestone` | Frontend | ✅ Implementado |
-| Página de listado de desarrollos `/development/[slug]` | Público | ❌ Pendiente |
-| Página de listado de promotoras `/developer/[slug]` | Público | ❌ Pendiente |
-| Página de listado de comunidades | Público | ❌ Pendiente |
+| Página de listado de desarrollos `/developments` con DevelopmentCard | Público | ✅ Implementado |
+| Página de listado de comunidades `/communities` con CommunityCard | Público | ✅ Implementado |
+| Página de listado de promotoras `/developers` con DeveloperCard | Público | ✅ Implementado |
+| Componente DevelopmentCard (imagen, logo overlay, location badge con MapPin #FAAD17) | Público | ✅ Implementado |
+| Componente CommunityCard (imagen, location badge, SIN logo overlay) | Público | ✅ Implementado |
+| Componente DeveloperCard (imagen, logo overlay, sin MapPin) | Público | ✅ Implementado |
+| Traducciones para namespaces `developments`, `communities`, `developers` en 7 locales | Público | ✅ Implementado |
 | Dashboard de inversor (favoritos, consultas) | Inversor | ❌ Pendiente |
 | Paneles específicos por role (Properties/Analytics para Developer, Listings/Clients para Broker, My Property para Private Seller) | Vendedor | ❌ Pendiente |
+| Páginas de detalle: `/developments/[slug]`, `/developers/[slug]`, `/communities/[slug]` | Público | ❌ Pendiente |
 | Mapa global con unidades geolocalizadas | Público | ❌ Pendiente |
 
 ### 3.2 Fuera de alcance del MVP
@@ -297,6 +302,28 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Datos mockeados desde `lib/mock-properties.ts` con interfaz `PropertyData` compartida en `lib/types.ts`
 - Secciones de desarrollo y comunidad con datos completos (nombre, área total, amenities, descripción)
 - **Migración a campos planos (23-Jul-2026):** Todas las referencias a datos del developer, desarrollo y comunidad se resuelven vía campos planos en `PropertyData` (`developer_name`, `developer_slug`, `developer_logo`, `development_name`, `development_slug`, `development_total_area`, `development_amenities`, `community_name`, `community_slug`, `community_total_area`, `community_description`). RelatedProperties ahora se renderiza correctamente.
+
+#### 6.1.8 Listado de desarrollos
+- Ruta: `/[locale]/developments`
+- Layout: Navbar, BackToHome, separador, heading "All Developments", input de búsqueda (deshabilitado, placeholder visual), grid 3-columnas de DevelopmentCards, Footer
+- DevelopmentCard: imagen de fondo, logo overlay (cuadrado blanco con logo abajo-derecha), location badge con icono MapPin en color `#FAAD17`, nombre del desarrollo, descripción en dos líneas (`line-clamp-2`). Link a `/[locale]/developments/[slug]` (página de detalle pendiente)
+- Estilos: `rounded-2`, `shadow-md`, `hover:shadow-lg`, `p-4`, imagen `h-[200px]` con `rounded-xl`
+- Datos mockeados: 2 desarrollos (Dubai Creek Harbour, Palm Jumeirah) con imágenes Unsplash y logo placeholder
+- Input de búsqueda: `max-w-md`, `rounded-1`, icono Search a la izquierda, `disabled`
+
+#### 6.1.9 Listado de comunidades
+- Ruta: `/[locale]/communities`
+- Layout: idéntico al de desarrollos (Navbar, BackToHome, separador, heading, search input, grid, Footer)
+- CommunityCard: misma estructura visual que DevelopmentCard pero **sin logo overlay**. Solo imagen, location badge, nombre y descripción. Link a `/[locale]/communities/[slug]` (página de detalle pendiente)
+- Datos mockeados: 2 comunidades (Dubai Marina, Downtown Dubai)
+- Mismos estilos: `shadow-md p-4 rounded-2`, grid responsive 1/2/3 columnas
+
+#### 6.1.10 Listado de promotoras
+- Ruta: `/[locale]/developers`
+- Layout: idéntico al de desarrollos (Navbar, BackToHome, separador, heading, search input, grid, Footer)
+- DeveloperCard: estructura visual con imagen, logo overlay (abajo-derecha), nombre, descripción. **Sin location badge** (a diferencia de DevelopmentCard). Link a `/[locale]/developers/[slug]` (página de detalle pendiente)
+- Datos mockeados: 2 promotoras (Emaar Properties, Nakheel)
+- Mismos estilos: `shadow-md p-4 rounded-2`, grid responsive
 
 ### 6.2 Auth unificado y onboarding (3 roles)
 
@@ -791,6 +818,9 @@ interface PropertyData {
 | `/[locale]/auth/error` | Público | Error de autenticación |
 | `/[locale]/auth/sign-up-success` | Público | Éxito de registro |
 | `/[locale]/protected` | Autenticado | Página protegida inversor (placeholder) |
+| `/[locale]/developments` | Público | Listado de desarrollos |
+| `/[locale]/communities` | Público | Listado de comunidades |
+| `/[locale]/developers` | Público | Listado de promotoras |
 
 #### Plataforma de vendedores (sin i18n)
 
@@ -923,6 +953,20 @@ interface PropertyData {
 
 ---
 
+### Flujo G: Inversor navega listing pages de desarrollos/comunidades/promotoras
+
+```
+1. Inversor ve navbar del sitio público con links "Developments", "Developers", "Communities"
+2. Hace clic en cualquiera de ellos → navega a /[locale]/developments, /[locale]/developers o /[locale]/communities
+3. Ve el layout: Navbar, BackToHome, separador, heading traducido, search input (disabled), grid de cards
+4. Explora las cards con imágenes, logos, location badges y descripciones
+5. Hace clic en una card → navega a /[locale]/{type}/[slug] (actualmente 404 — detalle pendiente)
+```
+
+**Servicios consumidos:** getTranslations(namespace), componentes server-side, Link de i18n
+
+---
+
 ## 9. REGLAS DE NEGOCIO
 
 1. **La moneda por defecto es USD** (global, no por locale). El usuario puede cambiarla y persiste 30 días.
@@ -930,7 +974,7 @@ interface PropertyData {
 3. **Los datos de propiedades del sitio público son mockeados en MVP.** No hay conexión a base de datos real. Datos en `lib/mock-properties.ts`.
 4. **La búsqueda en homepage tiene UI pero no funcionalidad real.** Es placeholder visual.
 5. **Los botones Contact y WhatsApp en PropertyCards y detalle de propiedad son placeholder.** No ejecutan consulta real (no hay endpoint ni conexión a DB).
-6. **Las rutas `/development/[slug]` y `/developer/[slug]` no existen.** Los links desde el detalle de propiedad llevan a 404.
+6. **Las rutas de detalle `/developments/[slug]`, `/developers/[slug]` y `/communities/[slug]` no existen.** Los links desde las listing pages y desde el detalle de propiedad llevan a 404. Las listing pages (`/developments`, `/developers`, `/communities`) sí existen y están completamente implementadas.
 7. **El locale default (ae) no aparece en la URL.** Evita redirects innecesarios para EAU, mercado principal.
 8. **La geo-detección funciona solo en producción** (Vercel, Cloudflare, AWS). En local se usa default locale.
 9. **Solo email/password en MVP.** Sin OAuth social.
@@ -968,7 +1012,9 @@ interface PropertyData {
 - Solo email/password en auth
 - Tasas de cambio fijas, no automáticas
 - Sin modo offline
-- Las rutas `/development/[slug]` y `/developer/[slug]` no existen
+- Las rutas de detalle `/developments/[slug]`, `/developers/[slug]` y `/communities/[slug]` no existen (solo existen las listing pages)
+- Las páginas de listado (`/developments`, `/communities`, `/developers`) tienen datos mockeados (2 items cada una)
+- Los inputs de búsqueda en las listing pages están deshabilitados (placeholder visual, sin funcionalidad)
 - Sin dashboard de inversor (favoritos, consultas)
 - Los botones de contacto (WhatsApp, Phone) no ejecutan acciones reales
 - El dashboard y su tabla de datos usan datos de relleno (no son propiedades reales)
@@ -1020,15 +1066,18 @@ interface PropertyData {
 - UI primitives creados: textarea.tsx, dialog.tsx
 - Rename `/dashboard` → `/app`
 - Sidebar reestructurada: NAV_BY_ROLE simplificado, dropdown usuario con logout
+- Páginas de listado: `/developments`, `/communities`, `/developers` con cards, i18n y datos mockeados
+- Componentes: DevelopmentCard (con logo overlay y location badge #FAAD17), CommunityCard (sin logo), DeveloperCard (con logo overlay)
+- Traducciones para namespaces `developments`, `communities`, `developers` en 7 locales
+- Navbar con links a las tres listing pages
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
-- **Corto plazo:** Crear rutas `/development/[slug]` y `/developer/[slug]` — actualmente dan 404 al navegar desde el detalle de propiedad
+- **Corto plazo:** Crear páginas de detalle `/developments/[slug]`, `/developers/[slug]` y `/communities/[slug]` (actualmente 404)
 - **Corto plazo:** Conectar tablas `developers`, `developments` y `properties` a la UI real (reemplazar datos planos mockeados con queries a Supabase)
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
-- **Mediano plazo:** Páginas de listado de comunidades
 - **Mediano plazo:** Panel de administración completo para vendedores (gestión de propiedades, consultas)
 - **Mediano plazo:** Mapa global con unidades geolocalizadas
 - **Mediano plazo:** Conectar DataTable del dashboard a datos reales de propiedades
