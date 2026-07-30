@@ -5,6 +5,33 @@
     "communities": "Communities",
     "properties": "Properties"
   },
+  "pages": {
+    "developments": "Developments",
+    "developers": "Developers",
+    "properties": "Properties",
+    "communities": "Communities",
+    "contact": "Contact",
+    "contact_title": "Get in touch with us",
+    "contact_subtitle": "Need help finding the perfect property? Contact us to explore the best off-plan opportunities in Dubai.",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "market_news": "Market News"
+  },
+  "developers": {
+    "back_to_home": "Back to home",
+    "all_developers": "All Developers",
+    "search_placeholder": "Search developers..."
+  },
+  "developments": {
+    "back_to_home": "Back to home",
+    "all_developments": "All Developments",
+    "search_placeholder": "Search developments..."
+  },
+  "communities": {
+    "back_to_home": "Back to home",
+    "all_communities": "All Communities",
+    "search_placeholder": "Search communities..."
+  },
   "hero": {
     "title": "Real projects, real contacts.",
     "subtitle": "Find the exact unit you want, filtered by deposit, monthly payment plan, size, location, completion date, and developer.",

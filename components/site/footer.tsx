@@ -87,25 +87,25 @@ export async function Footer() {
                   {t("home")}
                 </Link>
                 <Link
-                  href="/properties/properties-list"
+                  href="/properties"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("properties")}
                 </Link>
                 <Link
-                  href="/developments/developments-list"
+                  href="/developments"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("developments")}
                 </Link>
                 <Link
-                  href="/developers/developers-list"
+                  href="/developers"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("developers")}
                 </Link>
                 <Link
-                  href="/communities/communities-list"
+                  href="/communities"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("communities")}
@@ -119,13 +119,13 @@ export async function Footer() {
               </p>
               <div className="flex flex-col gap-2">
                 <Link
-                  href="/legal/terms-conditions"
+                  href="/terms"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("terms")}
                 </Link>
                 <Link
-                  href="/legal/privacy-policy"
+                  href="/privacy"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("privacy")}
@@ -136,12 +136,6 @@ export async function Footer() {
                 >
                   {t("contact")}
                 </Link>
-                <Link
-                  href="#"
-                  className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
-                >
-                  {t("faq")}
-                </Link>
               </div>
             </div>
 
@@ -151,7 +145,7 @@ export async function Footer() {
               </p>
               <div className="flex flex-col gap-2">
                 <Link
-                  href="#"
+                  href="/market-news"
                   className="font-heading text-base font-light text-white no-underline hover:text-[--primary-main] hover:underline"
                 >
                   {t("market_news")}

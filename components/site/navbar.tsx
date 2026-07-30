@@ -21,9 +21,10 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { label: t("developers"), href: "/developers/developers-list" },
-    { label: t("developments"), href: "/developments/developments-list" },
-    { label: t("properties"), href: "/properties/properties-list" },
+    { label: t("developers"), href: "/developers" },
+    { label: t("developments"), href: "/developments" },
+    { label: t("properties"), href: "/properties" },
+    { label: t("communities"), href: "/communities" },
   ];
 
   return (
@@ -35,7 +36,7 @@ export function Navbar() {
             alt="Off Plan International"
             width={180}
             height={45}
-            className="h-[30px] w-auto"
+            className="h-[40px] w-auto"
             priority
           />
         </Link>

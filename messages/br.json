@@ -5,6 +5,33 @@
     "communities": "Comunidades",
     "properties": "Propriedades"
   },
+  "pages": {
+    "developments": "Empreendimentos",
+    "developers": "Desenvolvedores",
+    "properties": "Propriedades",
+    "communities": "Comunidades",
+    "contact": "Contato",
+    "contact_title": "Entre em contato conosco",
+    "contact_subtitle": "Precisa de ajuda para encontrar a propriedade perfeita? Contacte-nos para explorar as melhores oportunidades de off-plan no Dubai.",
+    "terms": "Termos e Condições",
+    "privacy": "Política de Privacidade",
+    "market_news": "Notícias do Mercado"
+  },
+  "developers": {
+    "back_to_home": "Voltar ao início",
+    "all_developers": "Todos os Desenvolvedores",
+    "search_placeholder": "Pesquisar desenvolvedores..."
+  },
+  "developments": {
+    "back_to_home": "Voltar ao início",
+    "all_developments": "Todos os Empreendimentos",
+    "search_placeholder": "Pesquisar empreendimentos..."
+  },
+  "communities": {
+    "back_to_home": "Voltar ao início",
+    "all_communities": "Todas as Comunidades",
+    "search_placeholder": "Pesquisar comunidades..."
+  },
   "hero": {
     "title": "Um lugar, transparência total.",
     "subtitle": "Encontre a unidade exata que você deseja, filtrada por entrada, plano de pagamento mensal, tamanho, localização, data de entrega e incorporadora.",

@@ -5,6 +5,33 @@
     "communities": "Comunidades",
     "properties": "Propiedades"
   },
+  "pages": {
+    "developments": "Desarrollos",
+    "developers": "Desarrolladores",
+    "properties": "Propiedades",
+    "communities": "Comunidades",
+    "contact": "Contacto",
+    "contact_title": "Ponte en contacto con nosotros",
+    "contact_subtitle": "¿Necesitas ayuda para encontrar la propiedad perfecta? Contáctanos para explorar las mejores oportunidades de obra nueva en Dubái.",
+    "terms": "Términos y Condiciones",
+    "privacy": "Política de Privacidad",
+    "market_news": "Noticias del Mercado"
+  },
+  "developers": {
+    "back_to_home": "Volver al inicio",
+    "all_developers": "Todos los Desarrolladores",
+    "search_placeholder": "Buscar desarrolladores..."
+  },
+  "developments": {
+    "back_to_home": "Volver al inicio",
+    "all_developments": "Todos los Desarrollos",
+    "search_placeholder": "Buscar desarrollos..."
+  },
+  "communities": {
+    "back_to_home": "Volver al inicio",
+    "all_communities": "Todas las Comunidades",
+    "search_placeholder": "Buscar comunidades..."
+  },
   "hero": {
     "title": "Un lugar, transparencia total.",
     "subtitle": "Encuentra la unidad exacta que buscas, filtrada por enganche, plan de pago mensual, tamaño, ubicación, fecha de entrega y desarrollador.",
