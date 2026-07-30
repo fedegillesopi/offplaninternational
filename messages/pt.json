@@ -175,6 +175,16 @@
     "see_properties": "Ver propriedades do empreendimento",
     "gallery": "Galeria"
   },
+  "developer_detail": {
+    "back_to_list": "Voltar à lista",
+    "all_developers": "Todas as Promotoras",
+    "about_developer": "Sobre esta Promotora",
+    "on_time_completion": "Conclusão no Prazo",
+    "email": "E-mail",
+    "phone": "Telefone",
+    "website": "Site",
+    "see_properties": "Ver propriedades da promotora"
+  },
   "community_detail": {
     "back_to_list": "Voltar à lista",
     "all_communities": "Todas as Comunidades",

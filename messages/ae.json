@@ -175,6 +175,16 @@
     "see_properties": "See development properties",
     "gallery": "Gallery"
   },
+  "developer_detail": {
+    "back_to_list": "Back to List",
+    "all_developers": "All Developers",
+    "about_developer": "About this Developer",
+    "on_time_completion": "On-Time Completion",
+    "email": "Email",
+    "phone": "Phone",
+    "website": "Website",
+    "see_properties": "See developer properties"
+  },
   "community_detail": {
     "back_to_list": "Back to List",
     "all_communities": "All Communities",

@@ -157,6 +157,20 @@ export interface DevelopmentDetailData {
   developerLogo: string;
 }
 
+export interface DeveloperDetailData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  logo: string;
+  location: string;
+  onTimeCompletion: number;
+  email: string;
+  phone: string;
+  website: string;
+}
+
 export interface CommunityData {
   id: string;
   name: string;

@@ -175,6 +175,16 @@
     "see_properties": "عرض عقارات التطوير",
     "gallery": "معرض الصور"
   },
+  "developer_detail": {
+    "back_to_list": "العودة إلى القائمة",
+    "all_developers": "جميع المطورين",
+    "about_developer": "حول هذا المطور",
+    "on_time_completion": "الإنجاز في الوقت المحدد",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "website": "الموقع الإلكتروني",
+    "see_properties": "عرض عقارات المطور"
+  },
   "community_detail": {
     "back_to_list": "العودة إلى القائمة",
     "all_communities": "جميع المجتمعات",
