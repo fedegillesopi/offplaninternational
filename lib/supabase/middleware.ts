@@ -6,7 +6,7 @@ import { routing } from "../../i18n/routing";
 const locales = routing.locales as readonly string[];
 const localePattern = locales.join("|");
 const protectedRegex = new RegExp(`\\/(?:${localePattern})?\\/?protected(?:\\/|$)`);
-const authRegex = new RegExp(`\\/(?:${localePattern})?\\/?auth\\/(?!login|sign-up|forgot-password|confirm|error|update-password|sign-up-success)`);
+const authRegex = new RegExp(`\\/(?:${localePattern})?\\/?auth\\/(?!login|sign-up|forgot-password|confirm|confirm-client|error|update-password|sign-up-success|confirm-email)`);
 const localePrefixRegex = new RegExp(`^\\/(${localePattern})\\/`);
 
 export async function updateSession(request: NextRequest) {

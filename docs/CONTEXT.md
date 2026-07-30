@@ -418,8 +418,7 @@ offplaninternational/
 │   │   └── currency-price.tsx         # Precio con conversion en vivo (client)
 │   ├── platform/                      # Componentes de la plataforma vendedores
 │   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE
-│   │   ├── site-header.tsx            # Header del dashboard con sidebar trigger
-│   │   └── chart-area-interactive.tsx # Grafico de area (recharts)
+│   │   └── site-header.tsx            # Header del dashboard con sidebar trigger
 │   ├── developers/                    # Componentes especificos de Developer (vacio)
 │   ├── brokers/                       # Componentes especificos de Broker (vacio)
 │   ├── private-sellers/               # Componentes especificos de Private Seller (vacio)

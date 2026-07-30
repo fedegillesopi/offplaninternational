@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { Building2, Briefcase, User } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
@@ -50,6 +51,7 @@ const ROLE_CONFIG: Record<UserRole, { title: string; icon: React.ReactNode; desc
 export default function OnboardingPage() {
   const params = useParams();
   const role = params.role as UserRole;
+  const locale = useLocale();
   const router = useRouter();
   const config = ROLE_CONFIG[role];
 
@@ -106,7 +108,7 @@ export default function OnboardingPage() {
 
       if (updateError) throw updateError;
 
-      router.push("/app");
+      router.push(`/${locale}/auth/payment`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -20,9 +21,10 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { label: t("developers"), href: "/developers/developers-list" },
-    { label: t("developments"), href: "/developments/developments-list" },
-    { label: t("properties"), href: "/properties/properties-list" },
+    { label: t("developers"), href: "/developers" },
+    { label: t("developments"), href: "/developments" },
+    { label: t("properties"), href: "/properties" },
+    { label: t("communities"), href: "/communities" },
   ];
 
   return (
@@ -34,7 +36,7 @@ export function Navbar() {
             alt="Off Plan International"
             width={180}
             height={45}
-            className="h-[30px] w-auto"
+            className="h-[40px] w-auto"
             priority
           />
         </Link>
@@ -69,12 +71,12 @@ export function Navbar() {
           <CurrencySwitcher />
 
           {user ? (
-            <Link
+            <NextLink
               href="/app"
               className="font-heading rounded bg-[--primary-main] px-3 py-1 text-sm font-medium text-[--text-primary] no-underline transition-all duration-200 hover:bg-[--primary-main]/90"
             >
               Dashboard
-            </Link>
+            </NextLink>
           ) : (
             <>
               <div className="flex items-center gap-1">
@@ -134,13 +136,13 @@ export function Navbar() {
 
               <div className="flex gap-2 px-4 pt-4">
                 {user ? (
-                  <Link
+                  <NextLink
                     href="/app"
                     className="font-heading flex-1 rounded bg-[--primary-main] px-3 py-2 text-center text-sm font-medium text-[--text-primary] no-underline transition-all duration-200 hover:bg-[--primary-main]/90"
                     onClick={() => setMenuOpen(false)}
                   >
                     Dashboard
-                  </Link>
+                  </NextLink>
                 ) : (
                   <>
                     <Link

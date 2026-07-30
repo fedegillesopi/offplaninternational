@@ -5,6 +5,33 @@
     "communities": "Comunidades",
     "properties": "Propriedades"
   },
+  "pages": {
+    "developments": "Empreendimentos",
+    "developers": "Promotoras",
+    "properties": "Propriedades",
+    "communities": "Comunidades",
+    "contact": "Contacto",
+    "contact_title": "Entre em contacto connosco",
+    "contact_subtitle": "Precisa de ajuda para encontrar a propriedade perfeita? Contacte-nos para explorar as melhores oportunidades de off-plan no Dubai.",
+    "terms": "Termos e Condições",
+    "privacy": "Política de Privacidade",
+    "market_news": "Notícias do Mercado"
+  },
+  "developers": {
+    "back_to_home": "Voltar ao início",
+    "all_developers": "Todas as Promotoras",
+    "search_placeholder": "Pesquisar promotoras..."
+  },
+  "developments": {
+    "back_to_home": "Voltar ao início",
+    "all_developments": "Todos os Empreendimentos",
+    "search_placeholder": "Pesquisar empreendimentos..."
+  },
+  "communities": {
+    "back_to_home": "Voltar ao início",
+    "all_communities": "Todas as Comunidades",
+    "search_placeholder": "Pesquisar comunidades..."
+  },
   "hero": {
     "title": "Projetos reais, contatos reais.",
     "subtitle": "Encontre a unidade exata que deseja, filtrada por entrada, plano de pagamento mensal, tamanho, localização, data de conclusão e promotora.",
@@ -163,7 +190,8 @@
         "developer": "Promotora",
         "broker": "Corretor",
         "private_seller": "Vendedor particular"
-      }
+      },
+      "email_exists": "Este e-mail já está registado"
     },
     "forgot_password": {
       "title": "Repor palavra-passe",
@@ -183,6 +211,21 @@
       "password": "Nova palavra-passe",
       "submit": "Guardar nova palavra-passe",
       "loading": "A guardar..."
+    },
+    "confirm_email": {
+      "title": "Verifique o seu e-mail",
+      "description": "Enviámos um link de confirmação para:",
+      "instruction": "Clique no link do e-mail para verificar a sua conta e continuar com a integração.",
+      "resend": "Não recebi o e-mail",
+      "success": "E-mail reenviado com sucesso"
+    },
+    "payment": {
+      "title": "Escolha o seu plano",
+      "subtitle": "Selecione um plano adequado para começar a publicar propriedades.",
+      "select_plan": "Selecionar plano",
+      "skip": "Saltar por agora",
+      "month": "mês",
+      "year": "ano"
     },
     "back_to_home": "Voltar ao início"
   }
