@@ -171,6 +171,20 @@ export interface DeveloperDetailData {
   website: string;
 }
 
+export interface MarketNewsArticle {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  body: string;
+  image: string;
+  author: string;
+  date: string;
+  category: string;
+}
+
+export type MarketNewsCardSize = "sm" | "md" | "lg";
+
 export interface CommunityData {
   id: string;
   name: string;
