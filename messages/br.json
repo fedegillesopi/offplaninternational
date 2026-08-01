@@ -67,6 +67,50 @@
       "completed": "Concluído"
     }
   },
+  "features": {
+    "title": "Encontre o seu lugar com confiança",
+    "one_title": "Somente incorporadoras verificadas",
+    "one_description": "Cada unidade vem diretamente de incorporadoras aprovadas e licenciadas, sem agentes intermediários.",
+    "two_title": "Consultas diretas, sem pressão",
+    "two_description": "Contate a incorporadora instantaneamente sem corretores, ligações de vendas insistentes ou desinformação.",
+    "three_title": "Transparência total, zero complicação",
+    "three_description": "Veja todos os detalhes financeiros antecipadamente, sem taxas ocultas ou informações incompletas."
+  },
+  "about": {
+    "title": "Sobre a nossa missão na Off Plan International",
+    "body": "Comprar uma propriedade Off-Plan não deveria ser confuso, lento ou conduzido por agentes de vendas.<br /><br />Criamos a primeira plataforma que reúne <strong>todas as unidades Off-Plan em um mapa global</strong>, dando aos investidores transparência total e às incorporadoras uma forma direta e econômica de listar e vender.<br />Sem taxas ocultas.<br />Sem desinformação.<br /><br />Apenas dados limpos, incorporadoras verificadas e total confiança.<br />Isso conta uma história e gera confiança.",
+    "read_more": "Leia mais sobre a nossa missão"
+  },
+  "faq": {
+    "title": "Perguntas frequentes",
+    "items": [
+      {
+        "question": "O que diferencia a Off Plan International de outras plataformas imobiliárias?",
+        "answer": "A Off Plan International é a única plataforma que lista cada unidade Off-Plan individual do mercado, não apenas resumos em nível de projeto. Os investidores podem filtrar por depósito, plano de pagamento, tamanho, localização, amenities e mais para encontrar propriedades que correspondam exatamente aos seus critérios. Sem agentes, sem pressão, sem informações incompletas: apenas unidades transparentes e pesquisáveis."
+      },
+      {
+        "question": "A Off Plan International é gratuita para os investidores?",
+        "answer": "Sim. A plataforma é completamente gratuita para os investidores. Você pode pesquisar, comparar, salvar unidades e consultar diretamente incorporadoras verificadas sem custo algum. Nosso modelo foi feito para tornar o investimento em Off-Plan mais fácil, seguro e totalmente transparente para os compradores."
+      },
+      {
+        "question": "Como a Off Plan International verifica as incorporadoras e os anúncios?",
+        "answer": "Cada incorporadora passa por um processo de verificação antes de poder listar unidades individuais. Isso inclui revisão de licenças, aprovações de projetos, histórico e prova de propriedade. Apenas incorporadoras aprovadas podem publicar inventário, garantindo que os investidores vejam dados precisos, verificados e em tempo real."
+      },
+      {
+        "question": "Preciso falar com um agente de vendas para consultar uma unidade?",
+        "answer": "Não. A Off Plan International elimina a necessidade de vendas externas tradicionais. As consultas vão diretamente para a incorporadora verificada, eliminando pressão, desinformação ou manipulação. Você recebe informações transparentes direto da fonte."
+      },
+      {
+        "question": "Quais informações recebo sobre cada unidade antes de consultar?",
+        "answer": "Cada unidade inclui todos os detalhes financeiros e imobiliários: requisitos de depósito, plano de pagamento mensal, data de entrega, tamanho da unidade, número de quartos e banheiros, disponibilidade de varanda ou jardim, localização, amenities e mais. Você vê tudo antecipadamente, tornando a comparação e a decisão rápidas e sem estresse."
+      }
+    ]
+  },
+  "contact_banner": {
+    "title": "Fale conosco",
+    "subtitle": "Entre em contato com a nossa equipe se tiver alguma dúvida ou quiser fazer parte da nossa missão.",
+    "cta": "Fale conosco"
+  },
   "footer": {
     "live_support": "Suporte ao vivo?",
     "follow_us": "Siga-nos nas redes sociais",

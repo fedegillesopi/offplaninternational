@@ -67,6 +67,50 @@
       "completed": "Terminado"
     }
   },
+  "features": {
+    "title": "Encontrá tu lugar con confianza",
+    "one_title": "Solo desarrolladores verificados",
+    "one_description": "Cada unidad proviene directamente de desarrolladores aprobados y licenciados, sin agentes intermediarios.",
+    "two_title": "Consultas directas, sin presión",
+    "two_description": "Contactá al desarrollador al instante sin intermediarios, llamadas de ventas insistentes ni información errónea.",
+    "three_title": "Transparencia total, cero complicaciones",
+    "three_description": "Consultá los detalles financieros completos por adelantado, sin comisiones ocultas ni información incompleta."
+  },
+  "about": {
+    "title": "Sobre nuestra misión en Off Plan International",
+    "body": "Comprar una propiedad Off-Plan no debería ser confuso, lento ni estar guiado por agentes de ventas.<br /><br />Creamos la primera plataforma que reúne <strong>todas las unidades Off-Plan en un mapa global</strong>, dando a los inversores transparencia total y a los desarrolladores una vía directa y rentable para listar y vender.<br />Sin comisiones ocultas.<br />Sin información errónea.<br /><br />Solo datos limpios, desarrolladores verificados y total confianza.<br />Esto cuenta una historia y genera confianza.",
+    "read_more": "Leer más sobre nuestra misión"
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "items": [
+      {
+        "question": "¿Qué diferencia a Off Plan International de otras plataformas inmobiliarias?",
+        "answer": "Off Plan International es la única plataforma que lista cada unidad Off-Plan individual del mercado, no solo resúmenes a nivel de proyecto. Los inversores pueden filtrar por depósito, plan de pago, tamaño, ubicación, comodidades y más para encontrar propiedades que coincidan exactamente con sus criterios. Sin agentes, sin presión, sin información incompleta: solo unidades transparentes y buscables."
+      },
+      {
+        "question": "¿Off Plan International es gratuita para los inversores?",
+        "answer": "Sí. La plataforma es completamente gratuita para los inversores. Podés buscar, comparar, guardar unidades y consultar directamente a desarrolladores verificados sin costo alguno. Nuestro modelo está diseñado para hacer la inversión en Off-Plan más fácil, segura y transparente para los compradores."
+      },
+      {
+        "question": "¿Cómo verifica Off Plan International a los desarrolladores y los listados?",
+        "answer": "Cada desarrollador pasa por un proceso de verificación antes de poder listar unidades individuales. Esto incluye revisión de licencias, aprobaciones de proyectos, trayectoria y prueba de propiedad. Solo los desarrolladores aprobados pueden publicar inventario, garantizando que los inversores vean datos precisos, verificados y en tiempo real."
+      },
+      {
+        "question": "¿Necesito hablar con un agente de ventas para consultar por una unidad?",
+        "answer": "No. Off Plan International elimina la necesidad de ventas salientes tradicionales. Las consultas van directamente al desarrollador verificado, eliminando la presión, la desinformación o la manipulación. Obtienes información transparente directamente de la fuente."
+      },
+      {
+        "question": "¿Qué información recibo de cada unidad antes de consultar?",
+        "answer": "Cada unidad incluye todos los detalles financieros e inmobiliarios: requisitos de depósito, plan de pago mensual, fecha de entrega, tamaño de la unidad, número de dormitorios y baños, disponibilidad de balcón o jardín, ubicación, comodidades y más. Lo ves todo por adelantado, haciendo la comparación y la toma de decisiones rápidas y sin estrés."
+      }
+    ]
+  },
+  "contact_banner": {
+    "title": "Contactanos",
+    "subtitle": "Ponte en contacto con nuestro equipo si tienes alguna pregunta o quieres formar parte de nuestra misión.",
+    "cta": "Contactanos"
+  },
   "footer": {
     "live_support": "¿Soporte en vivo?",
     "follow_us": "Síguenos en redes sociales",
@@ -164,37 +208,37 @@
     "development_label": "Desarrollo"
   },
   "development_detail": {
-    "back_to_list": "العودة إلى القائمة",
-    "all_developments": "جميع التطويرات",
-    "about_development": "حول هذا التطوير",
-    "development_amenities": "مرافق التطوير",
-    "property_starting_price": "سعر البداية للعقار",
-    "type_of_property": "نوع العقار",
-    "total_development_area": "المساحة الإجمالية للتطوير",
-    "developer_label": "المطور",
-    "see_properties": "عرض عقارات التطوير",
-    "gallery": "معرض الصور"
+    "back_to_list": "Volver a la lista",
+    "all_developments": "Todos los Desarrollos",
+    "about_development": "Acerca de este Desarrollo",
+    "development_amenities": "Servicios del desarrollo",
+    "property_starting_price": "Precio de salida",
+    "type_of_property": "Tipo de Propiedad",
+    "total_development_area": "Área Total del Desarrollo",
+    "developer_label": "Desarrollador",
+    "see_properties": "Ver propiedades del desarrollo",
+    "gallery": "Galería"
   },
   "developer_detail": {
-    "back_to_list": "العودة إلى القائمة",
-    "all_developers": "جميع المطورين",
-    "about_developer": "حول هذا المطور",
-    "on_time_completion": "الإنجاز في الوقت المحدد",
-    "email": "البريد الإلكتروني",
-    "phone": "الهاتف",
-    "website": "الموقع الإلكتروني",
-    "see_properties": "عرض عقارات المطور"
+    "back_to_list": "Volver a la lista",
+    "all_developers": "Todos los Desarrolladores",
+    "about_developer": "Acerca de este Desarrollador",
+    "on_time_completion": "Finalización a Tiempo",
+    "email": "Email",
+    "phone": "Teléfono",
+    "website": "Sitio web",
+    "see_properties": "Ver propiedades del desarrollador"
   },
   "community_detail": {
-    "back_to_list": "العودة إلى القائمة",
-    "all_communities": "جميع المجتمعات",
-    "average_price_range": "متوسط نطاق السعر",
-    "main_developer": "المطور الرئيسي",
-    "see_properties": "عرض العقارات في هذا المجتمع",
-    "about_community": "حول هذا المجتمع",
-    "total_area": "المساحة الكلية:",
-    "gallery": "معرض الصور",
-    "community_location": "الموقع"
+    "back_to_list": "Volver a la lista",
+    "all_communities": "Todas las Comunidades",
+    "average_price_range": "Rango de Precio Promedio",
+    "main_developer": "Desarrollador Principal",
+    "see_properties": "Ver propiedades en esta comunidad",
+    "about_community": "Acerca de esta Comunidad",
+    "total_area": "Área total:",
+    "gallery": "Galería",
+    "community_location": "Ubicación"
   },
   "auth": {
     "login": {
