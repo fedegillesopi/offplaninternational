@@ -67,6 +67,50 @@
       "completed": "Completed"
     }
   },
+  "features": {
+    "title": "Find your place with confidence",
+    "one_title": "Verified developers only",
+    "one_description": "Every unit comes directly from approved, licensed developers, no third-party agents.",
+    "two_title": "Direct inquiries, no pressure",
+    "two_description": "Contact the developer instantly without brokers, pushy sales calls, or misinformation.",
+    "three_title": "Full transparency, zero hassle",
+    "three_description": "See complete financial details upfront, with no hidden fees, no missing information."
+  },
+  "about": {
+    "title": "About our mission at Off Plan International",
+    "body": "Off-Plan property buying shouldn't be confusing, slow, or driven by sales agents.<br /><br />We built the first platform that brings <strong>every Off-Plan unit onto one global map</strong>, giving investors full transparency and developers a direct, cost-effective way to list and sell.<br />No hidden fees.<br />No misinformation.<br /><br />Just clean data, verified developers, and complete confidence.<br />This tells a story and builds trust.",
+    "read_more": "Read more about our mission"
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "items": [
+      {
+        "question": "What makes Off-Plan International different from other property platforms?",
+        "answer": "Off-Plan International is the only platform that lists every individual Off-Plan unit on the market not just project-level summaries. Investors can filter by deposit, payment plan, size, location, amenities, and more to find properties that match their exact criteria. No agents, no pressure, no missing information just transparent, searchable units."
+      },
+      {
+        "question": "Is Off-Plan International free for investors to use?",
+        "answer": "Yes. The platform is completely free for investors. You can search, compare, save units, and inquire directly through verified developers at no cost. Our model is built to make Off-Plan property investing easier, safer, and fully transparent for buyers."
+      },
+      {
+        "question": "How does Off-Plan International verify developers and listings?",
+        "answer": "Every developer undergoes a verification process before being allowed to list individual units. This includes reviewing licenses, project approvals, track record, and proof of ownership. Only approved developers can publish inventory, ensuring investors see accurate, verified, real-time data."
+      },
+      {
+        "question": "Do I need to speak to a sales agent to inquire about a unit?",
+        "answer": "No. Off-Plan International removes the need for traditional outbound sales. Inquiries go directly to the verified developer, eliminating pressure, misinformation, or manipulation. You get transparent information straight from the source."
+      },
+      {
+        "question": "What information do I get about each unit before enquiring?",
+        "answer": "Every unit includes full financial and property details: deposit requirements, monthly payment plan, handover date, unit size, bedroom and bathroom count, balcony/garden availability, location, amenities, and more. You see everything upfront, making comparison and decision-making fast and stress-free."
+      }
+    ]
+  },
+  "contact_banner": {
+    "title": "Contact us",
+    "subtitle": "Get in touch with our team if you have any questions or want to be a part of our mission.",
+    "cta": "Get in touch"
+  },
   "footer": {
     "live_support": "Live Support?",
     "follow_us": "Follow us on social media",
@@ -243,7 +287,11 @@
       "subtitle": "Please enter your new password below.",
       "password": "New password",
       "submit": "Save new password",
-      "loading": "Saving..."
+      "loading": "Saving...",
+      "verifying": "Checking your link...",
+      "verifying_error_title": "Invalid or expired link",
+      "verifying_error_message": "This password reset link is invalid or has expired. Please request a new one.",
+      "request_new_link": "Request a new link"
     },
     "confirm_email": {
       "title": "Check your email",

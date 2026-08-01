@@ -67,6 +67,50 @@
       "completed": "Terminado"
     }
   },
+  "features": {
+    "title": "Encuentra tu lugar con confianza",
+    "one_title": "Solo promotoras verificadas",
+    "one_description": "Cada unidad proviene directamente de promotoras aprobadas y licenciadas, sin agentes intermediarios.",
+    "two_title": "Consultas directas, sin presión",
+    "two_description": "Contacta con la promotora al instante sin intermediarios, llamadas de ventas insistentes ni información errónea.",
+    "three_title": "Transparencia total, cero complicaciones",
+    "three_description": "Consulta los detalles financieros completos por adelantado, sin comisiones ocultas ni información incompleta."
+  },
+  "about": {
+    "title": "Sobre nuestra misión en Off Plan International",
+    "body": "Comprar una propiedad Off-Plan no debería ser confuso, lento ni estar guiado por agentes de ventas.<br /><br />Creamos la primera plataforma que reúne <strong>todas las unidades Off-Plan en un mapa global</strong>, dando a los inversores transparencia total y a las promotoras una vía directa y rentable para listar y vender.<br />Sin comisiones ocultas.<br />Sin información errónea.<br /><br />Solo datos limpios, promotoras verificadas y total confianza.<br />Esto cuenta una historia y genera confianza.",
+    "read_more": "Leer más sobre nuestra misión"
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "items": [
+      {
+        "question": "¿Qué diferencia a Off Plan International de otras plataformas inmobiliarias?",
+        "answer": "Off Plan International es la única plataforma que lista cada unidad Off-Plan individual del mercado, no solo resúmenes a nivel de proyecto. Los inversores pueden filtrar por depósito, plan de pago, tamaño, ubicación, amenities y más para encontrar propiedades que coincidan exactamente con sus criterios. Sin agentes, sin presión, sin información incompleta: solo unidades transparentes y buscables."
+      },
+      {
+        "question": "¿Off Plan International es gratuita para los inversores?",
+        "answer": "Sí. La plataforma es completamente gratuita para los inversores. Puedes buscar, comparar, guardar unidades y consultar directamente a promotoras verificadas sin coste alguno. Nuestro modelo está diseñado para hacer la inversión en Off-Plan más fácil, segura y transparente para los compradores."
+      },
+      {
+        "question": "¿Cómo verifica Off Plan International a las promotoras y los listados?",
+        "answer": "Cada promotora pasa por un proceso de verificación antes de poder listar unidades individuales. Esto incluye revisión de licencias, aprobaciones de proyectos, trayectoria y prueba de propiedad. Solo las promotoras aprobadas pueden publicar inventario, garantizando que los inversores vean datos precisos, verificados y en tiempo real."
+      },
+      {
+        "question": "¿Necesito hablar con un agente de ventas para consultar por una unidad?",
+        "answer": "No. Off Plan International elimina la necesidad de ventas salientes tradicionales. Las consultas van directamente a la promotora verificada, eliminando la presión, la desinformación o la manipulación. Obtienes información transparente directamente de la fuente."
+      },
+      {
+        "question": "¿Qué información recibo de cada unidad antes de consultar?",
+        "answer": "Cada unidad incluye todos los detalles financieros e inmobiliarios: requisitos de depósito, plan de pago mensual, fecha de entrega, tamaño de la unidad, número de dormitorios y baños, disponibilidad de balcón o jardín, ubicación, amenities y más. Lo ves todo por adelantado, haciendo la comparación y la toma de decisiones rápidas y sin estrés."
+      }
+    ]
+  },
+  "contact_banner": {
+    "title": "Contacta con nosotros",
+    "subtitle": "Ponte en contacto con nuestro equipo si tienes alguna pregunta o quieres formar parte de nuestra misión.",
+    "cta": "Ponte en contacto"
+  },
   "footer": {
     "live_support": "¿Atención en vivo?",
     "follow_us": "Síguenos en redes sociales",
@@ -243,7 +287,11 @@
       "subtitle": "Ingresa tu nueva contraseña a continuación.",
       "password": "Nueva contraseña",
       "submit": "Guardar nueva contraseña",
-      "loading": "Guardando..."
+      "loading": "Guardando...",
+      "verifying": "Comprobando tu enlace...",
+      "verifying_error_title": "Enlace no válido o expirado",
+      "verifying_error_message": "Este enlace de restablecimiento de contraseña no es válido o ha expirado. Solicita uno nuevo.",
+      "request_new_link": "Solicitar un nuevo enlace"
     },
     "confirm_email": {
       "title": "Revisa tu correo",
