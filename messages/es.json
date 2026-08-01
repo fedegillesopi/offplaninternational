@@ -287,7 +287,11 @@
       "subtitle": "Ingresa tu nueva contraseña a continuación.",
       "password": "Nueva contraseña",
       "submit": "Guardar nueva contraseña",
-      "loading": "Guardando..."
+      "loading": "Guardando...",
+      "verifying": "Comprobando tu enlace...",
+      "verifying_error_title": "Enlace no válido o expirado",
+      "verifying_error_message": "Este enlace de restablecimiento de contraseña no es válido o ha expirado. Solicita uno nuevo.",
+      "request_new_link": "Solicitar un nuevo enlace"
     },
     "confirm_email": {
       "title": "Revisa tu correo",

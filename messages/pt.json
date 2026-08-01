@@ -287,7 +287,11 @@
       "subtitle": "Por favor, introduza a sua nova palavra-passe abaixo.",
       "password": "Nova palavra-passe",
       "submit": "Guardar nova palavra-passe",
-      "loading": "A guardar..."
+      "loading": "A guardar...",
+      "verifying": "A verificar a sua ligação...",
+      "verifying_error_title": "Ligação inválida ou expirada",
+      "verifying_error_message": "Esta ligação de reposição de palavra-passe é inválida ou expirou. Solicite uma nova.",
+      "request_new_link": "Solicitar uma nova ligação"
     },
     "confirm_email": {
       "title": "Verifique o seu e-mail",

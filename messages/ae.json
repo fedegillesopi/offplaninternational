@@ -287,7 +287,11 @@
       "subtitle": "Please enter your new password below.",
       "password": "New password",
       "submit": "Save new password",
-      "loading": "Saving..."
+      "loading": "Saving...",
+      "verifying": "Checking your link...",
+      "verifying_error_title": "Invalid or expired link",
+      "verifying_error_message": "This password reset link is invalid or has expired. Please request a new one.",
+      "request_new_link": "Request a new link"
     },
     "confirm_email": {
       "title": "Check your email",

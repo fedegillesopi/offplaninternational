@@ -287,7 +287,11 @@
       "subtitle": "Por favor, insira sua nova senha abaixo.",
       "password": "Nova senha",
       "submit": "Salvar nova senha",
-      "loading": "Salvando..."
+      "loading": "Salvando...",
+      "verifying": "Verificando seu link...",
+      "verifying_error_title": "Link inválido ou expirado",
+      "verifying_error_message": "Este link de redefinição de senha é inválido ou expirou. Solicite um novo.",
+      "request_new_link": "Solicitar um novo link"
     },
     "confirm_email": {
       "title": "Verifique seu e-mail",
