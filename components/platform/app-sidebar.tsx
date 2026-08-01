@@ -13,10 +13,6 @@ import {
   Menu,
   X,
 } from "lucide-react"
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar"
 import { createClient } from "@/lib/supabase/client"
 import type { UserRole } from "@/lib/types"
 
@@ -50,13 +46,6 @@ export function AppSidebar({ user, onNavClick }: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const navItems = NAV_BY_ROLE[user.role] || NAV_BY_ROLE.developer
-
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
 
   const closeMobile = () => setMobileOpen(false)
 

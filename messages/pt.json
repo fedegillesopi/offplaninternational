@@ -30,7 +30,8 @@
   "communities": {
     "back_to_home": "Voltar ao início",
     "all_communities": "Todas as Comunidades",
-    "search_placeholder": "Pesquisar comunidades..."
+    "search_placeholder": "Pesquisar comunidades...",
+    "no_results": "Nenhuma comunidade encontrada"
   },
   "hero": {
     "title": "Projetos reais, contatos reais.",
