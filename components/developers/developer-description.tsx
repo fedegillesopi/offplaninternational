@@ -1,4 +1,6 @@
 import { Fragment } from "react";
+import { sanitizeUserHtml } from "@/lib/sanitize-html";
+import { isHtmlText } from "@/lib/utils";
 
 function splitBold(text: string): React.ReactNode[] {
   return text.split("**").map((part, index) =>
@@ -11,6 +13,15 @@ function splitBold(text: string): React.ReactNode[] {
 }
 
 export function DeveloperDescription({ text }: { text: string }) {
+  if (isHtmlText(text)) {
+    return (
+      <div
+        className="developer-description"
+        dangerouslySetInnerHTML={{ __html: sanitizeUserHtml(text) }}
+      />
+    );
+  }
+
   return (
     <p className="font-body text-base font-light leading-relaxed text-[--text-primary] whitespace-pre-line">
       {splitBold(text)}

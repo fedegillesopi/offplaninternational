@@ -17,7 +17,7 @@ Permitir que un usuario con rol `developer` cree y edite su página pública de 
 |---|---|---|---|---|---|
 | name | ✓ | ✓ | `name` | `company_name` | Form → `developers.name` |
 | slug | ✓ | ✓ | `slug` | — | Auto-generado desde name (slugify + unicidad) |
-| description | ✓ | ✓ | `description` | — | Form (textarea) |
+| description | ✓ | ✓ | `description` | — | Form (editor rich text TipTap) |
 | image (cover) | ✓ | ✓ | ✗ no existe | — | **Migración 011: `cover_image`** |
 | logo | ✓ | ✓ | `logo_url` | — | Form → `logo_url` |
 | location | — | ✓ | `country` | `operating_country` | **Migración 011: `city`**; location = `${country}, ${city}` |
@@ -73,7 +73,7 @@ Página: `/app/developer` + entrada en sidebar (solo role `developer`).
 Campos:
 - Company Name → `name` (requerido)
 - Slug (auto, read-only, regenerado al cambiar name, con botón copy de la URL pública)
-- Tagline/Description → `description` (textarea)
+- Tagline/Description → `description` (editor rich text TipTap → HTML sanitizado)
 - Country → default `operating_country` del perfil (read-only)
 - City → dropdown con ciudades de la tabla `cities` filtradas por `operating_country` (seed curado por país)
 - Cover Image → `cover_image` (ImageUpload a bucket `developer-images`)
@@ -121,13 +121,22 @@ Estilos hardcoded en inglés (convención de plataforma sin i18n, como `profile-
 - `components/platform/image-upload.tsx`: sube a `developer-images/{userId}/{folder}/{timestamp}-{rand}.{ext}`, preview con next/image y botón de borrar.
 - `next.config.ts`: `remotePatterns` agrega el hostname de `NEXT_PUBLIC_SUPABASE_URL` para servir las imágenes subidas.
 
+## Descripción (rich text con TipTap)
+
+- Editor `components/platform/rich-text-editor.tsx` (TipTap v3): Bold, Italic, H3, listas, blockquote e imagen. Reemplaza el textarea + `**bold**`.
+- Se guarda **HTML** en `developers.description` (TEXT, sin migración de columna). Las imágenes quedan embebidas como `<img src>` dentro del HTML; se suben al bucket `developer-images` en `{userId}/description/...` (la RLS del bucket ya lo permite).
+- Sanitización `sanitizeUserHtml()` (nueva en `lib/sanitize-html.ts`): allowlist de tags del editor, `img` solo con src https del hostname de Supabase Storage. Se aplica en cliente (form) y en servidor (server action `saveDeveloperProfile` en `lib/actions.ts`, antes del UPDATE). RLS del owner sigue protegiendo la escritura.
+- Datos legacy (`**texto**`): el renderer los sigue soportando, y al editar el form los convierte a HTML (`toEditorHtml`). Compatibilidad sin migrar datos.
+- `developer-description.tsx` renderiza con `dangerouslySetInnerHTML` sobre `sanitizeUserHtml()`. Estilos en `globals.css` (`.tiptap` y `.developer-description`).
+- Server action aislada en `lib/actions.ts` (no en `lib/developers.ts`): si el action vive en un módulo que importa `next/headers` junto a exports usados por client, Next arrastra `lib/supabase/server.ts` al bundle cliente. Detalle del plan en `docs/TIPTAP-PLAN.md`.
+
 ## Nota (seguimiento)
 
 El CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?developer={slug}` — ruta inexistente (mismo problema que el CTA de communities). Fuera de scope de este plan.
 
 ## Resumen de archivos
 
-### Archivos nuevos (7)
+### Archivos nuevos (10)
 | Ruta | Tipo |
 |---|---|
 | `supabase/migrations/011_developers_page_fields.sql` | Migración |
@@ -136,10 +145,13 @@ El CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?
 | `supabase/seed/cities.sql` | Seed de ciudades |
 | `lib/developers.ts` | Data access + tipos |
 | `lib/cities.ts` | Data access de ciudades |
+| `lib/storage.ts` | Upload a Supabase Storage (extraído de ImageUpload) |
+| `lib/actions.ts` | Server action `saveDeveloperProfile` (sanitiza + INSERT/UPDATE) |
 | `components/platform/developer-form.tsx` | Form client |
 | `components/platform/image-upload.tsx` | Upload de imágenes |
+| `components/platform/rich-text-editor.tsx` | Editor rich text TipTap |
 
-### Archivos a modificar (5)
+### Archivos a modificar (6)
 | Ruta | Cambio |
 |---|---|
 | `app/app/developer/page.tsx` | Página del form (server, auth guard + getMyDeveloper + getCitiesByCountry) |
@@ -147,6 +159,9 @@ El CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?
 | `app/[locale]/developers/page.tsx` | Conectar a DB + búsqueda |
 | `app/[locale]/developer/[slug]/page.tsx` | Conectar a DB |
 | `next.config.ts` | remotePatterns con hostname de Supabase |
+| `lib/sanitize-html.ts` | `sanitizeUserHtml()` para contenido user-generated |
+| `components/developers/developer-description.tsx` | Render HTML sanitizado + legacy |
+| `app/globals.css` | Estilos `.tiptap` y `.developer-description` |
 
 ### Archivos a eliminar (1)
 | Ruta | Motivo |

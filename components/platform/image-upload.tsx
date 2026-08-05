@@ -4,8 +4,7 @@ import { useRef, useState } from "react"
 import Image from "next/image"
 import { Loader2, Trash2, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/client"
-import { cn } from "@/lib/utils"
+import { uploadImage } from "@/lib/storage"
 
 interface ImageUploadProps {
   label: string
@@ -23,23 +22,14 @@ export function ImageUpload({ label, value, onChange, userId, folder }: ImageUpl
   const handleFile = async (file: File) => {
     setError(null)
     setUploading(true)
-    const supabase = createClient()
-    const ext = file.name.split(".").pop() ?? "jpg"
-    const path = `${userId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
-    const { error: uploadError } = await supabase.storage
-      .from("developer-images")
-      .upload(path, file, { upsert: false })
-
-    if (uploadError) {
-      setError(uploadError.message)
+    try {
+      const url = await uploadImage(file, userId, folder)
+      onChange(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
       setUploading(false)
-      return
     }
-
-    const { data } = supabase.storage.from("developer-images").getPublicUrl(path)
-    onChange(data.publicUrl)
-    setUploading(false)
   }
 
   return (
@@ -93,7 +83,7 @@ export function ImageUpload({ label, value, onChange, userId, folder }: ImageUpl
         }}
       />
 
-      {error && <p className={cn("text-sm text-destructive")}>{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   )
 }

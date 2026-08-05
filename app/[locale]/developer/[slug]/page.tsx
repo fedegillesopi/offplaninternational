@@ -60,10 +60,6 @@ export default async function DeveloperDetailPage({
                 {developer.name}
               </h1>
 
-              <h2 className="font-heading text-h4 font-bold text-[--text-primary]">
-                {t("about_developer")}
-              </h2>
-
               <DeveloperDescription text={developer.description} />
             </div>
           </div>

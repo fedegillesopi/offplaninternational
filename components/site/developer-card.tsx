@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { Link } from "@/i18n/navigation"
+import { stripHtmlToText } from "@/lib/utils"
 
 interface DeveloperCardProps {
   name: string
@@ -38,7 +39,7 @@ export function DeveloperCard({ name, description, image, logo, slug }: Develope
           {name}
         </h3>
         <p className="font-body text-sm text-[--grey-200] leading-relaxed line-clamp-2">
-          {description.replace(/\*\*/g, "")}
+          {stripHtmlToText(description.replace(/\*\*/g, ""))}
         </p>
       </div>
     </Link>

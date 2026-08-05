@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import type { DeveloperCardData } from "@/lib/developers";
 import { DeveloperCard } from "@/components/site/developer-card";
+import { stripHtmlToText } from "@/lib/utils";
 
 interface DevelopersGridProps {
   developers: DeveloperCardData[];
@@ -18,7 +19,7 @@ export function DevelopersGrid({ developers }: DevelopersGridProps) {
     const q = query.trim().toLowerCase();
     if (!q) return developers;
     return developers.filter((d) =>
-      [d.name, d.description, d.slug]
+      [d.name, stripHtmlToText(d.description), d.slug]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(q)),
     );

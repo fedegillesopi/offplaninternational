@@ -1,12 +1,15 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { Bold, Check, Copy } from "lucide-react"
+import { useState } from "react"
+import { Check, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { ImageUpload } from "@/components/platform/image-upload"
+import { RichTextEditor } from "@/components/platform/rich-text-editor"
+import { saveDeveloperProfile } from "@/lib/actions"
+import { sanitizeUserHtml } from "@/lib/sanitize-html"
+import { isHtmlText } from "@/lib/utils"
 import type { Developer, UserProfile } from "@/lib/types"
 
 interface DeveloperFormProps {
@@ -26,6 +29,24 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, "")
 }
 
+// Convierte descripciones legacy (`**bold**` + saltos de línea) a HTML antes de
+// alimentar el editor TipTap. Si ya es HTML, se usa tal cual.
+function toEditorHtml(text: string): string {
+  if (!text) return ""
+  if (isHtmlText(text)) return text
+
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+  const withBold = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+
+  return withBold
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.split("\n").join("<br>")}</p>`)
+    .join("")
+}
+
 export function DeveloperForm({
   developer,
   profile,
@@ -37,21 +58,21 @@ export function DeveloperForm({
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const descriptionRef = useRef<HTMLTextAreaElement>(null)
 
+  const initialDescription = toEditorHtml(developer?.description ?? "")
+  const isNew = !developer
   const [name, setName] = useState(developer?.name ?? profile.company_name)
-  const [description, setDescription] = useState(developer?.description ?? "")
+  const [description, setDescription] = useState(initialDescription)
   const [city, setCity] = useState(developer?.city ?? "")
   const [coverImage, setCoverImage] = useState(developer?.cover_image ?? "")
   const [logoUrl, setLogoUrl] = useState(developer?.logo_url ?? "")
-  const [website, setWebsite] = useState(developer?.website ?? profile.company_website)
+  const [website, setWebsite] = useState(developer?.website ?? (isNew ? profile.company_website : ""))
   const [onTimeCompletion, setOnTimeCompletion] = useState(
     developer?.on_time_completion?.toString() ?? "",
   )
-  const [email, setEmail] = useState(developer?.email ?? profile.email)
-  const [phone, setPhone] = useState(developer?.phone ?? profile.phone)
+  const [email, setEmail] = useState(developer?.email ?? (isNew ? profile.email : ""))
+  const [phone, setPhone] = useState(developer?.phone ?? (isNew ? profile.phone : ""))
 
-  const isNew = !developer
   const country = countryCode
   const slug = slugify(name)
 
@@ -61,14 +82,14 @@ export function DeveloperForm({
     ? Boolean(name)
     : Boolean(
         name !== developer.name ||
-          description !== developer.description ||
+          sanitizeUserHtml(description) !== sanitizeUserHtml(initialDescription) ||
           city !== developer.city ||
           coverImage !== developer.cover_image ||
           logoUrl !== developer.logo_url ||
-          website !== developer.website ||
+          website !== (developer.website ?? "") ||
           onTimeCompletion !== (developer.on_time_completion?.toString() ?? "") ||
-          email !== developer.email ||
-          phone !== developer.phone,
+          email !== (developer.email ?? "") ||
+          phone !== (developer.phone ?? ""),
       )
 
   const handleCopy = async () => {
@@ -77,58 +98,37 @@ export function DeveloperForm({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const toggleBold = () => {
-    const el = descriptionRef.current
-    if (!el) return
-    const start = el.selectionStart
-    const end = el.selectionEnd
-    const selected = description.slice(start, end)
-    const wrapped = `**${selected}**`
-    const next = description.slice(0, start) + wrapped + description.slice(end)
-    setDescription(next)
-    requestAnimationFrame(() => {
-      el.focus()
-      el.setSelectionRange(start + 2, start + 2 + selected.length)
-    })
-  }
-
   const handleSave = async () => {
     setSaving(true)
     setError(null)
-    const supabase = createClient()
 
-    const payload = {
-      name,
-      slug,
-      description,
-      city: city || null,
-      cover_image: coverImage || null,
-      logo_url: logoUrl || null,
-      website: website || null,
-      on_time_completion: onTimeCompletion ? Number(onTimeCompletion) : null,
-      email,
-      phone,
-    }
+    try {
+      const { error: saveError } = await saveDeveloperProfile({
+        id: developer?.id,
+        name,
+        slug,
+        description: sanitizeUserHtml(description),
+        city: city || null,
+        cover_image: coverImage || null,
+        logo_url: logoUrl || null,
+        website: website || null,
+        on_time_completion: onTimeCompletion ? Number(onTimeCompletion) : null,
+        email,
+        phone,
+        country,
+      })
 
-    const { error: saveError } = isNew
-      ? await supabase.from("developers").insert({
-          ...payload,
-          country,
-          user_profile_id: profile.id,
-        })
-      : await supabase
-          .from("developers")
-          .update(payload)
-          .eq("id", developer.id)
+      if (saveError) {
+        setError(saveError)
+        return
+      }
 
-    if (saveError) {
-      setError(saveError.message)
+      router.refresh()
+    } catch {
+      setError("Something went wrong. Please try again.")
+    } finally {
       setSaving(false)
-      return
     }
-
-    router.refresh()
-    setSaving(false)
   }
 
   return (
@@ -168,23 +168,11 @@ export function DeveloperForm({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Description</label>
-          <div className="flex items-center gap-1 border-b border-input pb-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={toggleBold}
-              title="Bold"
-            >
-              <Bold />
-            </Button>
-          </div>
-          <textarea
-            ref={descriptionRef}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+          <RichTextEditor
+            defaultValue={initialDescription}
+            onChange={setDescription}
+            userId={profile.id}
+            placeholder="Describe your company, projects and track record..."
           />
         </div>
 
