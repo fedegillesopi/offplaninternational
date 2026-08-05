@@ -1,18 +1,13 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
 import { PrimaryCtaLink } from "@/components/shared/primary-cta-link";
 
 interface CommunityInfoCardProps {
-  averagePriceRange: string;
-  developerName: string;
-  developerSlug: string;
+  averagePriceRange: string | null;
   communitySlug: string;
 }
 
 export async function CommunityInfoCard({
   averagePriceRange,
-  developerName,
-  developerSlug,
   communitySlug,
 }: CommunityInfoCardProps) {
   const t = await getTranslations("community_detail");
@@ -26,20 +21,6 @@ export async function CommunityInfoCard({
         <span className="font-heading text-h3 font-bold text-[--text-primary]">
           {averagePriceRange}
         </span>
-      </div>
-
-      <div className="h-px w-full bg-[--grey-50]" />
-
-      <div className="flex flex-col gap-1">
-        <span className="font-body text-sm font-light text-[--grey-300]">
-          {t("main_developer")}
-        </span>
-        <Link
-          href={`/developer/${developerSlug}`}
-          className="w-fit font-body text-base font-medium text-[--primary-main] no-underline hover:underline"
-        >
-          {developerName}
-        </Link>
       </div>
 
       <div className="h-px w-full bg-[--grey-50]" />

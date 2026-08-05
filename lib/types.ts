@@ -184,19 +184,3 @@ export interface MarketNewsArticle {
 }
 
 export type MarketNewsCardSize = "sm" | "md" | "lg";
-
-export interface CommunityData {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  image: string;
-  images: string[];
-  location: string;
-  mapQuery: string;
-  averagePriceRange: string;
-  developerName: string;
-  developerSlug: string;
-  developerLogo: string;
-  totalArea: number;
-}

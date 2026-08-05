@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.4 — 27-Jul-2026
-**Estado:** MVP en desarrollo — Auth i18n completo, componentes reorganizados, ruta /app
+**Versión:** 1.5 — 01-Ago-2026
+**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app
 
 ---
 
@@ -86,7 +86,11 @@
 | Interfaz `PropertyData` migrada a campos planos + nuevas interfaces `Developer`, `Development`, `PaymentPlanMilestone` | Frontend | ✅ Implementado |
 | Página de listado de desarrollos `/development/[slug]` | Público | ❌ Pendiente |
 | Página de listado de promotoras `/developer/[slug]` | Público | ❌ Pendiente |
-| Página de listado de comunidades | Público | ❌ Pendiente |
+| Página de listado de comunidades `/communities` (grid + búsqueda client-side, leída de Supabase) | Público | ✅ Implementado |
+| Página de detalle de comunidad `/community/[slug]` (header, mapa, descripción sanitizada, info card, galería) | Público | ✅ Implementado |
+| Tablas `communities` y `community_translations` en Supabase con RLS (migración 008) | Backend | ✅ Implementado |
+| Seed de 42 comunidades de Dubai + 42 traducciones base (`supabase/seed/communities.sql`) | Backend | ✅ Implementado |
+| Sanitizador HTML allowlist + validación de `google_map_url` (seguridad) | Frontend | ✅ Implementado |
 | Dashboard de inversor (favoritos, consultas) | Inversor | ❌ Pendiente |
 | Paneles específicos por role (Properties/Analytics para Developer, Listings/Clients para Broker, My Property para Private Seller) | Vendedor | ❌ Pendiente |
 | Mapa global con unidades geolocalizadas | Público | ❌ Pendiente |
@@ -298,6 +302,29 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Secciones de desarrollo y comunidad con datos completos (nombre, área total, amenities, descripción)
 - **Migración a campos planos (23-Jul-2026):** Todas las referencias a datos del developer, desarrollo y comunidad se resuelven vía campos planos en `PropertyData` (`developer_name`, `developer_slug`, `developer_logo`, `development_name`, `development_slug`, `development_total_area`, `development_amenities`, `community_name`, `community_slug`, `community_total_area`, `community_description`). RelatedProperties ahora se renderiza correctamente.
 
+#### 6.1.8 Página de listado y detalle de comunidades
+
+**Listado (`/[locale]/communities`):**
+- Server component que consulta `getCommunities(locale)` con el Supabase server client
+- `getCommunities` hace `select("*, community_translations(*)")` filtrando `is_active = true`; resuelve la traducción con fallback locale → 'ae' → primera; ordena con `localeCompare(locale)`
+- `CommunitiesGrid` (client) con input de búsqueda que filtra por nombre, ciudad, location y tags (`useState`/`useMemo`); sin resultados muestra `t("communities.no_results")`
+- `CommunityCard` en `components/site/` (reutilizable) linkea a `/community/{slug}` via `@/i18n/navigation`
+- Namespace `communities` traducido en los 7 locales
+
+**Detalle (`/[locale]/community/[slug]`):**
+- Server component con `getCommunityBySlug(slug, locale)` (`.maybeSingle()`); si no existe o está inactiva → `notFound()`
+- `CommunityHeader`: imagen destacada (placeholder con iniciales si no hay) + iframe de Google Maps si `google_map_url` pasa la validación
+- Descripción HTML renderizada con `dangerouslySetInnerHTML` SIEMPRE pasando por `sanitizeHtml()` (allowlist de tags, bloqueo de scripts/iframes y neutralización de entidades)
+- `CommunityInfoCard` (sticky): `average_price_range` + CTA "See properties" que apunta a `/properties-list?community={slug}` ⚠️ (ruta inexistente, ver regla 23)
+- `CommunityGallery` con lightbox (navegación por teclado, scroll lock) solo si hay imágenes
+- Namespace `community_detail` traducido en los 7 locales
+
+**Datos:**
+- Contenido curado en DB (importado de CSV de Webflow), no user-generated ni mock
+- Seed `supabase/seed/communities.sql`: 42 comunidades de Dubai + 42 traducciones en locale `ae` (upserts idempotentes)
+- `developer_id` en NULL (el CSV no traía developers); el seed no lo pisa en el `DO UPDATE`
+- ⚠️ **Pendiente:** ejecutar migración 008 + seed en Supabase (sin eso, las páginas muestran vacío)
+
 ### 6.2 Auth unificado y onboarding (3 roles)
 
 #### 6.2.1 Registro por role (URL-driven)
@@ -414,7 +441,7 @@ Otras rutas:
 |---|---|---|
 | Framework | Next.js 16.2.6 (App Router) | SSR, Server Components, Server Actions |
 | Lenguaje | TypeScript ~5 | Strict mode |
-| Base de datos | Supabase (PostgreSQL) | Auth + tablas user_profiles, developers, developments, properties, payment_plan_milestones |
+| Base de datos | Supabase (PostgreSQL) | Auth + tablas user_profiles, developers, developments, properties, payment_plan_milestones, communities, community_translations |
 | Estilos | Tailwind CSS 3.4 + tailwindcss-animate | Design system |
 | Componentes UI | Radix UI (shadcn-style): sidebar, sheet, dialog, drawer, select, tabs, table, avatar, separator, skeleton, chart | Primitivas accesibles |
 | Tabla de datos | @tanstack/react-table 8.21 | Tabla con sorting, filtering, pagination |
@@ -593,9 +620,29 @@ Creada por migración `007_developers_developments_properties_rebuild.sql` (reem
 - SELECT público: milestones de propiedades activas
 - INSERT/UPDATE/DELETE: seller dueño de la propiedad (check vía subquery a properties)
 
-#### 7.2.7 Interfaces TypeScript
+#### 7.2.7 Tabla: communities (contenido curado)
 
-Definidas en `lib/types.ts`:
+Creada por migración `supabase/migrations/008_communities.sql`. Contenido importado de CSV de Webflow — no es user-generated.
+
+**Índices:** `slug`, `country`, `city`, `developer_id`, `is_active`
+**Trigger:** `trigger_set_updated_at_communities` (idempotente con `DROP TRIGGER IF EXISTS`)
+**Políticas RLS:**
+- SELECT público: comunidades activas (`is_active = true`)
+- No hay INSERT/UPDATE desde cliente (contenido curado, solo service_role/seed)
+
+#### 7.2.8 Tabla: community_translations
+
+Creada por migración `supabase/migrations/008_communities.sql`. Una fila por comunidad y locale.
+
+**Constraints:** `UNIQUE (community_id, locale)`
+**Índices:** `community_id`, `locale`
+**Trigger:** `trigger_set_updated_at_community_translations` (idempotente)
+**Políticas RLS:**
+- SELECT público: solo traducciones de comunidades activas (subquery a `communities.is_active`)
+
+#### 7.2.9 Interfaces TypeScript
+
+Definidas en `lib/types.ts` (las de comunidades en `lib/communities.ts`):
 
 ```typescript
 // --- Tipos base ---
@@ -649,6 +696,24 @@ interface PaymentPlanMilestone {
   description: string | null;
   sort_order: number;
   created_at: string;
+}
+
+// --- Tabla communities (definida en lib/communities.ts) ---
+interface Community {
+  id: string;
+  slug: string;
+  country: string | null;
+  city: string | null;
+  location: string | null;
+  average_price_range: string | null;
+  highlight_image: string | null;
+  images: string[] | null;
+  tags: string[] | null;
+  google_map_url: string | null;
+  developer_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // --- Tabla user_profiles ---
@@ -757,17 +822,16 @@ interface PropertyData {
 
 **Patrón de campos planos:** `PropertyData` incluye tanto los campos propios de la tabla `properties` como campos "joined" que replican datos de las tablas `developers`, `developments` y `communities`. Esto evita joins en tiempo de render y simplifica el acceso en componentes Server. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vía vistas materializadas.
 
-#### 7.2.8 Tablas con datos migrados
+#### 7.2.10 Tablas con datos migrados
 - `subscriptions` — suscripciones por usuario (inactiva en beta, preparada para Stripe) — migración 006
 - Storage bucket `property-images` — imágenes de propiedades (público, 5MB, folder-based RLS) — migración 005
 
-#### 7.2.9 Tablas legacy
+#### 7.2.11 Tablas legacy
 - `developer_profiles` — reemplazada por `user_profiles` (migración 002). Se mantiene por retrocompatibilidad.
 - `properties` (v003) — reemplazada por la versión 007 con FKs a `developers`, `developments` y `user_profiles`
 - `payment_plan_milestones` (v004) — reemplazada por la versión 007 con CHECK en percentage y RLS mejorado
 
-#### 7.2.10 Tablas pendientes de crear
-- `communities` — comunidades/zonas
+#### 7.2.12 Tablas pendientes de crear
 - `favorites` — favoritos del inversor
 - `inquiries` — consultas de inversores a vendedores
 
@@ -781,6 +845,8 @@ interface PropertyData {
 | `/[locale]` | Público | Homepage con locale |
 | `/[locale]/properties-list` | Público | Listado de propiedades con filtros |
 | `/[locale]/property/[slug]` | Público | Detalle de propiedad |
+| `/[locale]/communities` | Público | Listado de comunidades (DB + búsqueda client) |
+| `/[locale]/community/[slug]` | Público | Detalle de comunidad (descripción sanitizada, mapa, galería) |
 | `/[locale]/auth/login` | Público | Login unificado |
 | `/[locale]/auth/sign-up/[role]` | Público | Registro por role (developer/broker/private-seller) |
 | `/[locale]/auth/sign-up` | Público | Redirect a `/auth/sign-up/developer` |
@@ -823,6 +889,10 @@ interface PropertyData {
 - **RLS en developments:** público para activos
 - **RLS en properties:** público para activos, propio para el seller dueño
 - **RLS en payment_plan_milestones:** público para propiedades activas, propio vía subquery a properties
+- **RLS en communities:** SELECT público solo comunidades activas; sin INSERT/UPDATE/DELETE desde cliente (contenido curado, solo service_role/seed)
+- **RLS en community_translations:** SELECT público solo traducciones de comunidades activas
+- **Sanitización HTML:** descripciones de comunidades se renderizan con `dangerouslySetInnerHTML` solo tras `sanitizeHtml()` (allowlist de tags, bloqueo de scripts/iframes y neutralización de entidades) — `lib/sanitize-html.ts`
+- **Validación de `google_map_url`:** solo se renderiza el iframe si el host es `google.com/maps` y el path empieza con `/maps/`; iframe con `sandbox` + `referrerPolicy="no-referrer"` para reducir la superficie de ataque
 - **Role en Supabase Auth:** El role se guarda en `raw_user_meta_data` del usuario al registrarse (`options.data.role`). El trigger `handle_new_user()` lo lee con `coalesce(new.raw_user_meta_data->>'role', 'developer')`.
 
 ---
@@ -921,6 +991,22 @@ interface PropertyData {
 4. NavUser muestra dropdown con avatar, nombre, email y botón de logout
 ```
 
+### Flujo G: Navegación de comunidades (listado + detalle)
+
+```
+1. Usuario navega a /[locale]/communities
+2. communities/page.tsx (server) llama a getCommunities(locale): select("*, community_translations(*)") filtrando is_active = true
+3. Se resuelve la traducción con fallback locale → 'ae' → primera y se ordena con localeCompare(locale)
+4. CommunitiesGrid (client) filtra por texto (nombre, ciudad, location, tags) con useState/useMemo
+5. Clic en CommunityCard → /community/{slug} (via @/i18n/navigation)
+6. community/[slug]/page.tsx llama a getCommunityBySlug(slug, locale) con .maybeSingle(); si no existe o está inactiva → notFound()
+7. Descripción HTML se sanitiza con sanitizeHtml() antes de dangerouslySetInnerHTML
+8. CommunityHeader renderiza imagen destacada + iframe de Google Maps (si google_map_url validada)
+9. CommunityInfoCard muestra average_price_range y CTA "See properties" → /properties-list?community={slug} ⚠️ (ruta inexistente)
+```
+
+**Servicios consumidos:** Supabase server client, `lib/communities.ts`, `lib/sanitize-html.ts`
+
 ---
 
 ## 9. REGLAS DE NEGOCIO
@@ -947,6 +1033,13 @@ interface PropertyData {
 20. **emailRedirectTo y redirectTo incluyen locale.** El sign-up form usa `useLocale()` para construir `${origin}/${locale}/auth/confirm`. El forgot-password form usa el mismo patrón para `${origin}/${locale}/auth/update-password`.
 21. **Componentes organizados por dominio.** `site/` (público), `properties/` (listado/detalle), `auth/` (formularios), `shared/` (currency), `platform/` (dashboard). `ui/` solo primitivas shadcn.
 22. **La ruta del dashboard es `/app`** (no `/dashboard`). Rename realizado para simplificar.
+23. **El CTA "See properties" del detalle de comunidad apunta a `/properties-list?community={slug}`, ruta inexistente.** La lista real es `/properties` y no lee query params. ⚠️
+24. **Las comunidades son contenido curado en DB, no user-generated.** Solo se escriben vía migración/seed (service_role). No hay INSERT/UPDATE desde cliente.
+25. **Las traducciones de comunidades se resuelven con fallback locale → 'ae' → primera disponible.** Hoy solo existe la fila base 'ae' (inglés en todos los locales); las traducciones se agregan por fila en `community_translations`, no en los mensajes.
+26. **`developer_id` en communities está NULL** (el CSV de Webflow no traía developers). El seed no lo pisa en el `DO UPDATE`. El bloque "Main Developer" se reimplementará cuando haya datos.
+27. **Las descripciones de comunidades usan `dangerouslySetInnerHTML` solo tras `sanitizeHtml()`.** No aplicar a contenido user-generated.
+28. **Los iframes de Google Maps se renderizan solo si la URL pasa la validación** (host `google.com/maps` + path `/maps/`), con `sandbox` y `referrerPolicy="no-referrer"`.
+29. **La migración 008 + seed de communities requieren ejecución manual en Supabase** (SQL Editor). Hasta entonces, las páginas de communities muestran vacío.
 
 ---
 
@@ -960,7 +1053,7 @@ interface PropertyData {
 - El locale/idioma se puede inferir por geolocalización del país de origen
 
 **Restricciones:**
-- Datos mockeados para MVP — las tablas existen en Supabase pero la UI aún no las consulta
+- Datos de propiedades mockeados para MVP — las tablas `developers`, `developments`, `properties` y `payment_plan_milestones` existen en Supabase pero la UI pública aún no las consulta; las comunidades sí se leen de DB (migración 008 + seed)
 - Sin mapa funcional en MVP (pendiente geolocalización)
 - Sin pagos integrados en la plataforma
 - Sin comparador de propiedades
@@ -975,6 +1068,9 @@ interface PropertyData {
 - Las sub-rutas del sidebar del dashboard (analytics, clients, settings) no tienen páginas implementadas
 - Los pricing plans están configurados pero no se cobran ni se aplican
 - La ruta `/app` no tiene page.tsx funcional (solo placeholder)
+- La migración 008 + seed de communities no están ejecutadas en producción (requieren SQL Editor manual)
+- Las traducciones de comunidades solo existen en locale 'ae' (el contenido se muestra en inglés en todos los locales)
+- El CTA "See properties" de comunidades apunta a una ruta inexistente (`/properties-list?community={slug}`)
 
 ---
 
@@ -1020,6 +1116,12 @@ interface PropertyData {
 - UI primitives creados: textarea.tsx, dialog.tsx
 - Rename `/dashboard` → `/app`
 - Sidebar reestructurada: NAV_BY_ROLE simplificado, dropdown usuario con logout
+- Tablas `communities` y `community_translations` creadas en Supabase (migración 008)
+- Seed de 42 comunidades de Dubai + 42 traducciones base (locale `ae`) en `supabase/seed/communities.sql`
+- Página de listado de comunidades `/communities` con búsqueda client-side
+- Página de detalle de comunidad `/community/[slug]` con header, mapa, descripción sanitizada y galería con lightbox
+- Sanitizador HTML allowlist (`lib/sanitize-html.ts`) + validación de `google_map_url`
+- `lib/mock-communities.ts` y tipo `CommunityData` eliminados (reemplazados por `Community` en `lib/communities.ts`)
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
@@ -1028,7 +1130,10 @@ interface PropertyData {
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
-- **Mediano plazo:** Páginas de listado de comunidades
+- **Corto plazo:** Ejecutar migración 008 + seed de communities en Supabase (producción)
+- **Corto plazo:** Conectar el CTA "See properties" de communities a `/properties` con query param `community`
+- **Corto plazo:** Asignar `developer_id` a cada comunidad (dato pendiente en Webflow)
+- **Mediano plazo:** Traducir comunidades a locales adicionales (hoy solo existe la fila base 'ae')
 - **Mediano plazo:** Panel de administración completo para vendedores (gestión de propiedades, consultas)
 - **Mediano plazo:** Mapa global con unidades geolocalizadas
 - **Mediano plazo:** Conectar DataTable del dashboard a datos reales de propiedades
