@@ -20,7 +20,8 @@
   "developers": {
     "back_to_home": "Voltar ao início",
     "all_developers": "Todos os Desenvolvedores",
-    "search_placeholder": "Pesquisar desenvolvedores..."
+    "search_placeholder": "Pesquisar desenvolvedores...",
+    "no_results": "Nenhum desenvolvedor encontrado"
   },
   "developments": {
     "back_to_home": "Voltar ao início",

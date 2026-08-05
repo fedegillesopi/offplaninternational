@@ -30,6 +30,11 @@ export interface Developer {
   website: string | null;
   description: string | null;
   country: string | null;
+  cover_image: string | null;
+  city: string | null;
+  on_time_completion: number | null;
+  email: string | null;
+  phone: string | null;
   is_verified: boolean;
   user_profile_id: string | null;
   created_at: string;
@@ -155,20 +160,6 @@ export interface DevelopmentDetailData {
   developerName: string;
   developerSlug: string;
   developerLogo: string;
-}
-
-export interface DeveloperDetailData {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  image: string;
-  logo: string;
-  location: string;
-  onTimeCompletion: number;
-  email: string;
-  phone: string;
-  website: string;
 }
 
 export interface MarketNewsArticle {

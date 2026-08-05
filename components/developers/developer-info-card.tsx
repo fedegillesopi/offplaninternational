@@ -9,6 +9,15 @@ interface DeveloperInfoCardProps {
   developerSlug: string;
 }
 
+function safeWebsite(url: string): string {
+  if (!/^https?:\/\//i.test(url)) return "";
+  try {
+    return new URL(url).hostname ? url : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function DeveloperInfoCard({
   onTimeCompletion,
   email,
@@ -17,6 +26,7 @@ export async function DeveloperInfoCard({
   developerSlug,
 }: DeveloperInfoCardProps) {
   const t = await getTranslations("developer_detail");
+  const websiteUrl = safeWebsite(website);
 
   return (
     <div className="sticky top-4 flex flex-col gap-6 rounded-2 bg-white p-6 shadow-[0_0_15px_rgba(0,0,0,0.1)]">
@@ -56,14 +66,20 @@ export async function DeveloperInfoCard({
         <span className="font-body text-sm font-light text-[--grey-300]">
           {t("website")}
         </span>
-        <a
-          href={website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-fit font-body text-sm font-medium text-[--primary-main] no-underline hover:underline break-all"
-        >
-          {website}
-        </a>
+        {websiteUrl ? (
+          <a
+            href={websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-fit font-body text-sm font-medium text-[--primary-main] no-underline hover:underline break-all"
+          >
+            {website}
+          </a>
+        ) : (
+          <span className="w-fit font-body text-sm font-medium text-[--text-primary] break-all">
+            {website}
+          </span>
+        )}
       </div>
 
       <div className="h-px w-full bg-[--grey-50]" />

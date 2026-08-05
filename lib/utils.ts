@@ -9,3 +9,23 @@ export function cn(...inputs: ClassValue[]) {
 export const hasEnvVars =
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+export function isHtmlText(text: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(text);
+}
+
+// Convierte HTML ya sanitizado a texto plano para resúmenes sin estilos
+// (ej. la card del listado). Decodifica entidades de vuelta a caracteres.
+export function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|h2|h3|li|blockquote|div)>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
