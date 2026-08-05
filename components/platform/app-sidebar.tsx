@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
+  BriefcaseBusiness,
   Building,
   Settings,
   LogOut,
@@ -29,6 +30,7 @@ interface AppSidebarProps {
 const NAV_BY_ROLE: Record<UserRole, { href: string; label: string; icon: typeof LayoutDashboard }[]> = {
   developer: [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/app/developer", label: "Developer Profile", icon: BriefcaseBusiness },
     { href: "/app/properties", label: "Properties", icon: Building },
   ],
   broker: [

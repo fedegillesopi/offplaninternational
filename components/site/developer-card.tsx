@@ -38,7 +38,7 @@ export function DeveloperCard({ name, description, image, logo, slug }: Develope
           {name}
         </h3>
         <p className="font-body text-sm text-[--grey-200] leading-relaxed line-clamp-2">
-          {description}
+          {description.replace(/\*\*/g, "")}
         </p>
       </div>
     </Link>

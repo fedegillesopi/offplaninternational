@@ -7,12 +7,8 @@ import { BackToHome } from "@/components/site/back-to-home";
 import { Breadcrumb } from "@/components/site/breadcrumb";
 import { DeveloperHeader } from "@/components/developers/developer-header";
 import { DeveloperInfoCard } from "@/components/developers/developer-info-card";
-import { mockDevelopersDetail } from "@/lib/mock-developers-detail";
-import type { DeveloperDetailData } from "@/lib/types";
-
-function getDeveloperBySlug(slug: string): DeveloperDetailData | undefined {
-  return mockDevelopersDetail.find((d) => d.slug === slug);
-}
+import { DeveloperDescription } from "@/components/developers/developer-description";
+import { getDeveloperBySlug } from "@/lib/developers";
 
 export default async function DeveloperDetailPage({
   params,
@@ -21,7 +17,7 @@ export default async function DeveloperDetailPage({
 }) {
   const { slug } = await params;
   const t = await getTranslations("developer_detail");
-  const developer = getDeveloperBySlug(slug);
+  const developer = await getDeveloperBySlug(slug);
 
   if (!developer) notFound();
 
@@ -68,9 +64,7 @@ export default async function DeveloperDetailPage({
                 {t("about_developer")}
               </h2>
 
-              <p className="font-body text-base font-light leading-relaxed text-[--text-primary]">
-                {developer.description}
-              </p>
+              <DeveloperDescription text={developer.description} />
             </div>
           </div>
 

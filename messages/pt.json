@@ -20,7 +20,8 @@
   "developers": {
     "back_to_home": "Voltar ao início",
     "all_developers": "Todas as Promotoras",
-    "search_placeholder": "Pesquisar promotoras..."
+    "search_placeholder": "Pesquisar promotoras...",
+    "no_results": "Nenhuma promotora encontrada"
   },
   "developments": {
     "back_to_home": "Voltar ao início",
