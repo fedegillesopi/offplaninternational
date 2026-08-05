@@ -9,7 +9,7 @@ function isAllowedMapUrl(url: string | null): string | null {
   try {
     const parsed = new URL(url);
     if (!ALLOWED_MAP_HOSTS.has(parsed.hostname.toLowerCase())) return null;
-    if (!parsed.pathname.startsWith("/maps/")) return null;
+    if (parsed.pathname !== "/maps" && !parsed.pathname.startsWith("/maps/")) return null;
     return url;
   } catch {
     return null;
