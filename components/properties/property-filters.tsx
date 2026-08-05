@@ -106,11 +106,10 @@ function FilterRadioGroup({
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`flex items-center gap-2 rounded-sm px-2 py-1 font-body text-sm font-light text-left transition-colors hover:bg-[--grey-50] ${
-            selected === opt.value
+          className={`flex items-center gap-2 rounded-sm px-2 py-1 font-body text-sm font-light text-left transition-colors hover:bg-[--grey-50] ${selected === opt.value
               ? "bg-[--primary-light] text-[--primary-dark]"
               : "text-[--text-primary]"
-          }`}
+            }`}
         >
           {opt.label}
         </button>
@@ -194,6 +193,7 @@ export function PropertyFilters() {
           {showMore ? t("less_filters") : t("more_filters")}
         </button>
 
+        {/* 
         <div className="ml-auto">
           <Link
             href="/properties/properties-list-map-view"
@@ -202,7 +202,7 @@ export function PropertyFilters() {
             <MapPin className="h-3 w-3" />
             {t("map_view")}
           </Link>
-        </div>
+        </div> */}
       </div>
 
       {showMore && (
