@@ -76,15 +76,54 @@
 - [x] UI primitives creados: `textarea.tsx`, `dialog.tsx` (Radix UI)
 - [x] Rename `/dashboard` → `/app` en todas las rutas y referencias
 
+### Comunidades
+- [x] Migración 008: tablas `communities` y `community_translations` (patrón 007)
+- [x] Seed `supabase/seed/communities.sql`: 42 comunidades de Dubai + 42 traducciones locale 'ae' (upserts idempotentes)
+- [x] Data access `lib/communities.ts`: `getCommunities(locale)` y `getCommunityBySlug(slug, locale)` con fallback de traducción locale → 'ae' → primera
+- [x] Página de listado `/[locale]/communities` (server) con búsqueda client-side
+- [x] Página de detalle `/[locale]/community/[slug]` (server) con `notFound()`, descripción HTML sanitizada y galería condicional
+- [x] `CommunityCard` en `components/site/` (compartido con grid de communities)
+- [x] Componentes por dominio: `components/communities/` (grid, header, info-card, gallery)
+- [x] Sanitizador HTML allowlist `lib/sanitize-html.ts` (sin dependencias externas)
+- [x] Validación de `google_map_url`: solo host google.com/maps y path `/maps/`; iframe con `sandbox` + `referrerPolicy="no-referrer"`
+- [x] Namespace `communities` (con `no_results`) en los 7 mensajes; namespace `community_detail` existente
+- [x] Estilos `.community-description` en `globals.css` (h4, p, ul/ol, blockquote)
+- [x] Limpieza: eliminados `lib/mock-communities.ts` y tipo `CommunityData` de `lib/types.ts` (el tipo `Community` vive en `lib/communities.ts`)
+- [x] Auditoría reviewer/security aprobada; hallazgos aplicados
+
+### Developers (página pública + plataforma)
+- [x] Migración 011: campos de página pública en `developers` (`cover_image`, `city`, `on_time_completion`, `email`, `phone`) + `UNIQUE(user_profile_id)` + políticas RLS INSERT/UPDATE del owner
+- [x] Migración 012: bucket `developer-images` (público, 5MB, jpeg/png/webp) con RLS por carpeta del usuario
+- [x] Migración 013: tabla `cities` + seed por país (dropdown del form)
+- [x] Data access `lib/developers.ts`: `getDevelopers()`, `getDeveloperBySlug()`, `getMyDeveloper()` (tipos `DeveloperCardData`/`DeveloperDetailData` en el mismo archivo)
+- [x] Listado `/[locale]/developers` conectado a DB (`is_verified = true`) con búsqueda client-side (`DevelopersGrid` filtra por texto visible sin tags)
+- [x] Detalle `/[locale]/developer/[slug]` conectado a DB con `notFound()` si no existe/inactivo
+- [x] `DeveloperDescription` renderiza HTML sanitizado (`sanitizeUserHtml()`) con fallback legacy `**bold**`
+- [x] Form `/app/developer` (solo rol developer): `developer-form.tsx` + `ImageUpload` (cover/logo) + `RichTextEditor` TipTap
+- [x] Editor rich text TipTap v3.29.2: Bold, Italic, H3, listas, blockquote e imagen; guarda HTML sanitizado en `developers.description` (reemplaza `<textarea>` + `**bold**`)
+- [x] Server action `saveDeveloperProfile` en `lib/actions.ts` con validaciones server-side (website auto-prefija `https://`, slug regex, límites MAX_DESCRIPTION/NAME/EMAIL/PHONE, on_time_completion 0–100)
+- [x] `sanitizeUserHtml()` (allowlist user-generated) + núcleo `processHtml` compartido con `sanitizeHtml()` en `lib/sanitize-html.ts`
+- [x] Helpers `isHtmlText()` y `stripHtmlToText()` en `lib/utils.ts` (resúmenes y búsqueda sin tags)
+- [x] Auditorías reviewer/security aplicadas: XSS `javascript:` en website corregido (`safeWebsite`), XSS por tag truncado, origin-check de imágenes (`img` solo hostname de Supabase Storage)
+
+### Tablas de referencia (curadas)
+- [x] Migración 009: tablas `community_tags` y `property_amenities` + seeds (`supabase/seed/community_tags.sql`, `property_amenities.sql`)
+- [x] Migración 010: tabla `property_subcategories` + seed (`supabase/seed/property_subcategories.sql`)
+- [x] Data access: `lib/community-tags.ts`, `lib/property-amenities.ts`, `lib/property-subcategories.ts`
+
 ### Pendiente
-- [ ] Página de listado de desarrollos
-- [ ] Página de listado de promotoras
-- [ ] Página de listado de comunidades
+- [ ] ⚠️ Ejecutar migraciones 008–013 + seeds (communities, community_tags, property_amenities, property_subcategories, cities) en SQL Editor de Supabase (hasta entonces, communities y los datos referenciales muestran vacío)
+- [ ] Traducir comunidades a otros locales (hoy solo existe fila en locale 'ae'; el contenido se muestra en inglés en todos los locales)
+- [ ] Asignar `developer_id` a cada comunidad (hoy NULL; el bloque "Main Developer" del info-card se reimplementará cuando haya datos)
+- [ ] ⚠️ CTA "See properties" de `community-info-card.tsx` apunta a `/properties-list?community={slug}` — ruta inexistente (la lista real es `/properties` y no lee query params)
+- [ ] ⚠️ CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?developer={slug}` — ruta inexistente (mismo problema que el de communities; documentado en `docs/DEVELOPER-PAGE-FORM.md`)
+- [ ] Página de listado de desarrollos: existe con mock data hardcodeado, búsqueda deshabilitada — falta conectar a DB
 - [ ] Panel de administración para promotoras
 - [ ] Mapa global con unidades geolocalizadas
 - [ ] Reemplazar componentes de tutorial de Supabase starter kit
 - [ ] Dashboard de favoritos y consultas del usuario
-- [ ] `app/app/settings` page (ruta definida en sidebar pero sin página implementada)
+- [ ] `app/app/settings` page: existe como placeholder (solo heading), sin contenido implementado
+- [ ] Market news: páginas de listado y detalle con mock data — falta conectar a DB
 
 ## 3. STACK TECNOLÓGICO
 
@@ -110,6 +149,11 @@
 | lucide-react | 0.511.0 | Iconos |
 | @tabler/icons-react | 3.44.0 | Iconos (dashboard y data table) |
 | @tanstack/react-table | 8.21.3 | Manejo de tabla de datos |
+| @tiptap/extension-image | 3.29.2 | Imágenes en el editor rich text (TipTap) |
+| @tiptap/extension-placeholder | 3.29.2 | Placeholder del editor rich text (TipTap) |
+| @tiptap/pm | 3.29.2 | ProseMirror core (peer de @tiptap/react) |
+| @tiptap/react | 3.29.2 | Editor rich text (bindings React, v3) |
+| @tiptap/starter-kit | 3.29.2 | Extensiones base de TipTap (bold, italic, headings, lists, blockquote) |
 | @dnd-kit/core | 6.3.1 | Drag & drop |
 | @dnd-kit/modifiers | 9.0.0 | Modificadores drag & drop |
 | @dnd-kit/sortable | 10.0.0 | Sortable drag & drop |
@@ -164,7 +208,7 @@ La tabla `developer_profiles` fue reemplazada por `user_profiles`. La migracion 
 
 ### developers
 
-Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql`.
+Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql` y ampliada por `011_developers_page_fields.sql`.
 
 | Columna | Tipo | Constraints | Descripcion |
 |---|---|---|---|
@@ -173,10 +217,15 @@ Creada por migración `supabase/migrations/007_developers_developments_propertie
 | slug | text | NOT NULL, UNIQUE | Slug unico |
 | logo_url | text | nullable | URL del logo |
 | website | text | nullable | Sitio web |
-| description | text | nullable | Descripcion |
+| description | text | nullable | Descripcion (HTML sanitizado desde 08-2026; legacy `**bold**` soportado) |
+| cover_image | text | nullable | Imagen de portada (migración 011) |
+| city | text | nullable | Ciudad (migración 011) |
+| on_time_completion | integer | nullable, validado 0–100 en server action | % de entregas a tiempo (migración 011) |
+| email | text | nullable | Email publico (migración 011) |
+| phone | text | nullable | Telefono publico (migración 011) |
 | country | text | nullable | Pais de operacion |
 | is_verified | boolean | NOT NULL DEFAULT false | Developer verificado |
-| user_profile_id | uuid | FK → user_profiles(id) ON DELETE SET NULL | ID del perfil de usuario asociado |
+| user_profile_id | uuid | FK → user_profiles(id) ON DELETE SET NULL, UNIQUE (migración 011) | ID del perfil de usuario asociado (una sola pagina por usuario) |
 | created_at | timestamptz | DEFAULT now() | Fecha de creacion |
 | updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
 
@@ -187,7 +236,8 @@ Creada por migración `supabase/migrations/007_developers_developments_propertie
 **Políticas RLS:**
 - SELECT público: developers verificados (`is_verified = true`)
 - SELECT propio: developer ve su propio registro (`auth.uid() = user_profile_id`)
-- No hay INSERT/UPDATE desde cliente (solo service_role)
+- INSERT: propio con `WITH CHECK (auth.uid() = user_profile_id)` (migración 011, para el form de `/app/developer`)
+- UPDATE: propio con `USING (auth.uid() = user_profile_id)` (migración 011)
 
 ### developments
 
@@ -325,6 +375,96 @@ Creada por migración `supabase/migrations/006_subscriptions.sql`. Tabla prepara
 - SELECT: usuario lee su propia suscripción
 - INSERT/UPDATE: solo service_role (Stripe webhook)
 
+### communities
+
+Creada por migración `supabase/migrations/008_communities.sql`. Contenido curado (importado de CSV de Webflow), no user-generated.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID de la comunidad |
+| slug | text | NOT NULL, UNIQUE | Slug unico |
+| country | text | nullable | Pais (AE) |
+| city | text | nullable | Ciudad (Dubai) |
+| location | text | nullable | Zona (NULL en el seed actual) |
+| average_price_range | text | nullable | Rango de precio como texto ("600K – 1.5M AED") |
+| highlight_image | text | nullable | URL imagen destacada |
+| images | text[] | nullable | URLs de imagenes adicionales |
+| tags | text[] | nullable | Community tags (SEO/investor personas) |
+| google_map_url | text | nullable | URL de iframe de Google Maps (validada en runtime) |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer asociado (NULL en el seed; no se toca en el upsert) |
+| is_active | boolean | NOT NULL DEFAULT true | Comunidad activa |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Índices:** `slug`, `country`, `city`, `developer_id`, `is_active`
+
+**Trigger:** `trigger_set_updated_at_communities` (con `DROP TRIGGER IF EXISTS` para idempotencia)
+
+**Políticas RLS:**
+- SELECT público: comunidades activas (`is_active = true`)
+- No hay INSERT/UPDATE desde cliente (contenido curado, solo service_role/seed)
+
+### community_translations
+
+Creada por migración `supabase/migrations/008_communities.sql`.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID de la traduccion |
+| community_id | uuid | NOT NULL, FK → communities(id) ON DELETE CASCADE | Comunidad asociada |
+| locale | text | NOT NULL | Locale (ae, gb, ar, es, mx, br, pt) |
+| name | text | NOT NULL | Nombre traducido |
+| short_description | text | nullable | Descripcion corta traducida |
+| description | text | nullable | Descripcion HTML (sanitizada en runtime) |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Constraints:** `UNIQUE (community_id, locale)` — una traducción por comunidad y locale
+
+**Índices:** `community_id`, `locale`
+
+**Trigger:** `trigger_set_updated_at_community_translations` (idempotente)
+
+**Políticas RLS:**
+- SELECT público: solo traducciones de comunidades activas (subquery a `communities.is_active`)
+
+### community_tags y property_amenities
+
+Creadas por migración `supabase/migrations/009_community_tags_amenities.sql`. Tablas de referencia curadas (tags de comunidad y amenities de propiedad), seeds en `supabase/seed/community_tags.sql` y `property_amenities.sql`.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID |
+| slug | text | NOT NULL, UNIQUE | Slug unico |
+| name | text | NOT NULL | Nombre |
+| icon_url | text | nullable | URL del icono (solo property_amenities) |
+| category | text | nullable | Categoria |
+| is_active | boolean | NOT NULL DEFAULT true | Activo |
+| created_at / updated_at | timestamptz | DEFAULT now() | Timestamps |
+
+**RLS:** SELECT público (`is_active = true`). Data access: `lib/community-tags.ts`, `lib/property-amenities.ts`.
+
+### property_subcategories
+
+Creada por migración `supabase/migrations/010_property_subcategories.sql`. Seed en `supabase/seed/property_subcategories.sql`. Mismas columnas que las tablas anteriores (`id`, `slug` UNIQUE, `name`, `category`, `is_active`, timestamps).
+
+**RLS:** SELECT público (`is_active = true`). Data access: `lib/property-subcategories.ts`.
+
+### cities
+
+Creada por migración `supabase/migrations/013_cities.sql`. Ciudades curadas por país para el dropdown del form de developer. Seed en `supabase/seed/cities.sql`.
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID |
+| country | text | NOT NULL | Pais (AE, AR, BR, ES, GB, ID, ME, MX, PT) |
+| name | text | NOT NULL | Nombre de la ciudad |
+| created_at / updated_at | timestamptz | DEFAULT now() | Timestamps |
+
+**Constraints:** `UNIQUE (country, name)`
+
+**RLS:** SELECT público (sin filtro). Data access: `lib/cities.ts` (`getCitiesByCountry`).
+
 ### Storage: property-images
 
 Bucket creado por migración `supabase/migrations/005_storage_property_images.sql`.
@@ -335,11 +475,22 @@ Bucket creado por migración `supabase/migrations/005_storage_property_images.sq
 - **Estructura:** `property-images/{user_id}/{filename}`
 - **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado
 
+### Storage: developer-images
+
+Bucket creado por migración `supabase/migrations/012_developer_images_bucket.sql`. Imágenes de la página de developer (cover, logo y las embebidas en la descripción).
+
+- **Público:** true
+- **Tamaño máximo:** 5MB
+- **MIME types:** image/jpeg, image/png, image/webp
+- **Estructura:** `developer-images/{user_id}/{folder}/{timestamp}-{rand}.{ext}` con carpetas `covers/`, `logos/` y `description/`
+- **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
+- **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder)` (usado por `ImageUpload` y por el editor TipTap)
+
 ### Tablas de Supabase (gestionadas por Supabase)
 - `auth.users`, `auth.sessions`, `auth.mfa_factors`, etc. — auth estandar de Supabase
 
 ### Pendiente
-Definir tablas de `communities`, `favorites`, `inquiries`.
+Definir tablas de `favorites` e `inquiries`.
 
 ## 5. ESTRUCTURA DE ARCHIVOS
 
@@ -353,12 +504,18 @@ offplaninternational/
 ├── package.json                       # Dependencias
 ├── pnpm-lock.yaml
 ├── .env.example                       # Variables de entorno de ejemplo
+├── .gitignore                         # Incluye /webflow-databases/
+├── webflow-databases/                 # CSV exportado de Webflow (origen de datos, NO versionado)
 ├── app/
 │   ├── layout.tsx                     # Root layout (fonts Host Grotesk + Roboto)
 │   ├── globals.css                    # CSS variables, Tailwind base (shadcn-compatible)
 │   ├── app/                           # Plataforma de vendedores (sin i18n, requiere auth)
 │   │   ├── layout.tsx                 # Layout con sidebar + header + auth guard
-│   │   └── page.tsx                   # Pagina principal (placeholder)
+│   │   ├── page.tsx                   # Pagina principal (placeholder)
+│   │   ├── properties/page.tsx        # Listado de propiedades del usuario
+│   │   ├── developer/page.tsx         # Developer Profile (form con editor TipTap, solo rol developer)
+│   │   ├── profile/page.tsx           # Perfil del usuario
+│   │   └── settings/page.tsx          # Settings (placeholder, solo heading)
 │   └── [locale]/
 │       ├── layout.tsx                 # NextIntlClientProvider + CurrencyProvider wrapper
 │       ├── page.tsx                   # Homepage (composicion de componentes)
@@ -369,20 +526,26 @@ offplaninternational/
 │       │   │   └── [role]/page.tsx    # Sign-up con tabs por rol (i18n via getTranslations)
 │       │   ├── onboarding/
 │       │   │   └── [role]/page.tsx    # Onboarding post-confirmacion con campos condicionales
-│       │   ├── sign-up-success/page.tsx
+│       │   ├── confirm-email/page.tsx # "Revisa tu email" + resend
+│       │   ├── confirm-client/page.tsx
+│       │   ├── payment/page.tsx       # Seleccion de plan post-signup
 │       │   ├── forgot-password/page.tsx
 │       │   ├── update-password/page.tsx
 │       │   ├── confirm/route.ts       # Callback de confirmacion (lee NEXT_LOCALE cookie)
 │       │   └── error/page.tsx
-│       ├── properties/
-│       │   └── properties-list/
-│       │       └── page.tsx           # Listado de propiedades con filtros + cards
-│       ├── property/
-│       │   └── [slug]/
-│       │       └── page.tsx           # Detalle de propiedad
-│       └── protected/                 # Ruta protegida (placeholder)
-│           ├── layout.tsx
-│           └── page.tsx
+│       ├── properties/page.tsx        # Listado de propiedades con filtros + cards (mock)
+│       ├── property/[slug]/page.tsx   # Detalle de propiedad
+│       ├── communities/page.tsx       # Listado de comunidades (DB + busqueda client)
+│       ├── community/[slug]/page.tsx  # Detalle de comunidad (descripcion HTML sanitizada)
+│       ├── developers/page.tsx        # Listado de developers (DB, is_verified + busqueda client)
+│       ├── developer/[slug]/page.tsx  # Detalle de developer (DB, descripcion HTML sanitizada)
+│       ├── developments/page.tsx      # Listado de developments
+│       ├── development/[slug]/page.tsx # Detalle de development
+│       ├── market-news/page.tsx       # Listado de market news
+│       ├── market-news/[slug]/page.tsx # Detalle de market news
+│       ├── contact/page.tsx           # Pagina de contacto
+│       ├── terms/page.tsx             # Terminos y condiciones
+│       └── privacy/page.tsx           # Politica de privacidad
 ├── components/
 │   ├── site/                          # Componentes del sitio público
 │   │   ├── navbar.tsx                 # Navbar responsive (client)
@@ -392,9 +555,29 @@ offplaninternational/
 │   │   ├── faq-section.tsx            # FAQ con accordion items
 │   │   ├── accordion-item.tsx         # Componente accordion (client)
 │   │   ├── contact-banner.tsx         # Banner de contacto
+│   │   ├── contact-form-embed.tsx     # Formulario de contacto
 │   │   ├── footer.tsx                 # Footer (server, async)
 │   │   ├── breadcrumb.tsx             # Breadcrumb con separador "/"
-│   │   └── back-to-home.tsx           # Boton reutilizable con flecha (client)
+│   │   ├── back-to-home.tsx           # Boton reutilizable con flecha (client)
+│   │   ├── community-card.tsx         # Card de comunidad (server)
+│   │   ├── developer-card.tsx         # Card de developer (descripcion sin tags via stripHtmlToText)
+│   │   ├── development-card.tsx       # Card de development
+│   │   ├── market-news-card.tsx       # Card de noticia (variantes sm/md/lg)
+│   │   ├── market-news-highlight-card.tsx # Noticia destacada
+│   │   └── market-news-section.tsx    # Seccion de noticias
+│   ├── communities/                   # Componentes de comunidades
+│   │   ├── communities-grid.tsx       # Grid + busqueda client-side (useState/useMemo)
+│   │   ├── community-header.tsx       # Imagen destacada + iframe del mapa
+│   │   ├── community-info-card.tsx    # Rango de precio + CTA "see properties" (server)
+│   │   └── community-gallery.tsx      # Galeria con lightbox (client)
+│   ├── developers/                    # Componentes de developers
+│   │   ├── developer-description.tsx  # Render HTML sanitizado + fallback legacy **bold**
+│   │   ├── developer-header.tsx
+│   │   ├── developer-info-card.tsx    # Info + CTA "See properties" (safeWebsite en href)
+│   │   └── developers-grid.tsx        # Grid + busqueda client-side (stripHtmlToText)
+│   ├── developments/                  # Componentes de developments
+│   │   ├── development-header.tsx
+│   │   └── development-info-card.tsx
 │   ├── properties/                    # Componentes de propiedades
 │   │   ├── property-card.tsx          # Card de propiedad horizontal (server, async)
 │   │   ├── property-gallery.tsx       # Galeria de imagenes (client)
@@ -415,11 +598,15 @@ offplaninternational/
 │   ├── shared/                        # Componentes compartidos
 │   │   ├── currency-provider.tsx      # Context provider de moneda (client)
 │   │   ├── currency-switcher.tsx      # Dropdown de seleccion de moneda (client)
-│   │   └── currency-price.tsx         # Precio con conversion en vivo (client)
+│   │   ├── currency-price.tsx         # Precio con conversion en vivo (client)
+│   │   └── primary-cta-link.tsx       # Link CTA primario con flecha (client)
 │   ├── platform/                      # Componentes de la plataforma vendedores
-│   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE
+│   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE (incl. Developer Profile)
+│   │   ├── developer-form.tsx         # Form de la pagina de developer (client, TipTap + ImageUpload)
+│   │   ├── image-upload.tsx           # Upload de cover/logo a bucket developer-images
+│   │   ├── profile-form.tsx           # Form de perfil de usuario
+│   │   ├── rich-text-editor.tsx       # Editor rich text TipTap (client)
 │   │   └── site-header.tsx            # Header del dashboard con sidebar trigger
-│   ├── developers/                    # Componentes especificos de Developer (vacio)
 │   ├── brokers/                       # Componentes especificos de Broker (vacio)
 │   ├── private-sellers/               # Componentes especificos de Private Seller (vacio)
 │   └── ui/                            # Componentes base (shadcn-style)
@@ -462,26 +649,54 @@ offplaninternational/
 │   ├── mx.json
 │   └── pt.json
 ├── supabase/
-│   └── migrations/
-│       ├── 001_developer_profiles.sql  # Migracion legacy (reemplazada por 002)
-│       ├── 002_user_profiles.sql       # Tabla unificada con roles + migracion de datos
-│       ├── 003_properties.sql          # Tabla properties (LEGACY, reemplazada por 007)
-│       ├── 004_payment_plan_milestones.sql  # Milestones (LEGACY, reemplazada por 007)
-│       ├── 005_storage_property_images.sql  # Bucket de imagenes en Supabase Storage
-│       ├── 006_subscriptions.sql       # Tabla de suscripciones (inactiva en beta)
-│       └── 007_developers_developments_properties_rebuild.sql  # Developers, Developments, Properties rebuild, Milestones rebuild
+│   ├── migrations/
+│   │   ├── 001_developer_profiles.sql  # Migracion legacy (reemplazada por 002)
+│   │   ├── 002_user_profiles.sql       # Tabla unificada con roles + migracion de datos
+│   │   ├── 003_properties.sql          # Tabla properties (LEGACY, reemplazada por 007)
+│   │   ├── 004_payment_plan_milestones.sql  # Milestones (LEGACY, reemplazada por 007)
+│   │   ├── 005_storage_property_images.sql  # Bucket de imagenes en Supabase Storage
+│   │   ├── 006_subscriptions.sql       # Tabla de suscripciones (inactiva en beta)
+│   │   ├── 007_developers_developments_properties_rebuild.sql  # Developers, Developments, Properties rebuild, Milestones rebuild
+│   │   ├── 008_communities.sql         # Communities + community_translations (PENDIENTE de ejecutar)
+│   │   ├── 009_community_tags_amenities.sql  # Tablas de referencia community_tags + property_amenities
+│   │   ├── 010_property_subcategories.sql    # Tabla de referencia property_subcategories
+│   │   ├── 011_developers_page_fields.sql    # Campos pagina developer + RLS INSERT/UPDATE del owner
+│   │   ├── 012_developer_images_bucket.sql   # Bucket developer-images (5MB, jpeg/png/webp)
+│   │   └── 013_cities.sql              # Tabla cities (dropdown del form de developer)
+│   └── seed/
+│       ├── communities.sql             # 42 comunidades + 42 traducciones 'ae' (upserts, PENDIENTE de ejecutar)
+│       ├── community_tags.sql          # Tags de comunidad curados
+│       ├── property_amenities.sql      # Amenities de propiedad curados
+│       ├── property_subcategories.sql  # Subcategorias de propiedad curadas
+│       └── cities.sql                  # Ciudades por pais (AE, AR, BR, ES, GB, ID, ME, MX, PT)
 ├── docs/
 │   ├── CONTEXT.md                     # Este archivo
-│   └── PRD.md                         # Product Requirements Document (agente analista)
+│   ├── PRD.md                         # Product Requirements Document (agente analista)
+│   ├── DEVELOPER-PAGE-FORM.md         # Plan del form de pagina de developer (migraciones 011-013 + TipTap)
+│   ├── ONBOARDING-FLOW.md             # Plan del flujo de onboarding por rol
+│   └── TIPTAP-PLAN.md                 # Plan de integracion del editor TipTap
 ├── lib/
+│   ├── actions.ts                     # Server actions: saveDeveloperProfile (validacion + sanitizacion)
+│   ├── cities.ts                      # getCitiesByCountry (dropdown del form)
+│   ├── communities.ts                 # Data access + tipo Community (getCommunities, getCommunityBySlug)
+│   ├── community-tags.ts              # Data access de community_tags
+│   ├── content/                       # Contenido estatico de paginas legales (privacy, terms)
+│   ├── countries.ts                   # getCountryCode/getCountryLabel
+│   ├── developers.ts                  # Data access de developers (getDevelopers, getDeveloperBySlug, getMyDeveloper)
+│   ├── property-amenities.ts          # Data access de property_amenities
+│   ├── property-subcategories.ts      # Data access de property_subcategories
+│   ├── sanitize-html.ts               # Sanitizador HTML allowlist (sanitizeHtml curado + sanitizeUserHtml user-generated)
+│   ├── storage.ts                     # uploadImage(file, userId, folder) a bucket developer-images
 │   ├── currency.ts                    # Tipos, monedas, formatPrice, mapa locale->moneda
 │   ├── currency-server.ts             # Lectura de cookie de moneda server-side
 │   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
 │   ├── filter-options.ts              # Opciones de filtros centralizadas
 │   ├── mock-properties.ts             # Mock data de propiedades (3 unidades)
+│   ├── mock-developments.ts           # Mock data de developments
+│   ├── mock-market-news.ts            # Mock data de market news
 │   ├── pricing-plans.ts               # Pricing matrix por role x pais
-│   ├── types.ts                       # UserRole, UserProfile, PropertyData
-│   ├── utils.ts                       # cn() helper, hasEnvVars
+│   ├── types.ts                       # UserRole, UserProfile, PropertyData, Developer, etc.
+│   ├── utils.ts                       # cn() helper, hasEnvVars, isHtmlText, stripHtmlToText
 │   └── supabase/
 │       ├── client.ts                  # Cliente Supabase browser
 │       ├── server.ts                  # Cliente Supabase server
@@ -542,6 +757,24 @@ offplaninternational/
 | 2026-07-27 | `emailRedirectTo` y `forgot-password` redirectTo incluyen locale via `useLocale()` | Los links de email mantienen el locale del usuario; evitan perder contexto al confirmar |
 | 2026-07-27 | `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware | El usuario mantiene su locale al ser redirigido tras confirmar email o completar onboarding |
 | 2026-07-27 | UI primitives creados: `textarea.tsx` (shadcn pattern), `dialog.tsx` (Radix UI) | Completan el set de componentes base para formularios y modales |
+| 2026-07-31 | Migración 008: tablas `communities` y `community_translations` con patrón idéntico a 007 | Consistencia: RLS select público, triggers updated_at con `DROP TRIGGER IF EXISTS` (idempotentes), FK developer_id → developers ON DELETE SET NULL, UNIQUE(community_id, locale) |
+| 2026-07-31 | Comunidades como contenido curado en DB (no mock ni user-generated) | 42 comunidades de Dubai importadas de CSV de Webflow; el tipo `Community` vive en `lib/communities.ts` (eliminado `CommunityData` de `lib/types.ts`) |
+| 2026-07-31 | `webflow-databases/` ignorado en git | El CSV exportado de Webflow es origen de datos, no se versiona; el seed SQL es el artefacto versionado |
+| 2026-07-31 | Traducciones por fila en `community_translations` con fallback locale → 'ae' → primera disponible | El contenido base (42 filas 'ae') se muestra en inglés en todos los locales; las traducciones se agregan por fila sin tocar código |
+| 2026-07-31 | Sanitizador HTML allowlist custom (`lib/sanitize-html.ts`) en vez de librería (sanitize-html/DOMPurify) | Sin dependencias nuevas; el HTML proviene de contenido curado por el equipo; allowlist de tags y bloqueo de tags peligrosos + neutralización de entidades (`&#x3c;` → `&amp;lt;`) |
+| 2026-07-31 | Descripción de comunidad con `dangerouslySetInnerHTML` sobre `sanitizeHtml()` | El contenido es HTML rico (h4/p/strong/ul/blockquote) del CSV; se sanitiza en render para eliminar scripts/iframes/entidades peligrosas |
+| 2026-07-31 | Validación de `google_map_url` en runtime: solo hosts google.com/maps y path `/maps/` | Un iframe malicioso es un vector de XSS; solo se renderiza si la URL es de Google Maps, devolviendo null si no |
+| 2026-07-31 | Iframe del mapa con `sandbox="allow-scripts allow-same-origin allow-popups"` y `referrerPolicy="no-referrer"` | Reduce superficie de ataque del embed de terceros; hallazgo de auditoría security |
+| 2026-07-31 | Bloque "Main Developer" eliminado del info-card (developer_id siempre NULL) | El CSV de Webflow no traía developers reales; se reimplementará cuando haya datos. El seed NO incluye developer_id en el DO UPDATE para no pisar asignaciones manuales |
+| 2026-08-05 | Migraciones 009–010: tablas de referencia `community_tags`, `property_amenities`, `property_subcategories` + seeds curados | Datos curados como referencia (patrón communities); RLS select público por `is_active`; data access en `lib/*.ts` por dominio |
+| 2026-08-05 | Migraciones 011–013 para la página pública de developer + form `/app/developer` | Campos flat en `developers` (patrón `PropertyData`): `cover_image`, `city`, `on_time_completion`, `email`, `phone`; `UNIQUE(user_profile_id)` (una página por usuario); RLS INSERT/UPDATE del owner; bucket `developer-images`; tabla `cities` curada para dropdowns |
+| 2026-08-05 | Editor rich text TipTap v3.29.2 para `developers.description` (HTML sanitizado) en vez de `<textarea>` + `**bold**` | UX de formato rico (Bold, Italic, H3, listas, blockquote, imagen) sin markdown manual; el HTML se persiste en `developers.description` (TEXT, sin migración de columna); `immediatelyRender: false` para SSR |
+| 2026-08-05 | Server action `saveDeveloperProfile` en `lib/actions.ts` (módulo separado) | Un server action no puede vivir en un módulo que importe `next/headers` junto a exports usados por client: Next arrastra `lib/supabase/server.ts` al bundle cliente y rompe `pnpm build` |
+| 2026-08-05 | `sanitizeUserHtml()` (allowlist user-generated) + núcleo `processHtml` compartido con `sanitizeHtml()` | Allowlist mínimo (p, strong, em, br, ul/ol/li, blockquote, h2, h3, img); `img` restringida al origin https de Supabase Storage; corrige XSS por tag truncado (todo `<`/`>` del texto se escapa) y neutraliza entidades; se aplica en cliente y servidor |
+| 2026-08-05 | Sin columna `short_description` ni tabla para imágenes de la descripción | La card del listado hace strip de tags (`stripHtmlToText()` en `lib/utils.ts`); las imágenes quedan embebidas como `<img src>` en el HTML de `description` (bucket `developer-images/{userId}/description/`) |
+| 2026-08-05 | Datos legacy `**bold**` siguen renderizando (fallback en `DeveloperDescription`) y se convierten a HTML al editar (`toEditorHtml`) | Compatibilidad total sin migrar datos existentes |
+| 2026-08-05 | Prefill del form condicional por `isNew` (solo developers nuevos toman website/email/phone de `user_profiles`) | Corrige bug del botón Save siempre habilitado: los rows existentes no prefillan campos nullables, así `hasChanges` compara contra el valor real |
+| 2026-08-05 | `safeWebsite()` en `developer-info-card.tsx` (href solo si es URL http(s) válida, sino `<span>`) | Hallazgo de auditoría security: evita `javascript:` en href |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -562,7 +795,7 @@ offplaninternational/
 4. Usuario completa: full name, email, password, repeat password
 5. `signUp()` envia `role` y `full_name` en `raw_user_meta_data`
 6. Trigger `handle_new_user` en BD crea perfil en `user_profiles` con el role
-7. Redirige a `/auth/sign-up-success`
+7. Redirige a `/auth/confirm-email?email=...` (reemplazó a la vieja `/auth/sign-up-success`)
 
 ### 7.3 Confirmacion de email + onboarding
 
@@ -640,7 +873,7 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 
 ### 7.11 Listado de propiedades
 
-1. Usuario navega a `/properties-list` (sin locale prefix; el middleware resuelve el locale)
+1. Usuario navega a `/properties` (sin locale prefix; el middleware resuelve el locale)
 2. Layout con Navbar, BackToHome, heading "All Properties", PropertyFilters, grid de PropertyCards y Footer
 3. PropertyFilters es client component con dropdowns individuales + "+ More Filters" + "Map View"
 4. PropertyCard es server component async con traducciones y CurrencyPrice integrado
@@ -655,6 +888,41 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 4. Columna izquierda: PropertyGallery, PropertyDetailsTable, PropertyAmenitiesGrid, PropertyPaymentPlan, PropertyTags, RelatedProperties
 5. Columna derecha (sticky): PropertySidebar con precio, links, botones Contact y WhatsApp
 6. Todos los textos usan namespace `property_detail` traducido a 7 locales
+
+### 7.13 Listado de comunidades
+
+1. Usuario navega a `/[locale]/communities` (requiere migración 008 + seed ejecutados)
+2. `communities/page.tsx` (server) llama a `getCommunities(locale)` con el Supabase server client
+3. `getCommunities` hace `select("*, community_translations(*)")` filtrando `is_active = true`; resuelve la traducción con fallback locale → 'ae' → primera; ordena con `localeCompare(locale)`
+4. `CommunitiesGrid` (client) renderiza el input de búsqueda y las cards; filtra por nombre, ciudad, location y tags con `useState`/`useMemo`
+5. Sin resultados muestra `t("communities.no_results")`
+6. `CommunityCard` linkea a `/community/{slug}` (via `@/i18n/navigation`)
+
+### 7.14 Detalle de comunidad
+
+1. Usuario navega a `/[locale]/community/[slug]`
+2. `community/[slug]/page.tsx` (server) llama a `getCommunityBySlug(slug, locale)` con `.maybeSingle()`; si no existe o está inactiva → `notFound()`
+3. Descripción HTML se pasa por `sanitizeHtml()` antes de `dangerouslySetInnerHTML` (solo si hay descripción)
+4. `CommunityHeader` muestra imagen destacada (placeholder con nombre si no hay) + iframe del mapa si `google_map_url` pasó la validación de host/path
+5. `CommunityInfoCard` (sticky, server) muestra `average_price_range` y CTA "See properties"
+6. Galería con `CommunityGallery` (lightbox con keyboard nav, scroll lock) solo si hay imágenes
+
+### 7.15 Página pública de developer (creación/edición del owner)
+
+1. Usuario con rol `developer` autenticado accede a `/app/developer`
+2. `app/app/developer/page.tsx` (server) verifica sesión y rol; carga `getMyDeveloper(user.id)` (row en `developers` por `user_profile_id`) + `getCitiesByCountry(operating_country)`
+3. `DeveloperForm` (client): si no existe row → modo "Create Profile" (prefill de website/email/phone desde `user_profiles`); si existe → modo "Save Changes" (sin prefill de campos nullables)
+4. Slug autogenerado desde Company Name (read-only) + botón copy de la URL pública
+5. Descripción editada con `RichTextEditor` (TipTap): toolbar Bold/Italic/H3/listas/blockquote/imagen; la imagen se sube a `developer-images/{userId}/description/` y se inserta como `<img>` (botón deshabilitado durante upload)
+6. Save llama a `saveDeveloperProfile` (server action en `lib/actions.ts`): valida server-side (website auto-prefija `https://`, slug regex `^[a-z0-9-]+$`, límites de longitud, on_time_completion 0–100), sanitiza con `sanitizeUserHtml()` y hace INSERT o UPDATE en `developers` (RLS del owner)
+7. `router.refresh()`; la página pública (`/[locale]/developer/[slug]`) solo muestra rows con `is_verified = true`
+
+### 7.16 Render de la descripción del developer (pública)
+
+1. Detalle `/[locale]/developer/[slug]` (server): `getDeveloperBySlug` filtra `is_verified = true`; `notFound()` si no existe
+2. `DeveloperDescription` detecta si el texto es HTML (`isHtmlText`) → sanitiza con `sanitizeUserHtml()` y renderiza con `dangerouslySetInnerHTML` (clase `.developer-description` en globals.css)
+3. Si es texto plano legacy con `**bold**` → split y render con `<strong>` (misma visual)
+4. La card del listado (`DeveloperCard`) y el buscador (`DevelopersGrid`) usan `stripHtmlToText()` para mostrar y filtrar texto sin tags
 
 ## 8. VARIABLES DE ENTORNO
 
@@ -688,5 +956,13 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **PropertyData:** interfaz flat con campos joined (`developer_name`, `developer_logo`, `city`, `community`, etc.) — no usar objetos anidados
 - **user_profiles:** tabla unica para todos los roles; campos condicionales se llenan en onboarding
 - **Auth forms:** login-form, sign-up-form, forgot-password-form, update-password-form usan `useTranslations("auth.*")` para i18n; emailRedirectTo y redirectTo incluyen locale via `useLocale()`
-- **Component organization:** componentes en directorios por dominio (`site/`, `properties/`, `auth/`, `shared/`, `platform/`); `ui/` solo primitivas shadcn
+- **Component organization:** componentes en directorios por dominio (`site/`, `properties/`, `auth/`, `shared/`, `platform/`, `communities/`, `developers/`, `developments/`); `ui/` solo primitivas shadcn
 - **Auth namespace:** `auth` en `messages/{locale}.json` con secciones: login, sign_up, forgot_password, update_password, back_to_home
+- **Comunidades:** tipo `Community` e interfaz de data access en `lib/communities.ts` (no en `lib/types.ts`); funciones async con Supabase server client y fallback de traducción locale → 'ae' → primera
+- **HTML curado:** descripciones de communities se renderizan con `dangerouslySetInnerHTML` SIEMPRE pasando antes por `sanitizeHtml()` de `lib/sanitize-html.ts`
+- **HTML user-generated:** descripciones de developers (TipTap) se sanitizan con `sanitizeUserHtml()` de `lib/sanitize-html.ts` — en el form (cliente) y en la server action (servidor) antes de persistir, y en render con `dangerouslySetInnerHTML`; las imágenes solo apuntan al origin de Supabase Storage
+- **Descripciones de developers:** legacy `**bold**` sigue soportado en render; al editar se convierte a HTML (`toEditorHtml`); resúmenes de card y búsqueda usan `stripHtmlToText()` de `lib/utils.ts`
+- **Server actions:** vivir en `lib/actions.ts` (módulo separado) — no mezclar exports de client con módulos que importan `next/headers` (Next arrastra `lib/supabase/server.ts` al bundle cliente)
+- **URLs de mapas:** validar con el patrón de `lib/communities.ts` (host google.com/maps + path `/maps/`) antes de usarlas en iframes; usar `sandbox` y `referrerPolicy="no-referrer"` en el iframe
+- **Contenido de communities:** se muestra en inglés en todos los locales (traducción base 'ae'); para traducir, insertar fila en `community_translations`, no hardcodear en mensajes
+- **Migraciones Supabase:** numeradas secuencialmente (`013_...`); triggers updated_at con `DROP TRIGGER IF EXISTS` para idempotencia; seed en `supabase/seed/` con upserts (`ON CONFLICT`)

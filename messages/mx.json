@@ -19,8 +19,9 @@
   },
   "developers": {
     "back_to_home": "Volver al inicio",
-    "all_developers": "Todos los Desarrolladores",
-    "search_placeholder": "Buscar desarrolladores..."
+    "all_developers": "Desarrolladores",
+    "search_placeholder": "Buscar desarrolladores...",
+    "no_results": "No se encontraron desarrolladores"
   },
   "developments": {
     "back_to_home": "Volver al inicio",
@@ -30,7 +31,8 @@
   "communities": {
     "back_to_home": "Volver al inicio",
     "all_communities": "Todas las Comunidades",
-    "search_placeholder": "Buscar comunidades..."
+    "search_placeholder": "Buscar comunidades...",
+    "no_results": "No se encontraron comunidades"
   },
   "hero": {
     "title": "Un lugar, transparencia total.",

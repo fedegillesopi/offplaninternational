@@ -20,7 +20,8 @@
   "developers": {
     "back_to_home": "Back to home",
     "all_developers": "All Developers",
-    "search_placeholder": "Search developers..."
+    "search_placeholder": "Search developers...",
+    "no_results": "No developers found"
   },
   "developments": {
     "back_to_home": "Back to home",
@@ -30,7 +31,8 @@
   "communities": {
     "back_to_home": "Back to home",
     "all_communities": "All Communities",
-    "search_placeholder": "Search communities..."
+    "search_placeholder": "Search communities...",
+    "no_results": "No communities found"
   },
   "hero": {
     "title": "Real projects, real contacts.",

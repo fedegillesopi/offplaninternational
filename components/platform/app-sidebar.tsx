@@ -7,16 +7,13 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
+  BriefcaseBusiness,
   Building,
   Settings,
   LogOut,
   Menu,
   X,
 } from "lucide-react"
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar"
 import { createClient } from "@/lib/supabase/client"
 import type { UserRole } from "@/lib/types"
 
@@ -33,6 +30,7 @@ interface AppSidebarProps {
 const NAV_BY_ROLE: Record<UserRole, { href: string; label: string; icon: typeof LayoutDashboard }[]> = {
   developer: [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/app/developer", label: "Developer Profile", icon: BriefcaseBusiness },
     { href: "/app/properties", label: "Properties", icon: Building },
   ],
   broker: [
@@ -50,13 +48,6 @@ export function AppSidebar({ user, onNavClick }: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const navItems = NAV_BY_ROLE[user.role] || NAV_BY_ROLE.developer
-
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
 
   const closeMobile = () => setMobileOpen(false)
 

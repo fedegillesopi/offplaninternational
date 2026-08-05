@@ -1,0 +1,125 @@
+-- Seed: Ciudades curadas por país para el dropdown de la página de developer
+-- Ciudades de AE importadas de "public/Off Plan International - Cities.csv" (export de Webflow).
+-- Upserts idempotentes. Ejecutar en SQL Editor.
+
+INSERT INTO public.cities (country, name) VALUES
+  -- ==== UAE (fuente: CSV de Webflow, 50 ciudades) ====
+  ('AE', 'Aasmah'),
+  ('AE', 'Abu Dhabi'),
+  ('AE', 'Adhen'),
+  ('AE', 'Ajman'),
+  ('AE', 'Al Ain'),
+  ('AE', 'Al Aweer'),
+  ('AE', 'Al Badiyah'),
+  ('AE', 'Al Bataeh'),
+  ('AE', 'Al Bithnah'),
+  ('AE', 'Al Dhaid'),
+  ('AE', 'Al Digdaga'),
+  ('AE', 'Al Fagaa'),
+  ('AE', 'Al Halah'),
+  ('AE', 'Al Hamraniah'),
+  ('AE', 'Al Huwailat'),
+  ('AE', 'Al Jazeera Al Hamra'),
+  ('AE', 'Al Jeer'),
+  ('AE', 'Al Manama'),
+  ('AE', 'Al Mirfa'),
+  ('AE', 'Al Qussaidat'),
+  ('AE', 'Al Raafah'),
+  ('AE', 'Al Rams'),
+  ('AE', 'Al Ruwais Industrial City'),
+  ('AE', 'Al Sila'),
+  ('AE', 'Dibba Al-Fujairah'),
+  ('AE', 'Dibba Al-Hisn'),
+  ('AE', 'Dubai'),
+  ('AE', 'Emirate of Umm Al Quwain'),
+  ('AE', 'Fujairah'),
+  ('AE', 'Ghalilah'),
+  ('AE', 'Ghayl'),
+  ('AE', 'Ghiyathi'),
+  ('AE', 'Hatta'),
+  ('AE', 'Hay Al Zubara'),
+  ('AE', 'Kalba'),
+  ('AE', 'Khatt'),
+  ('AE', 'Khor Fakkan'),
+  ('AE', 'Lahbab'),
+  ('AE', 'Madinat Zayed'),
+  ('AE', 'Masafi'),
+  ('AE', 'Masfut'),
+  ('AE', 'Mena Jabal Ali'),
+  ('AE', 'Milehah'),
+  ('AE', 'Ras Al-Khaimah'),
+  ('AE', 'Shaam'),
+  ('AE', 'Sharjah'),
+  ('AE', 'Sweihan'),
+  ('AE', 'Umm Al Quwain'),
+  ('AE', 'Wadi Al Qour'),
+  ('AE', 'Wadi Shehah'),
+
+  -- ==== Argentina ====
+  ('AR', 'Buenos Aires'),
+  ('AR', 'Córdoba'),
+  ('AR', 'Rosario'),
+  ('AR', 'Mendoza'),
+  ('AR', 'La Plata'),
+  ('AR', 'Mar del Plata'),
+
+  -- ==== Brasil ====
+  ('BR', 'São Paulo'),
+  ('BR', 'Rio de Janeiro'),
+  ('BR', 'Brasília'),
+  ('BR', 'Belo Horizonte'),
+  ('BR', 'Curitiba'),
+  ('BR', 'Florianópolis'),
+  ('BR', 'Porto Alegre'),
+
+  -- ==== España ====
+  ('ES', 'Madrid'),
+  ('ES', 'Barcelona'),
+  ('ES', 'Valencia'),
+  ('ES', 'Sevilla'),
+  ('ES', 'Málaga'),
+  ('ES', 'Bilbao'),
+  ('ES', 'Marbella'),
+  ('ES', 'Palma de Mallorca'),
+
+  -- ==== Reino Unido ====
+  ('GB', 'London'),
+  ('GB', 'Manchester'),
+  ('GB', 'Birmingham'),
+  ('GB', 'Leeds'),
+  ('GB', 'Liverpool'),
+  ('GB', 'Glasgow'),
+  ('GB', 'Edinburgh'),
+  ('GB', 'Bristol'),
+
+  -- ==== Indonesia ====
+  ('ID', 'Jakarta'),
+  ('ID', 'Bali'),
+  ('ID', 'Surabaya'),
+  ('ID', 'Bandung'),
+  ('ID', 'Yogyakarta'),
+
+  -- ==== Montenegro ====
+  ('ME', 'Podgorica'),
+  ('ME', 'Budva'),
+  ('ME', 'Kotor'),
+  ('ME', 'Tivat'),
+  ('ME', 'Herceg Novi'),
+
+  -- ==== México ====
+  ('MX', 'Ciudad de México'),
+  ('MX', 'Guadalajara'),
+  ('MX', 'Monterrey'),
+  ('MX', 'Cancún'),
+  ('MX', 'Playa del Carmen'),
+  ('MX', 'Tulum'),
+  ('MX', 'Mérida'),
+
+  -- ==== Portugal ====
+  ('PT', 'Lisboa'),
+  ('PT', 'Porto'),
+  ('PT', 'Faro'),
+  ('PT', 'Cascais'),
+  ('PT', 'Sintra'),
+  ('PT', 'Braga')
+ON CONFLICT (country, name) DO NOTHING;

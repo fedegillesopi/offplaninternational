@@ -43,3 +43,6 @@ next-env.d.ts
 
 # AI agent context personal (no compartir)
 AGENTS.md
+
+# webflow exports (datos crudos de import)
+/webflow-databases/
