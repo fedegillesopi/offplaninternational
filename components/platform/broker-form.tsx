@@ -7,44 +7,48 @@ import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { ImageUpload } from "@/components/platform/image-upload"
 import { RichTextEditor } from "@/components/platform/rich-text-editor"
-import { saveDeveloperProfile } from "@/lib/actions"
+import { saveBrokerProfile } from "@/lib/actions"
 import { sanitizeUserHtml } from "@/lib/sanitize-html"
 import { slugify, toEditorHtml } from "@/lib/utils"
-import type { Developer, UserProfile } from "@/lib/types"
+import type { BrokerProfile, UserProfile } from "@/lib/types"
 
-interface DeveloperFormProps {
-  developer: Developer | null
+interface BrokerFormProps {
+  broker: BrokerProfile | null
   profile: UserProfile
   cities: string[]
   countryCode: string
   countryLabel: string
 }
 
-export function DeveloperForm({
-  developer,
+export function BrokerForm({
+  broker,
   profile,
   cities,
   countryCode,
   countryLabel,
-}: DeveloperFormProps) {
+}: BrokerFormProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const initialDescription = toEditorHtml(developer?.description ?? "")
-  const isNew = !developer
-  const [name, setName] = useState(developer?.name ?? profile.company_name)
+  const initialDescription = toEditorHtml(broker?.description ?? "")
+  const isNew = !broker
+  const [name, setName] = useState(broker?.name ?? profile.company_name)
   const [description, setDescription] = useState(initialDescription)
-  const [city, setCity] = useState(developer?.city ?? "")
-  const [coverImage, setCoverImage] = useState(developer?.cover_image ?? "")
-  const [logoUrl, setLogoUrl] = useState(developer?.logo_url ?? "")
-  const [website, setWebsite] = useState(developer?.website ?? (isNew ? profile.company_website : ""))
-  const [onTimeCompletion, setOnTimeCompletion] = useState(
-    developer?.on_time_completion?.toString() ?? "",
+  const [profileImage, setProfileImage] = useState(broker?.profile_image ?? "")
+  const [personalUrl, setPersonalUrl] = useState(broker?.personal_url ?? "")
+  const [city, setCity] = useState(broker?.city ?? "")
+  const [emailPublic, setEmailPublic] = useState(
+    broker?.email_public ?? (isNew ? profile.email : ""),
   )
-  const [email, setEmail] = useState(developer?.email ?? (isNew ? profile.email : ""))
-  const [phone, setPhone] = useState(developer?.phone ?? (isNew ? profile.phone : ""))
+  const [phone, setPhone] = useState(
+    broker?.phone ?? (isNew ? profile.phone : ""),
+  )
+  const [whatsapp, setWhatsapp] = useState(broker?.whatsapp ?? "")
+  const [closedTransactions, setClosedTransactions] = useState(
+    broker?.closed_transactions?.toString() ?? "0",
+  )
 
   const country = countryCode
   const slug = slugify(name)
@@ -54,19 +58,21 @@ export function DeveloperForm({
   const hasChanges = isNew
     ? Boolean(name)
     : Boolean(
-        name !== developer.name ||
+        name !== broker.name ||
           sanitizeUserHtml(description) !== sanitizeUserHtml(initialDescription) ||
-          city !== developer.city ||
-          coverImage !== developer.cover_image ||
-          logoUrl !== developer.logo_url ||
-          website !== (developer.website ?? "") ||
-          onTimeCompletion !== (developer.on_time_completion?.toString() ?? "") ||
-          email !== (developer.email ?? "") ||
-          phone !== (developer.phone ?? ""),
+          profileImage !== broker.profile_image ||
+          personalUrl !== (broker.personal_url ?? "") ||
+          city !== broker.city ||
+          emailPublic !== (broker.email_public ?? "") ||
+          phone !== (broker.phone ?? "") ||
+          whatsapp !== (broker.whatsapp ?? "") ||
+          closedTransactions !== (broker.closed_transactions?.toString() ?? "0"),
       )
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/developer/${slug}`)
+    await navigator.clipboard.writeText(
+      `${window.location.origin}/broker/${slug}`,
+    )
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -76,19 +82,21 @@ export function DeveloperForm({
     setError(null)
 
     try {
-      const { error: saveError } = await saveDeveloperProfile({
-        id: developer?.id,
+      const { error: saveError } = await saveBrokerProfile({
+        id: broker?.id,
         name,
         slug,
+        profile_image: profileImage || null,
+        personal_url: personalUrl || null,
         description: sanitizeUserHtml(description),
-        city: city || null,
-        cover_image: coverImage || null,
-        logo_url: logoUrl || null,
-        website: website || null,
-        on_time_completion: onTimeCompletion ? Number(onTimeCompletion) : null,
-        email,
-        phone,
         country,
+        city: city || null,
+        email_public: emailPublic,
+        phone,
+        whatsapp,
+        closed_transactions: closedTransactions
+          ? Number(closedTransactions)
+          : null,
       })
 
       if (saveError) {
@@ -106,7 +114,7 @@ export function DeveloperForm({
 
   return (
     <div className="max-w-2xl space-y-8">
-      {!isNew && !developer.is_verified && (
+      {!isNew && !broker.is_verified && (
         <div className="rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-800">
           Pending verification. Your profile will be published once approved.
         </div>
@@ -115,11 +123,11 @@ export function DeveloperForm({
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Company Name</label>
+            <label className="text-sm font-medium">Name</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Emaar Properties"
+              placeholder="e.g. John Smith Realty"
             />
           </div>
           <div className="space-y-2">
@@ -140,12 +148,25 @@ export function DeveloperForm({
         </div>
 
         <div className="space-y-2">
+          <label className="text-sm font-medium">Profile Image</label>
+          <ImageUpload
+            label="Profile Image"
+            value={profileImage}
+            onChange={setProfileImage}
+            userId={profile.id}
+            folder="profile"
+            bucket="broker-images"
+          />
+        </div>
+
+        <div className="space-y-2">
           <label className="text-sm font-medium">Description</label>
           <RichTextEditor
             defaultValue={initialDescription}
             onChange={setDescription}
             userId={profile.id}
-            placeholder="Describe your company, projects and track record..."
+            placeholder="Describe yourself, your expertise and track record..."
+            bucket="broker-images"
           />
         </div>
 
@@ -171,48 +192,46 @@ export function DeveloperForm({
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ImageUpload
-            label="Cover Image"
-            value={coverImage}
-            onChange={setCoverImage}
-            userId={profile.id}
-            folder="covers"
-          />
-          <ImageUpload
-            label="Logo"
-            value={logoUrl}
-            onChange={setLogoUrl}
-            userId={profile.id}
-            folder="logos"
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Personal Website</label>
+          <Input
+            value={personalUrl}
+            onChange={(e) => setPersonalUrl(e.target.value)}
+            placeholder="https://yoursite.com"
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Website</label>
-            <Input value={website} onChange={(e) => setWebsite(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">On-time completion (%)</label>
+            <label className="text-sm font-medium">Public Email</label>
             <Input
-              type="number"
-              min={0}
-              max={100}
-              value={onTimeCompletion}
-              onChange={(e) => setOnTimeCompletion(e.target.value)}
+              value={emailPublic}
+              onChange={(e) => setEmailPublic(e.target.value)}
             />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Email</label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Phone</label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">WhatsApp</label>
+            <Input
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder="+971 50 123 4567"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Closed Transactions</label>
+            <Input
+              type="number"
+              min={0}
+              value={closedTransactions}
+              onChange={(e) => setClosedTransactions(e.target.value)}
+            />
           </div>
         </div>
       </div>

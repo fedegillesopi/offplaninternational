@@ -35,6 +35,7 @@ const NAV_BY_ROLE: Record<UserRole, { href: string; label: string; icon: typeof 
   ],
   broker: [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/app/broker", label: "Broker Profile", icon: BriefcaseBusiness },
     { href: "/app/properties", label: "Properties", icon: Building },
   ],
   private_seller: [

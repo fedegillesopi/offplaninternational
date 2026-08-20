@@ -216,8 +216,9 @@ export default async function PropertyDetailPage({
               currency={property.currency}
               developmentName={property.development_name}
               developmentSlug={property.development_slug}
-              developerName={property.developer_name}
-              developerSlug={property.developer_slug}
+              sellerName={property.listed_by_type === "broker" ? property.broker_name : property.developer_name}
+              sellerSlug={property.listed_by_type === "broker" ? property.broker_slug : property.developer_slug}
+              listedByType={property.listed_by_type}
               phone={property.phone}
               whatsapp={property.whatsapp}
             />

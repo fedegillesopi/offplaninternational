@@ -242,6 +242,14 @@
     "gallery": "Gallery",
     "community_location": "Location"
   },
+  "broker_detail": {
+    "back_to_properties": "Back to Properties",
+    "broker_profile": "Broker Profile",
+    "about_broker": "About {name}",
+    "active_properties": "Active Properties",
+    "view_all": "View all",
+    "visit_personal_page": "Visit personal page"
+  },
   "auth": {
     "login": {
       "title": "Welcome back",

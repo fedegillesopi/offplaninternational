@@ -188,8 +188,8 @@
   pointer-events: none;
 }
 
-/* Render de la descripción de developer (página pública) */
-.developer-description {
+/* Render de la descripción rich-text (developer, broker, etc.) */
+.rich-description {
   font-family: var(--font-body), sans-serif;
   font-size: 1rem;
   font-weight: 300;
@@ -197,50 +197,50 @@
   color: var(--text-primary);
 }
 
-.developer-description > * + * {
+.rich-description > * + * {
   margin-top: 1rem;
 }
 
-.developer-description p {
+.rich-description p {
   margin: 0;
 }
 
-.developer-description ul,
-.developer-description ol {
+.rich-description ul,
+.rich-description ol {
   margin: 0;
   padding-left: 1.5rem;
 }
 
-.developer-description ul {
+.rich-description ul {
   list-style-type: disc;
 }
 
-.developer-description ol {
+.rich-description ol {
   list-style-type: decimal;
 }
 
-.developer-description li {
+.rich-description li {
   margin-bottom: 0.25rem;
 }
 
-.developer-description blockquote {
+.rich-description blockquote {
   margin: 0;
   padding-left: 1rem;
   border-left: 3px solid var(--primary-main);
 }
 
-.developer-description h2,
-.developer-description h3 {
+.rich-description h2,
+.rich-description h3 {
   font-family: var(--font-heading), sans-serif;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.developer-description h3 {
+.rich-description h3 {
   font-size: 1.375rem;
 }
 
-.developer-description img {
+.rich-description img {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
