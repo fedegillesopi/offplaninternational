@@ -67,6 +67,8 @@ export const mockProperties: PropertyData[] = [
     developer_slug: "off-plan-international",
     developer_logo:
       "https://cdn.prod.website-files.com/68ada6f5bc65af392b69f8d7/693aa06a75bcbd3c9305ee1b_IsoLogotype-Color.png",
+    broker_name: "",
+    broker_slug: "",
     development_name: "SERA 2 - Townhouses",
     development_slug: "sera-2-townhouses",
     development_total_area: 1133555,
@@ -154,6 +156,8 @@ export const mockProperties: PropertyData[] = [
     developer_slug: "arada-developments",
     developer_logo:
       "https://cdn.prod.website-files.com/68ada6f5bc65af392b69f8d7/693aa06a75bcbd3c9305ee1b_IsoLogotype-Color.png",
+    broker_name: "",
+    broker_slug: "",
     development_name: "Palm Crescent",
     development_slug: "palm-crescent",
     development_total_area: 2500000,
@@ -240,6 +244,8 @@ export const mockProperties: PropertyData[] = [
     developer_slug: "mered-developments",
     developer_logo:
       "https://cdn.prod.website-files.com/68ada6f5bc65af392b69f8d7/693aa06a75bcbd3c9305ee1b_IsoLogotype-Color.png",
+    broker_name: "",
+    broker_slug: "",
     development_name: "Bay Central Tower",
     development_slug: "bay-central-tower",
     development_total_area: 850000,

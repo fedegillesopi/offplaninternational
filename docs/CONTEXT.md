@@ -111,6 +111,25 @@
 - [x] Migración 010: tabla `property_subcategories` + seed (`supabase/seed/property_subcategories.sql`)
 - [x] Data access: `lib/community-tags.ts`, `lib/property-amenities.ts`, `lib/property-subcategories.ts`
 
+### Broker Profile (página pública + plataforma)
+- [x] Migración 014: tabla `broker_profiles` + bucket `broker-images` + RLS (SELECT público para verificados, SELECT/INSERT/UPDATE propio)
+- [x] Interfaz `BrokerProfile` en `lib/types.ts` + campos `broker_name`/`broker_slug` en `PropertyData`
+- [x] Data access `lib/brokers.ts`: `getBrokerBySlug(slug)` (filtra `is_verified = true`) + `getMyBroker(userProfileId)` + tipo `BrokerDetailData`
+- [x] Server action `saveBrokerProfile` en `lib/actions.ts` con validaciones server-side (slug regex, límites, personal_url auto-prefija `https://`, closed_transactions 0–100000)
+- [x] Form `/app/broker` (solo rol broker): `broker-form.tsx` + `ImageUpload` (profile image, bucket `broker-images`) + `RichTextEditor` (bucket `broker-images`)
+- [x] Página pública `/[locale]/broker/[slug]`: broker header + descripción + propiedades activas del broker (query a `properties` filtrando `listed_by_type = 'broker'`)
+- [x] `BrokerHeader`: imagen de perfil, nombre, URL personal, stats (active properties, closed transactions), botones Email/WhatsApp
+- [x] `BrokerDescription`: render HTML sanitizado con `sanitizeUserHtml()` + fallback legacy `**bold**` via `splitBold()` (misma estructura que `DeveloperDescription`)
+- [x] `lib/storage.ts`: parámetro `bucket` opcional (default `developer-images`)
+- [x] `ImageUpload` y `RichTextEditor`: prop `bucket` para dirigir uploads al bucket correcto
+- [x] Sidebar actualizada: `NAV_BY_ROLE.broker` incluye link a `/app/broker` (Broker Profile)
+- [x] `PropertySidebar`: props `sellerName`, `sellerSlug`, `listedByType` para link condicional a `/broker/{slug}` o `/developer/{slug}`
+- [x] Detalle de propiedad pasa datos de seller condicionalmente según `listed_by_type`
+- [x] `splitBold()` extraída a `lib/rich-text.tsx` (compartida entre `BrokerDescription` y `DeveloperDescription`)
+- [x] `slugify()` y `toEditorHtml()` extraídas a `lib/utils.ts` (compartidas entre `broker-form.tsx` y `developer-form.tsx`)
+- [x] `.rich-description` en `globals.css` renombrada desde `.developer-description` (compartida entre developer y broker)
+- [x] Namespace `broker_detail` traducido a los 7 locales
+
 ### Pendiente
 - [ ] ⚠️ Ejecutar migraciones 008–013 + seeds (communities, community_tags, property_amenities, property_subcategories, cities) en SQL Editor de Supabase (hasta entonces, communities y los datos referenciales muestran vacío)
 - [ ] Traducir comunidades a otros locales (hoy solo existe fila en locale 'ae'; el contenido se muestra en inglés en todos los locales)
@@ -465,6 +484,39 @@ Creada por migración `supabase/migrations/013_cities.sql`. Ciudades curadas por
 
 **RLS:** SELECT público (sin filtro). Data access: `lib/cities.ts` (`getCitiesByCountry`).
 
+### broker_profiles
+
+Creada por migración `supabase/migrations/014_broker_profile.sql`. Perfil público del broker (accesible solo desde property detail pages, no hay listing page).
+
+| Columna | Tipo | Constraints | Descripcion |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del perfil |
+| user_profile_id | uuid | NOT NULL, UNIQUE, FK → user_profiles(id) ON DELETE CASCADE | Perfil de usuario asociado (un solo perfil por broker) |
+| name | text | NOT NULL | Nombre del broker |
+| slug | text | NOT NULL, UNIQUE | Slug unico |
+| profile_image | text | nullable | URL de imagen de perfil |
+| personal_url | text | nullable | URL personal del broker |
+| description | text | nullable | Descripcion (HTML sanitizado via TipTap) |
+| country | text | nullable | Pais de operacion |
+| city | text | nullable | Ciudad |
+| email_public | text | nullable | Email publico |
+| phone | text | nullable | Telefono |
+| whatsapp | text | nullable | Numero de WhatsApp |
+| closed_transactions | integer | DEFAULT 0 | Transacciones cerradas (auto-declarado, no calculado) |
+| is_verified | boolean | NOT NULL DEFAULT false | Broker verificado (controla visibilidad publica) |
+| created_at | timestamptz | DEFAULT now() | Fecha de creacion |
+| updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
+
+**Índices:** `slug`, `user_profile_id`
+
+**Trigger:** `trigger_set_updated_at_broker_profiles`
+
+**Políticas RLS:**
+- SELECT público: brokers verificados (`is_verified = true`)
+- SELECT propio: broker ve su propio perfil sin filtro de verificación (`auth.uid() = user_profile_id`)
+- INSERT: propio con `WITH CHECK (auth.uid() = user_profile_id)`
+- UPDATE: propio con `USING (auth.uid() = user_profile_id)`
+
 ### Storage: property-images
 
 Bucket creado por migración `supabase/migrations/005_storage_property_images.sql`.
@@ -484,7 +536,18 @@ Bucket creado por migración `supabase/migrations/012_developer_images_bucket.sq
 - **MIME types:** image/jpeg, image/png, image/webp
 - **Estructura:** `developer-images/{user_id}/{folder}/{timestamp}-{rand}.{ext}` con carpetas `covers/`, `logos/` y `description/`
 - **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
-- **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder)` (usado por `ImageUpload` y por el editor TipTap)
+- **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder, bucket?)` (usado por `ImageUpload` y por el editor TipTap; bucket configurable, default `developer-images`)
+
+### Storage: broker-images
+
+Bucket creado por migración `supabase/migrations/014_broker_profile.sql`. Imágenes del perfil del broker (profile image y las embebidas en la descripción).
+
+- **Público:** true
+- **Tamaño máximo:** 5MB
+- **MIME types:** image/jpeg, image/png, image/webp
+- **Estructura:** `broker-images/{user_id}/{folder}/{timestamp}-{rand}.{ext}` con carpetas `profile/` y `description/`
+- **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
+- **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder, "broker-images")` (via prop `bucket` en `ImageUpload` y `RichTextEditor`)
 
 ### Tablas de Supabase (gestionadas por Supabase)
 - `auth.users`, `auth.sessions`, `auth.mfa_factors`, etc. — auth estandar de Supabase
@@ -514,6 +577,7 @@ offplaninternational/
 │   │   ├── page.tsx                   # Pagina principal (placeholder)
 │   │   ├── properties/page.tsx        # Listado de propiedades del usuario
 │   │   ├── developer/page.tsx         # Developer Profile (form con editor TipTap, solo rol developer)
+│   │   ├── broker/page.tsx            # Broker Profile (form con editor TipTap, solo rol broker)
 │   │   ├── profile/page.tsx           # Perfil del usuario
 │   │   └── settings/page.tsx          # Settings (placeholder, solo heading)
 │   └── [locale]/
@@ -539,6 +603,7 @@ offplaninternational/
 │       ├── community/[slug]/page.tsx  # Detalle de comunidad (descripcion HTML sanitizada)
 │       ├── developers/page.tsx        # Listado de developers (DB, is_verified + busqueda client)
 │       ├── developer/[slug]/page.tsx  # Detalle de developer (DB, descripcion HTML sanitizada)
+│       ├── broker/[slug]/page.tsx     # Detalle de broker (DB, header + descripcion + propiedades activas)
 │       ├── developments/page.tsx      # Listado de developments
 │       ├── development/[slug]/page.tsx # Detalle de development
 │       ├── market-news/page.tsx       # Listado de market news
@@ -601,13 +666,16 @@ offplaninternational/
 │   │   ├── currency-price.tsx         # Precio con conversion en vivo (client)
 │   │   └── primary-cta-link.tsx       # Link CTA primario con flecha (client)
 │   ├── platform/                      # Componentes de la plataforma vendedores
-│   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE (incl. Developer Profile)
+│   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE (incl. Developer Profile, Broker Profile)
 │   │   ├── developer-form.tsx         # Form de la pagina de developer (client, TipTap + ImageUpload)
-│   │   ├── image-upload.tsx           # Upload de cover/logo a bucket developer-images
+│   │   ├── broker-form.tsx            # Form de la pagina de broker (client, TipTap + ImageUpload, bucket broker-images)
+│   │   ├── image-upload.tsx           # Upload de cover/logo (bucket configurable via prop)
 │   │   ├── profile-form.tsx           # Form de perfil de usuario
-│   │   ├── rich-text-editor.tsx       # Editor rich text TipTap (client)
+│   │   ├── rich-text-editor.tsx       # Editor rich text TipTap (client, bucket configurable via prop)
 │   │   └── site-header.tsx            # Header del dashboard con sidebar trigger
-│   ├── brokers/                       # Componentes especificos de Broker (vacio)
+│   ├── brokers/                       # Componentes especificos de Broker
+│   │   ├── broker-header.tsx          # Header de pagina publica (imagen, nombre, stats, contacto)
+│   │   └── broker-description.tsx     # Render HTML sanitizado + fallback legacy **bold**
 │   ├── private-sellers/               # Componentes especificos de Private Seller (vacio)
 │   └── ui/                            # Componentes base (shadcn-style)
 │       ├── avatar.tsx
@@ -662,7 +730,8 @@ offplaninternational/
 │   │   ├── 010_property_subcategories.sql    # Tabla de referencia property_subcategories
 │   │   ├── 011_developers_page_fields.sql    # Campos pagina developer + RLS INSERT/UPDATE del owner
 │   │   ├── 012_developer_images_bucket.sql   # Bucket developer-images (5MB, jpeg/png/webp)
-│   │   └── 013_cities.sql              # Tabla cities (dropdown del form de developer)
+│   │   ├── 013_cities.sql              # Tabla cities (dropdown del form de developer)
+│   │   └── 014_broker_profile.sql      # Tabla broker_profiles + bucket broker-images + RLS
 │   └── seed/
 │       ├── communities.sql             # 42 comunidades + 42 traducciones 'ae' (upserts, PENDIENTE de ejecutar)
 │       ├── community_tags.sql          # Tags de comunidad curados
@@ -676,7 +745,8 @@ offplaninternational/
 │   ├── ONBOARDING-FLOW.md             # Plan del flujo de onboarding por rol
 │   └── TIPTAP-PLAN.md                 # Plan de integracion del editor TipTap
 ├── lib/
-│   ├── actions.ts                     # Server actions: saveDeveloperProfile (validacion + sanitizacion)
+│   ├── actions.ts                     # Server actions: saveDeveloperProfile, saveBrokerProfile (validacion + sanitizacion)
+│   ├── brokers.ts                     # Data access de brokers (getBrokerBySlug, getMyBroker) + tipo BrokerDetailData
 │   ├── cities.ts                      # getCitiesByCountry (dropdown del form)
 │   ├── communities.ts                 # Data access + tipo Community (getCommunities, getCommunityBySlug)
 │   ├── community-tags.ts              # Data access de community_tags
@@ -685,8 +755,9 @@ offplaninternational/
 │   ├── developers.ts                  # Data access de developers (getDevelopers, getDeveloperBySlug, getMyDeveloper)
 │   ├── property-amenities.ts          # Data access de property_amenities
 │   ├── property-subcategories.ts      # Data access de property_subcategories
+│   ├── rich-text.tsx                  # splitBold() — render de **bold** legacy (JSX, compartida con developers/brokers)
 │   ├── sanitize-html.ts               # Sanitizador HTML allowlist (sanitizeHtml curado + sanitizeUserHtml user-generated)
-│   ├── storage.ts                     # uploadImage(file, userId, folder) a bucket developer-images
+│   ├── storage.ts                     # uploadImage(file, userId, folder, bucket?) — bucket configurable (default developer-images)
 │   ├── currency.ts                    # Tipos, monedas, formatPrice, mapa locale->moneda
 │   ├── currency-server.ts             # Lectura de cookie de moneda server-side
 │   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
@@ -696,7 +767,7 @@ offplaninternational/
 │   ├── mock-market-news.ts            # Mock data de market news
 │   ├── pricing-plans.ts               # Pricing matrix por role x pais
 │   ├── types.ts                       # UserRole, UserProfile, PropertyData, Developer, etc.
-│   ├── utils.ts                       # cn() helper, hasEnvVars, isHtmlText, stripHtmlToText
+│   ├── utils.ts                       # cn(), hasEnvVars, isHtmlText, stripHtmlToText, slugify, toEditorHtml
 │   └── supabase/
 │       ├── client.ts                  # Cliente Supabase browser
 │       ├── server.ts                  # Cliente Supabase server
@@ -775,6 +846,15 @@ offplaninternational/
 | 2026-08-05 | Datos legacy `**bold**` siguen renderizando (fallback en `DeveloperDescription`) y se convierten a HTML al editar (`toEditorHtml`) | Compatibilidad total sin migrar datos existentes |
 | 2026-08-05 | Prefill del form condicional por `isNew` (solo developers nuevos toman website/email/phone de `user_profiles`) | Corrige bug del botón Save siempre habilitado: los rows existentes no prefillan campos nullables, así `hasChanges` compara contra el valor real |
 | 2026-08-05 | `safeWebsite()` en `developer-info-card.tsx` (href solo si es URL http(s) válida, sino `<span>`) | Hallazgo de auditoría security: evita `javascript:` en href |
+| 2026-08-06 | Broker profiles accesibles solo desde property detail pages (no hay listing page de brokers) | Los brokers se descubren a través de las propiedades que listan, no como entidad independiente |
+| 2026-08-06 | Bucket `broker-images` separado de `developer-images` | Aísla datos de storage por rol; permite políticas RLS independientes y gestión de cuota separada |
+| 2026-08-06 | `is_verified` controla visibilidad pública; brokers no verificados solo ven su propio perfil en dashboard | Misma estructura que developers: el admin aprueba antes de publicar |
+| 2026-08-06 | `closed_transactions` es auto-declarado por el broker (no calculado) | No hay sistema de tracking de transacciones en MVP; se calculará automáticamente en el futuro |
+| 2026-08-06 | `slugify()` y `toEditorHtml()` extraídas a `lib/utils.ts` (compartidas entre broker y developer forms) | Evita duplicación de utilidades; ambos forms necesitan las mismas transformaciones |
+| 2026-08-06 | `splitBold()` en `lib/rich-text.tsx` (necesita JSX, separada de `lib/utils.ts`) | La función retorna `React.ReactNode[]` y no puede vivir en un archivo de utilidades puras sin imports de React |
+| 2026-08-06 | `.rich-description` en `globals.css` compartida entre developer y broker (renombrada desde `.developer-description`) | Misma estilización para renders de HTML de usuarios; evita CSS duplicado |
+| 2026-08-06 | `safeUrl()` en `broker-header.tsx` para validar `personal_url` en href | Misma seguridad que `safeWebsite()`: evita `javascript:` en href |
+| 2026-08-06 | PropertySidebar recibe `sellerName`, `sellerSlug`, `listedByType` como props | Permite link condicional a `/broker/{slug}` o `/developer/{slug}` sin hardcodear en el componente |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -917,12 +997,34 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 6. Save llama a `saveDeveloperProfile` (server action en `lib/actions.ts`): valida server-side (website auto-prefija `https://`, slug regex `^[a-z0-9-]+$`, límites de longitud, on_time_completion 0–100), sanitiza con `sanitizeUserHtml()` y hace INSERT o UPDATE en `developers` (RLS del owner)
 7. `router.refresh()`; la página pública (`/[locale]/developer/[slug]`) solo muestra rows con `is_verified = true`
 
-### 7.16 Render de la descripción del developer (pública)
+### 7.16 Render de la descripción del developer/broker (pública)
 
-1. Detalle `/[locale]/developer/[slug]` (server): `getDeveloperBySlug` filtra `is_verified = true`; `notFound()` si no existe
-2. `DeveloperDescription` detecta si el texto es HTML (`isHtmlText`) → sanitiza con `sanitizeUserHtml()` y renderiza con `dangerouslySetInnerHTML` (clase `.developer-description` en globals.css)
-3. Si es texto plano legacy con `**bold**` → split y render con `<strong>` (misma visual)
-4. La card del listado (`DeveloperCard`) y el buscador (`DevelopersGrid`) usan `stripHtmlToText()` para mostrar y filtrar texto sin tags
+1. Detalle `/[locale]/developer/[slug]` o `/[locale]/broker/[slug]` (server): `getDeveloperBySlug`/`getBrokerBySlug` filtra `is_verified = true`; `notFound()` si no existe
+2. `DeveloperDescription`/`BrokerDescription` detecta si el texto es HTML (`isHtmlText`) → sanitiza con `sanitizeUserHtml()` y renderiza con `dangerouslySetInnerHTML` (clase `.rich-description` en globals.css)
+3. Si es texto plano legacy con `**bold**` → `splitBold()` de `lib/rich-text.tsx` split y render con `<strong>` (misma visual)
+4. En el listado de developer (`DeveloperCard`, `DevelopersGrid`) se usa `stripHtmlToText()` para mostrar y filtrar texto sin tags
+
+### 7.17 Creación/edición del perfil de broker (plataforma)
+
+1. Usuario con rol `broker` autenticado accede a `/app/broker`
+2. `app/app/broker/page.tsx` (server) verifica sesión y rol; carga `getMyBroker(user.id)` + `getCitiesByCountry(operating_country)` + `getCountryCode`/`getCountryLabel`
+3. `BrokerForm` (client): si no existe row → modo "Create Profile" (prefill de email/phone desde `user_profiles`, name desde `company_name`); si existe → modo "Save Changes"
+4. Slug autogenerado desde Name (read-only) + botón copy de la URL pública (`/broker/{slug}`)
+5. Descripción editada con `RichTextEditor` (TipTap, bucket `broker-images`): toolbar Bold/Italic/H3/listas/blockquote/imagen
+6. Profile image subida a `broker-images/{userId}/profile/` via `ImageUpload`
+7. Save llama a `saveBrokerProfile` (server action en `lib/actions.ts`): valida server-side (slug regex, límites, personal_url auto-prefija `https://`, closed_transactions 0–100000), sanitiza con `sanitizeUserHtml()` y hace INSERT o UPDATE en `broker_profiles` (RLS del owner)
+8. `router.refresh()`; la página pública solo muestra rows con `is_verified = true`
+9. Si `is_verified = false` se muestra banner amarillo "Pending verification" en el form
+
+### 7.18 Página pública del broker
+
+1. Usuario navega a `/[locale]/broker/[slug]` (accesible desde el link en PropertySidebar cuando `listed_by_type = 'broker'`)
+2. `broker/[slug]/page.tsx` (server): `getBrokerBySlug(slug)` filtra `is_verified = true`; `notFound()` si no existe
+3. Query a `properties` contando y listando las últimas 5 propiedades activas del broker (`listed_by_id = broker.userProfileId AND listed_by_type = 'broker'`)
+4. `BrokerHeader` muestra: imagen de perfil (placeholder con inicial si no hay), nombre, link a URL personal (validado con `safeUrl`), stats (active properties, closed transactions), botones Email/WhatsApp
+5. Si hay descripción: sección "About {name}" con `BrokerDescription` (HTML sanitizado + fallback `**bold**`)
+6. Si hay propiedades: sección "Active Properties" con link "View all" + grid de las últimas 5 `PropertyCard`
+7. Todos los textos usan namespace `broker_detail` traducido a 7 locales
 
 ## 8. VARIABLES DE ENTORNO
 
@@ -965,4 +1067,8 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Server actions:** vivir en `lib/actions.ts` (módulo separado) — no mezclar exports de client con módulos que importan `next/headers` (Next arrastra `lib/supabase/server.ts` al bundle cliente)
 - **URLs de mapas:** validar con el patrón de `lib/communities.ts` (host google.com/maps + path `/maps/`) antes de usarlas en iframes; usar `sandbox` y `referrerPolicy="no-referrer"` en el iframe
 - **Contenido de communities:** se muestra en inglés en todos los locales (traducción base 'ae'); para traducir, insertar fila en `community_translations`, no hardcodear en mensajes
-- **Migraciones Supabase:** numeradas secuencialmente (`013_...`); triggers updated_at con `DROP TRIGGER IF EXISTS` para idempotencia; seed en `supabase/seed/` con upserts (`ON CONFLICT`)
+- **Migraciones Supabase:** numeradas secuencialmente (`014_...`); triggers updated_at con `DROP TRIGGER IF EXISTS` para idempotencia; seed en `supabase/seed/` con upserts (`ON CONFLICT`)
+- **Forms de profile:** importar `slugify` y `toEditorHtml` de `lib/utils.ts`; usar `RichTextEditor` con prop `bucket` para dirigir uploads al bucket correcto
+- **Descripciones rich-text:** importar `splitBold` de `lib/rich-text.tsx` (necesita JSX); usar clase CSS `.rich-description` para renders de HTML de usuarios
+- **Bucket de storage:** pasar como prop a `ImageUpload` y `RichTextEditor` (default `developer-images`; broker usa `broker-images`)
+- **Broker profiles:** accesibles solo desde property detail pages (no listing page); `is_verified` controla visibilidad pública; `closed_transactions` auto-declarado

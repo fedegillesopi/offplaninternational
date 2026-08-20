@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.6 — 05-Ago-2026
-**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013)
+**Versión:** 1.7 — 20-Ago-2026
+**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014)
 
 ---
 
@@ -98,6 +98,7 @@
 | Sanitizador HTML allowlist + validación de `google_map_url` (seguridad) | Frontend | ✅ Implementado |
 | Dashboard de inversor (favoritos, consultas) | Inversor | ❌ Pendiente |
 | Paneles específicos por role (Properties/Analytics para Developer, Listings/Clients para Broker, My Property para Private Seller) | Vendedor | ❌ Pendiente |
+| Broker profile page `/broker/[slug]` (header, description, active properties) + form `/app/broker` + migración 014 | Vendedor/Broker | ✅ Implementado |
 | Mapa global con unidades geolocalizadas | Público | ❌ Pendiente |
 
 ### 3.2 Fuera de alcance del MVP
@@ -201,19 +202,22 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 ### 5.3 Broker
 **Perfil:** Intermediario inmobiliario con licencia profesional que lista propiedades de distintos desarrolladores.
 
-**Motivación inmediata:** Acceder al dashboard, listar propiedades de sus clientes y gestionar consultas.
+**Motivación inmediata:** Acceder al dashboard, listar propiedades de sus clientes, gestionar consultas y mantener un perfil público profesional.
 
-**Motivación diferida:** Gestión de clientes (inversores), seguimiento de leads.
+**Motivación diferida:** Gestión de clientes (inversores), seguimiento de leads, construir reputación vía perfil público.
 
 **Acciones en el sistema:**
 - Registrarse en `/auth/sign-up/broker` con full name, email y password
 - Completar onboarding en `/auth/onboarding/broker` con: company name, company website, operating country, license number, phone
-- Acceder al dashboard con sidebar: Dashboard, Listings, Clients, Settings
+- Acceder al dashboard con sidebar: Dashboard, Properties, Broker Profile, Clients, Settings
 - Listar propiedades de distintos desarrolladores
+- Editar su perfil público en `/app/broker`: nombre, slug, imagen de perfil, URL personal, descripción rich text (TipTap), país, ciudad, email público, teléfono, WhatsApp, transacciones cerradas
 
 **Restricciones:**
 - Campos de onboarding: company_name, company_website, operating_country, license_number (obligatorio), phone
 - license_number es obligatorio y específico del broker
+- Una sola página de broker por usuario (`UNIQUE(user_profile_id)` en `broker_profiles`)
+- Página pública solo visible para brokers verificados (`is_verified = true`)
 
 ### 5.4 Private Seller
 **Perfil:** Propietario individual que quiere vender su propia propiedad Off-Plan o en fase de construcción.
@@ -400,7 +404,7 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 #### 6.3.2 Sidebar por role (`app-sidebar.tsx`)
 - **Común a todos:** Dashboard (`/app`), Properties (`/app/properties`)
 - **Developer:** Dashboard, Properties, Analytics (`/app/analytics`)
-- **Broker:** Dashboard, Properties, Clients (`/app/clients`)
+- **Broker:** Dashboard, Properties, Broker Profile (`/app/broker`), Clients (`/app/clients`)
 - **Private Seller:** Dashboard, Properties
 - **Settings** (`/app/settings`) en NavSecondary, común a todos
 - **NavUser:** Dropdown con avatar, nombre, email y botón de logout
@@ -501,6 +505,57 @@ Otras rutas:
 - **Migración 013 + seed:** tabla `cities` (`country`, `name`, UNIQUE(country, name), SELECT público) con 50 ciudades de EAU curadas (CSV de Webflow)
 - `next.config.ts`: `remotePatterns` incluye el host de Supabase (next/image para cover/logo)
 
+### 6.7 Perfil de broker y página pública
+
+#### 6.7.1 Página `/app/broker`
+- Server page protegida: verifica sesión, lee `user_profiles.role`; si el role no es `broker` → redirect a `/app`
+- Carga el broker propio (`getMyBroker(user.id)`), el perfil de usuario, el país de operación (`lib/countries.ts`: normalización ISO ↔ nombre) y las ciudades del país (`getCitiesByCountry`)
+- Acceso: item "Broker Profile" en la sidebar del role broker (`NAV_BY_ROLE`, icono BriefcaseBusiness)
+
+#### 6.7.2 BrokerForm (`components/platform/broker-form.tsx`, client)
+- **Campos:** Name, Slug (auto-generado de `slugify(name)`, read-only, botón copiar URL pública `/broker/{slug}`), Profile Image (ImageUpload a bucket `broker-images`), Description (RichTextEditor), Country (read-only desde el perfil), City (select de `cities` por operating country), Personal Website, Public Email, Phone, WhatsApp, Closed Transactions (number)
+- **Prefill:** name desde `broker.name` (fallback `profile.company_name`); para registros nuevos, email/phone se rellenan desde `user_profiles`; para registros existentes **no** se rellenan (no se pisan datos guardados)
+- **Detección de cambios:** `hasChanges` compara cada campo (la descripción se compara sanitizada); el botón Save queda deshabilitado cuando no hay cambios
+- **Guardado:** `sanitizeUserHtml(description)` en cliente → `saveBrokerProfile()` (server action) → `router.refresh()`
+- Banner "Pending verification..." si `is_verified === false`
+- **i18n:** Dashboard sin i18n por ahora (strings hardcoded en inglés)
+
+#### 6.7.3 `saveBrokerProfile` (`lib/actions.ts`, server action)
+- Requiere sesión (`getUser()`); si no hay usuario → error
+- **Validaciones:** name requerido (max 120), slug regex `^[a-z0-9-]+$`, descripción max 20.000 chars (tras sanitizar), email max 320, phone max 50, whatsapp max 50, personal_url http(s) válido (auto-prefija `https://`), closed_transactions entre 0 y 100.000 (null permitido)
+- **Sanitización en servidor:** `sanitizeUserHtml(payload.description)` — doble sanitización (cliente + servidor)
+- **Upsert:** update si viene `id` (filtrado por `user_profile_id = user.id`); insert si no, con `country` y `user_profile_id`
+- Devuelve `{ error }` que el form muestra inline
+
+#### 6.7.4 Página pública `/broker/[slug]`
+- Server component: `getBrokerBySlug(slug)` filtra `is_verified = true`; `notFound()` si no existe
+- **BrokerHeader:** imagen circular (placeholder con iniciales si no hay), nombre, URL personal (validada con `safeUrl`), stats (active properties count + closed transactions), botones Email y WhatsApp
+- **BrokerDescription:** renderiza HTML sanitizado (`sanitizeUserHtml()`) con fallback legacy `**bold**` via `splitBold()` (mismo patrón que `DeveloperDescription`). Usa clase `.rich-description` en `globals.css`
+- **Active Properties:** hasta 5 propiedades activas del broker (query a `properties` filtrando `listed_by_id` + `listed_by_type = 'broker'`), con link "View all" → `/properties`
+- **Acceso:** solo accesible desde property pages donde el broker es el vendedor (no hay listing page de brokers)
+- **Datos:** se leen de la tabla `broker_profiles` en Supabase (no mock)
+
+#### 6.7.5 Integración con property-sidebar
+- `PropertySidebar` acepta props `sellerName`, `sellerSlug`, `listedByType` (tipo `UserRole`)
+- Condicionalmente linka a `/broker/{slug}` o `/developer/{slug}` según `listed_by_type`
+- Label del link: "Broker" si `listedByType === "broker"`, o el label traducido de `developer_label` para developers
+- `PropertyData` incluye campos `broker_name` y `broker_slug` (además de `developer_name`/`developer_slug`)
+
+#### 6.7.6 Traducciones
+- Namespace `broker_detail` en 7 locales (ae, ar, es, gb, pt, br, mx): `back_to_properties`, `broker_profile`, `about_broker`, `active_properties`, `view_all`, `visit_personal_page`
+- Dashboard sin i18n por ahora (strings hardcoded en inglés)
+
+#### 6.7.7 Archivos clave
+- **Migración:** `supabase/migrations/014_broker_profile.sql`
+- **Types:** `BrokerProfile` en `lib/types.ts`
+- **Data access:** `lib/brokers.ts` (`getBrokerBySlug`, `getMyBroker`, tipo `BrokerDetailData`)
+- **Server action:** `saveBrokerProfile()` en `lib/actions.ts`
+- **Componentes:** `broker-form.tsx`, `broker-header.tsx`, `broker-description.tsx`
+- **Páginas:** `app/[locale]/broker/[slug]/page.tsx`, `app/app/broker/page.tsx`
+- **CSS:** `.rich-description` en `globals.css` (compartida con developer)
+- **Sidebar:** Broker Profile item en `NAV_BY_ROLE` (broker role)
+
+
 ---
 
 ## 7. ARQUITECTURA DEL SISTEMA
@@ -511,7 +566,7 @@ Otras rutas:
 |---|---|---|
 | Framework | Next.js 16.2.6 (App Router) | SSR, Server Components, Server Actions |
 | Lenguaje | TypeScript ~5 | Strict mode |
-| Base de datos | Supabase (PostgreSQL) | Auth + tablas user_profiles, developers, developments, properties, payment_plan_milestones, communities, community_translations |
+| Base de datos | Supabase (PostgreSQL) | Auth + tablas user_profiles, developers, developments, properties, payment_plan_milestones, communities, community_translations, broker_profiles |
 | Estilos | Tailwind CSS 3.4 + tailwindcss-animate | Design system |
 | Componentes UI | Radix UI (shadcn-style): sidebar, sheet, dialog, drawer, select, tabs, table, avatar, separator, skeleton, chart | Primitivas accesibles |
 | Tabla de datos | @tanstack/react-table 8.21 | Tabla con sorting, filtering, pagination |
@@ -520,7 +575,7 @@ Otras rutas:
 | Notificaciones | sonner 2.0 | Toasts en DataTable |
 | Drawer mobile | vaul 1.1 | Drawer responsive en DataTable |
 | Iconos | lucide-react 0.511 + @tabler/icons-react 3.44 | Iconografía |
-| Editor rich text | @tiptap/react + starter-kit + extension-image + extension-placeholder + @tiptap/pm (3.29) | Editor de descripciones en el form de developer |
+| Editor rich text | @tiptap/react + starter-kit + extension-image + extension-placeholder + @tiptap/pm (3.29) | Editor de descripciones en los forms de developer y broker |
 | i18n | next-intl 4.12 | Internacionalización |
 | Temas | next-themes 0.4 | Dark/light mode |
 | Validación | zod 4.4 | Schema de datos en DataTable |
@@ -782,6 +837,26 @@ interface PaymentPlanMilestone {
   created_at: string;
 }
 
+// --- Tabla broker_profiles ---
+interface BrokerProfile {
+  id: string;
+  user_profile_id: string;
+  name: string;
+  slug: string;
+  profile_image: string | null;
+  personal_url: string | null;
+  description: string | null;
+  country: string | null;
+  city: string | null;
+  email_public: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  closed_transactions: number;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Tabla communities (definida en lib/communities.ts) ---
 interface Community {
   id: string;
@@ -881,6 +956,8 @@ interface PropertyData {
   developer_name: string;
   developer_slug: string;
   developer_logo: string;
+  broker_name: string;
+  broker_slug: string;
   development_name: string;
   development_slug: string;
   development_total_area: number;
@@ -912,12 +989,55 @@ interface PropertyData {
 - Storage bucket `developer-images` — imágenes de la página de developer: cover, logo y descripción (público, 5MB, jpeg/png/webp, folder-based RLS `developer-images/{user_id}/{folder}/`) — migración 012
 - `cities` — ciudades curadas por país para el dropdown del form de developer (SELECT público, UNIQUE(country, name), seed con 50 ciudades de EAU) — migración 013 + `supabase/seed/cities.sql`
 
-#### 7.2.11 Tablas legacy
+#### 7.2.11 Tabla: broker_profiles
+
+Creada por migración `supabase/migrations/014_broker_profile.sql`.
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | uuid | PK, default gen_random_uuid() | ID del perfil de broker |
+| user_profile_id | uuid | NOT NULL, UNIQUE, FK → user_profiles(id) ON DELETE CASCADE | Perfil de usuario asociado |
+| name | text | NOT NULL | Nombre del broker |
+| slug | text | NOT NULL, UNIQUE | Slug único |
+| profile_image | text | nullable | URL de imagen de perfil |
+| personal_url | text | nullable | URL de sitio web personal |
+| description | text | nullable | Descripción (HTML sanitizado por TipTap) |
+| country | text | nullable | País de operación |
+| city | text | nullable | Ciudad de operación |
+| email_public | text | nullable | Email de contacto público |
+| phone | text | nullable | Teléfono de contacto |
+| whatsapp | text | nullable | Número de WhatsApp |
+| closed_transactions | integer | DEFAULT 0 | Transacciones cerradas (auto-declarado, 0–100.000) |
+| is_verified | boolean | NOT NULL DEFAULT false | Broker verificado |
+| created_at | timestamptz | DEFAULT now() | Fecha de creación |
+| updated_at | timestamptz | DEFAULT now() | Fecha de última actualización |
+
+**Índices:** `slug`, `user_profile_id`
+**Constraints:** `UNIQUE (user_profile_id)` — una sola página de broker por usuario
+**Trigger:** `trigger_set_updated_at_broker_profiles`
+**Políticas RLS:**
+- SELECT público: brokers verificados (`is_verified = true`)
+- SELECT propio: broker ve su propio perfil (`auth.uid() = user_profile_id`, sin filtro verificación)
+- INSERT propio: `broker_profiles_insert_own` — solo si `auth.uid() = user_profile_id`
+- UPDATE propio: `broker_profiles_update_own` — solo el dueño
+
+#### 7.2.12 Storage: broker-images
+
+Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
+
+- **Público:** true
+- **Tamaño máximo:** 5MB
+- **MIME types:** image/jpeg, image/png, image/webp
+- **Estructura:** `broker-images/{user_id}/{folder}/{filename}`
+- **Políticas:** SELECT público, INSERT/DELETE solo en la carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
+- **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder, "broker-images")` (reutiliza la misma función que developer-images)
+
+#### 7.2.13 Tablas legacy
 - `developer_profiles` — reemplazada por `user_profiles` (migración 002). Se mantiene por retrocompatibilidad.
 - `properties` (v003) — reemplazada por la versión 007 con FKs a `developers`, `developments` y `user_profiles`
 - `payment_plan_milestones` (v004) — reemplazada por la versión 007 con CHECK en percentage y RLS mejorado
 
-#### 7.2.12 Tablas pendientes de crear
+#### 7.2.14 Tablas pendientes de crear
 - `favorites` — favoritos del inversor
 - `inquiries` — consultas de inversores a vendedores
 
@@ -935,6 +1055,7 @@ interface PropertyData {
 | `/[locale]/community/[slug]` | Público | Detalle de comunidad (descripción sanitizada, mapa, galería) |
 | `/[locale]/developers` | Público | Listado de promotoras (DB, solo verified, búsqueda por texto visible) |
 | `/[locale]/developer/[slug]` | Público | Detalle de promotora (descripción HTML sanitizada, info card, estilos) |
+| `/[locale]/broker/[slug]` | Público | Detalle de broker (header circular, descripción, propiedades activas, contacto) |
 | `/[locale]/auth/login` | Público | Login unificado |
 | `/[locale]/auth/sign-up/[role]` | Público | Registro por role (developer/broker/private-seller) |
 | `/[locale]/auth/sign-up` | Público | Redirect a `/auth/sign-up/developer` |
@@ -955,6 +1076,7 @@ interface PropertyData {
 | `/app` | Autenticado | Dashboard unificado con sidebar según role |
 | `/app/settings` | Autenticado | Configuración (placeholder en sidebar) |
 | `/app/developer` | Developer | Form de perfil de la promotora (rich text TipTap, slug, cover/logo, city, on-time, contacto) |
+| `/app/broker` | Broker | Form de perfil del broker (rich text TipTap, slug, profile image, city, contacto, transacciones) |
 | `/app/properties` | Autenticado | Listado de propiedades del seller |
 | `/app/properties/new` | Autenticado | Publicar nueva propiedad (wizard multi-step) |
 | `/app/analytics` | Developer | Analytics (pendiente) |
@@ -988,6 +1110,8 @@ interface PropertyData {
 - **Validación de website:** auto-prefijo `https://` y validación http(s) en `saveDeveloperProfile` (server) + `safeWebsite` en el info-card (evita `javascript:`)
 - **RLS en developers:** INSERT/UPDATE solo del owner (`auth.uid() = user_profile_id`, migración 011); una sola página por usuario (UNIQUE)
 - **RLS en bucket `developer-images`:** SELECT público; INSERT/DELETE solo en la carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()`)
+- **RLS en broker_profiles:** SELECT público solo para brokers verificados (`is_verified = true`); SELECT propio sin restricción de verificación (`auth.uid() = user_profile_id`); INSERT/UPDATE solo del owner (`auth.uid() = user_profile_id`)
+- **RLS en bucket `broker-images`:** SELECT público; INSERT/DELETE solo en la carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()`)
 - **RLS en `cities`:** SELECT público (dato curado)
 
 ---
@@ -1008,7 +1132,7 @@ interface PropertyData {
 9. Hace clic en "Contact" o WhatsApp en el detalle o sidebar
 ```
 
-⚠️ El paso 2 (búsqueda en homepage) tiene UI pero no dispara navegación. El paso 9 tiene botones pero sin acción de contacto real. Los links a `/developer/[slug]` del detalle de propiedad ahora resuelven si la promotora existe en DB (is_verified); los de `/development/[slug]` siguen en mock data.
+⚠️ El paso 2 (búsqueda en homepage) tiene UI pero no dispara navegación. El paso 9 tiene botones pero sin acción de contacto real. Los links a `/developer/[slug]` y `/broker/[slug]` del sidebar de propiedad ahora resuelven según `listed_by_type` (ver Flujo I). Los de `/development/[slug]` siguen en mock data.
 
 **Servicios consumidos:** CurrencyContext, Intl.NumberFormat, filter-options.ts
 
@@ -1118,6 +1242,23 @@ interface PropertyData {
 
 **Servicios consumidos:** TipTap (rich-text-editor.tsx), lib/storage.ts (uploadImage), lib/actions.ts (saveDeveloperProfile), lib/sanitize-html.ts (sanitizeUserHtml), lib/developers.ts, lib/cities.ts, lib/countries.ts
 
+
+### Flujo I: Broker edita su perfil (plataforma /app)
+
+```
+1. Broker navega a /app → sidebar "Broker Profile" (/app/broker)
+2. Server page verifica sesión + role broker (otro role → redirect a /app)
+3. Carga profile (user_profiles), getMyBroker(user.id) y cities del operating country
+4. Form prefill: name (broker.name ?? company_name), slug auto, descripción legacy → HTML (toEditorHtml)
+5. Edita la descripción con RichTextEditor (negrita, cursiva, H3, listas, blockquote, imagen)
+6. Sube imagen de perfil → uploadImage() al bucket broker-images → se embebe como <img>
+7. Save → sanitizeUserHtml() en cliente → saveBrokerProfile() (server action: getUser + validaciones + sanitización servidor + upsert)
+8. Botón Save deshabilitado si no hay cambios; router.refresh() tras guardar
+9. Si is_verified = false → banner "Pending verification..."
+10. Público: /broker/[slug] muestra header circular, descripción y hasta 5 propiedades activas (solo si is_verified = true)
+```
+
+**Servicios consumidos:** TipTap (rich-text-editor.tsx), lib/storage.ts (uploadImage), lib/actions.ts (saveBrokerProfile), lib/sanitize-html.ts (sanitizeUserHtml), lib/brokers.ts, lib/cities.ts, lib/countries.ts
 ---
 
 ## 9. REGLAS DE NEGOCIO
@@ -1159,6 +1300,10 @@ interface PropertyData {
 35. **La card del listado muestra texto plano y el buscador filtra por texto visible.** `stripHtmlToText()` quita etiquetas y decodifica entidades.
 36. **El botón Save del form de developer se deshabilita sin cambios.** Para registros existentes, website/email/phone no se rellenan desde `user_profiles` (no se pisan datos guardados).
 37. **El CTA "See developer properties" apunta a `/properties-list?developer={slug}`, ruta inexistente.** Mismo problema que el CTA de comunidades. ⚠️
+38. **Una sola página de broker por usuario.** `UNIQUE(user_profile_id)` en `broker_profiles`; INSERT/UPDATE solo del owner vía RLS (`broker_profiles_insert_own` / `broker_profiles_update_own`).
+39. **La página pública del broker solo es visible para brokers verificados.** `getBrokerBySlug()` filtra por `is_verified = true`. El broker dueño puede ver su perfil sin verificar vía la política RLS `broker_profiles_select_own`.
+40. **El sidebar de propiedad linka a `/broker/{slug}` o `/developer/{slug}` según `listed_by_type`.** La propiedad tiene campos `broker_name` y `broker_slug` que se resuelven al vender el broker. Si el broker no tiene perfil público (no verificado o no creado), el link puede no funcionar.
+41. **Las descripciones de broker usan el mismo sanitizador que las de developer.** `sanitizeUserHtml()` con la misma allowlist. El componente `BrokerDescription` usa la clase `.rich-description` compartida en `globals.css`.
 
 ---
 
@@ -1249,6 +1394,15 @@ interface PropertyData {
 - Migración 011: campos de página pública en `developers` (cover_image, city, on_time_completion, email, phone) + UNIQUE(user_profile_id) + políticas INSERT/UPDATE del owner
 - Tabla `cities` curada + 50 ciudades de EAU (migración 013 + seed)
 - `.developer-description` styles en globals.css; namespace `developer_detail` + `no_results` en `developers` traducidos a 7 locales
+- Tabla `broker_profiles` con campos de página pública + RLS INSERT/UPDATE del owner (migración 014)
+- Storage bucket `broker-images` (5MB, jpeg/png/webp) con RLS por carpeta del usuario (migración 014)
+- Data access `lib/brokers.ts`: `getBrokerBySlug()`, `getMyBroker()`, tipo `BrokerDetailData`
+- Página pública `/broker/[slug]` conectada a DB (solo `is_verified = true`): header circular, descripción HTML sanitizada + bold legacy, hasta 5 propiedades activas, stats
+- Form de perfil de broker `/app/broker` (solo rol broker): `broker-form.tsx` + ImageUpload + RichTextEditor TipTap
+- Server action `saveBrokerProfile` en `lib/actions.ts` con validaciones server-side
+- Integración de `PropertySidebar` con `listedByType`: link condicional a `/broker/{slug}` o `/developer/{slug}`
+- Campos `broker_name` y `broker_slug` en `PropertyData`
+- Namespace `broker_detail` traducido en 7 locales (ae, ar, es, gb, pt, br, mx)
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
@@ -1268,6 +1422,7 @@ interface PropertyData {
 - **Largo plazo:** Calculadora de rentabilidad / ROI
 - **Largo plazo:** Valoraciones y reseñas de vendedores
 - **Largo plazo:** App nativa mobile (iOS / Android)
+- **Corto plazo:** Página de listado de brokers `/brokers` (similar al listado de developers)
 - **Largo plazo:** OAuth social (Google, Apple)
 
 ---
@@ -1297,5 +1452,6 @@ interface PropertyData {
 | Onboarding | Flujo post-registro donde el usuario completa los datos de su perfil según su role |
 | Pricing Plans | Matriz de precios configurada por role × país para futuros planes pagos |
 | Campos planos | Patrón de diseño donde `PropertyData` incluye datos "joined" de tablas relacionadas (`developer_name`, `development_name`, etc.) para evitar joins en tiempo de render |
-| TipTap | Librería de editor rich text (ProseMirror) usada en el form de developer para la descripción |
+| TipTap | Librería de editor rich text (ProseMirror) usada en los forms de developer y broker para la descripción |
 | sanitizeUserHtml | Sanitizador HTML para contenido user-generated: allowlist estricto de tags y origin check de imágenes; se aplica en cliente y servidor |
+| broker_profiles | Tabla de perfiles públicos de brokers con datos profesionales (migración 014), patrón similar a `developers` pero con campos específicos de broker |

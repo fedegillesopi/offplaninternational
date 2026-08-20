@@ -24,6 +24,7 @@ interface RichTextEditorProps {
   onChange: (html: string) => void
   userId: string
   placeholder?: string
+  bucket?: string
 }
 
 interface ToolbarButtonProps {
@@ -56,6 +57,7 @@ export function RichTextEditor({
   onChange,
   userId,
   placeholder,
+  bucket,
 }: RichTextEditorProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -79,7 +81,7 @@ export function RichTextEditor({
     setError(null)
     setUploading(true)
     try {
-      const src = await uploadImage(file, userId, "description")
+      const src = await uploadImage(file, userId, "description", bucket)
       editor.chain().focus().setImage({ src, alt: file.name }).run()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed")

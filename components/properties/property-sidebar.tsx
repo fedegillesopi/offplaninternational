@@ -2,14 +2,16 @@ import { getTranslations } from "next-intl/server";
 import { CurrencyPrice } from "@/components/shared/currency-price";
 import { Link } from "@/i18n/navigation";
 import { Phone, MessageCircle } from "lucide-react";
+import type { UserRole } from "@/lib/types";
 
 interface PropertySidebarProps {
   price: number;
   currency: string;
   developmentName: string;
   developmentSlug: string;
-  developerName: string;
-  developerSlug: string;
+  sellerName: string;
+  sellerSlug: string;
+  listedByType: UserRole;
   phone: string;
   whatsapp: string;
 }
@@ -19,12 +21,16 @@ export async function PropertySidebar({
   currency,
   developmentName,
   developmentSlug,
-  developerName,
-  developerSlug,
+  sellerName,
+  sellerSlug,
+  listedByType,
   phone,
   whatsapp,
 }: PropertySidebarProps) {
   const t = await getTranslations("property_detail");
+  const sellerHref =
+    listedByType === "broker" ? `/broker/${sellerSlug}` : `/developer/${sellerSlug}`;
+
   return (
     <div className="sticky top-4 flex flex-col gap-4 rounded-2 bg-white p-4 shadow-[0_0_15px_rgba(0,0,0,0.1)]">
       <div className="flex flex-col gap-1">
@@ -52,13 +58,13 @@ export async function PropertySidebar({
         </div>
         <div className="min-w-0 flex flex-col gap-1">
           <span className="font-body text-xs font-medium text-[--text-primary] tracking-wide">
-            {t("developer_label")}
+            {listedByType === "broker" ? "Broker" : t("developer_label")}
           </span>
           <Link
-            href={`/developer/${developerSlug}`}
+            href={sellerHref}
             className="w-full truncate font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
           >
-            {developerName}
+            {sellerName}
           </Link>
         </div>
       </div>

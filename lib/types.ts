@@ -41,6 +41,25 @@ export interface Developer {
   updated_at: string;
 }
 
+export interface BrokerProfile {
+  id: string;
+  user_profile_id: string;
+  name: string;
+  slug: string;
+  profile_image: string | null;
+  personal_url: string | null;
+  description: string | null;
+  country: string | null;
+  city: string | null;
+  email_public: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  closed_transactions: number;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Development {
   id: string;
   name: string;
@@ -125,6 +144,8 @@ export interface PropertyData {
   developer_name: string;
   developer_slug: string;
   developer_logo: string;
+  broker_name: string;
+  broker_slug: string;
   development_name: string;
   development_slug: string;
   development_total_area: number;

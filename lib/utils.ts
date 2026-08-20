@@ -29,3 +29,28 @@ export function stripHtmlToText(html: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+}
+
+export function toEditorHtml(text: string): string {
+  if (!text) return ""
+  if (isHtmlText(text)) return text
+
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+  const withBold = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+
+  return withBold
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.split("\n").join("<br>")}</p>`)
+    .join("")
+}

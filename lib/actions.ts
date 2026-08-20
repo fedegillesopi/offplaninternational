@@ -103,3 +103,101 @@ export async function saveDeveloperProfile(
 
   return { error: null };
 }
+
+export interface SaveBrokerPayload {
+  id?: string;
+  name: string;
+  slug: string;
+  profile_image: string | null;
+  personal_url: string | null;
+  description: string;
+  country: string | null;
+  city: string | null;
+  email_public: string;
+  phone: string;
+  whatsapp: string;
+  closed_transactions: number | null;
+}
+
+const MAX_CLOSED_TRANSACTIONS = 100_000;
+
+export async function saveBrokerProfile(
+  payload: SaveBrokerPayload,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const name = payload.name.trim();
+  let personalUrl = payload.personal_url?.trim() || null;
+  if (personalUrl && !/^https?:\/\//i.test(personalUrl)) {
+    personalUrl = `https://${personalUrl}`;
+  }
+  const description = sanitizeUserHtml(payload.description);
+
+  if (!name) return { error: "Name is required." };
+  if (name.length > MAX_NAME) return { error: "Name is too long." };
+  if (!/^[a-z0-9-]+$/.test(payload.slug)) return { error: "Invalid slug." };
+  if (description.length > MAX_DESCRIPTION) {
+    return { error: "Description is too long." };
+  }
+  if (payload.email_public.length > MAX_EMAIL) {
+    return { error: "Email is too long." };
+  }
+  if (payload.phone.length > MAX_PHONE) return { error: "Phone is too long." };
+  if (payload.whatsapp.length > MAX_PHONE) {
+    return { error: "WhatsApp number is too long." };
+  }
+  if (personalUrl && !isValidWebsite(personalUrl)) {
+    return { error: "Personal URL must be a valid http(s) URL." };
+  }
+  if (
+    payload.closed_transactions !== null &&
+    (payload.closed_transactions < 0 ||
+      payload.closed_transactions > MAX_CLOSED_TRANSACTIONS)
+  ) {
+    return {
+      error: `Closed transactions must be between 0 and ${MAX_CLOSED_TRANSACTIONS}.`,
+    };
+  }
+
+  const fields = {
+    name,
+    slug: payload.slug,
+    profile_image: payload.profile_image,
+    personal_url: personalUrl,
+    description,
+    country: payload.country,
+    city: payload.city,
+    email_public: payload.email_public,
+    phone: payload.phone,
+    whatsapp: payload.whatsapp,
+    closed_transactions: payload.closed_transactions ?? 0,
+  };
+
+  let dbError: { message: string } | null;
+
+  if (payload.id) {
+    const { error } = await supabase
+      .from("broker_profiles")
+      .update(fields)
+      .eq("id", payload.id)
+      .eq("user_profile_id", user.id);
+    dbError = error;
+  } else {
+    const { error } = await supabase
+      .from("broker_profiles")
+      .insert({ ...fields, user_profile_id: user.id });
+    dbError = error;
+  }
+
+  if (dbError) {
+    console.error("saveBrokerProfile:", dbError.message);
+    return { error: "Could not save your profile. Please try again." };
+  }
+
+  return { error: null };
+}

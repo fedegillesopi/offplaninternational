@@ -12,9 +12,10 @@ interface ImageUploadProps {
   onChange: (value: string) => void
   userId: string
   folder: string
+  bucket?: string
 }
 
-export function ImageUpload({ label, value, onChange, userId, folder }: ImageUploadProps) {
+export function ImageUpload({ label, value, onChange, userId, folder, bucket }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +24,7 @@ export function ImageUpload({ label, value, onChange, userId, folder }: ImageUpl
     setError(null)
     setUploading(true)
     try {
-      const url = await uploadImage(file, userId, folder)
+      const url = await uploadImage(file, userId, folder, bucket)
       onChange(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed")
