@@ -11,18 +11,9 @@ import { PropertyAmenitiesGrid } from "@/components/properties/property-amenitie
 import { PropertyPaymentPlan } from "@/components/properties/property-payment-plan";
 import { PropertyTags } from "@/components/properties/property-tags";
 import { RelatedProperties } from "@/components/properties/related-properties";
-import { mockProperties } from "@/lib/mock-properties";
+import { getPropertyBySlug, getRelatedProperties } from "@/lib/properties";
 import { Link } from "@/i18n/navigation";
-import { Bed, Bath, MapPin } from "lucide-react";
-import type { PropertyData } from "@/lib/types";
-
-function getPropertyBySlug(slug: string): PropertyData | undefined {
-  return mockProperties.find((p) => p.slug === slug);
-}
-
-function getRelatedProperties(current: PropertyData): PropertyData[] {
-  return mockProperties.filter((p) => p.id !== current.id).slice(0, 3);
-}
+import { Bed, Bath, MapPin, User } from "lucide-react";
 
 export default async function PropertyDetailPage({
   params,
@@ -31,11 +22,11 @@ export default async function PropertyDetailPage({
 }) {
   const { slug } = await params;
   const td = await getTranslations("property_detail");
-  const property = getPropertyBySlug(slug);
+  const property = await getPropertyBySlug(slug);
 
   if (!property) notFound();
 
-  const related = getRelatedProperties(property);
+  const related = await getRelatedProperties(property.id);
 
   return (
     <div className="body-wrapper mx-auto w-full">
@@ -95,6 +86,30 @@ export default async function PropertyDetailPage({
 
                 <span className="text-[--grey-200]">|</span>
                 <span>{td("area_sqft")} {property.area} sqft</span>
+
+                <span className="text-[--grey-200]">|</span>
+
+                <div className="flex items-center gap-1">
+                  <User className="h-4 w-4 text-[--primary-main]" />
+                  <span>{td("uploaded_by")}</span>
+                  {property.listed_by_type === "private_seller" ? (
+                    <span className="font-medium">{property.private_seller_name}</span>
+                  ) : property.listed_by_type === "broker" ? (
+                    <Link
+                      href={`/broker/${property.broker_slug}`}
+                      className="font-medium text-[--primary-main] no-underline hover:underline"
+                    >
+                      {property.broker_name}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/developer/${property.developer_slug}`}
+                      className="font-medium text-[--primary-main] no-underline hover:underline"
+                    >
+                      {property.developer_name}
+                    </Link>
+                  )}
+                </div>
               </div>
 
               <h1 className="font-heading text-h2 font-bold text-[--text-primary]">
@@ -216,8 +231,20 @@ export default async function PropertyDetailPage({
               currency={property.currency}
               developmentName={property.development_name}
               developmentSlug={property.development_slug}
-              sellerName={property.listed_by_type === "broker" ? property.broker_name : property.developer_name}
-              sellerSlug={property.listed_by_type === "broker" ? property.broker_slug : property.developer_slug}
+              sellerName={
+                property.listed_by_type === "private_seller"
+                  ? property.private_seller_name
+                  : property.listed_by_type === "broker"
+                    ? property.broker_name
+                    : property.developer_name
+              }
+              sellerSlug={
+                property.listed_by_type === "private_seller"
+                  ? ""
+                  : property.listed_by_type === "broker"
+                    ? property.broker_slug
+                    : property.developer_slug
+              }
               listedByType={property.listed_by_type}
               phone={property.phone}
               whatsapp={property.whatsapp}

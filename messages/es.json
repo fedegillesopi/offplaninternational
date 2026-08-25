@@ -146,6 +146,7 @@
     "developer": "Promotora",
     "amenities": "Comodidades",
     "area_label": "Área:",
+    "no_properties": "No hay propiedades disponibles aún",
     "contact": "Contactar",
     "selected": "seleccionados",
     "filter_options": {
@@ -207,7 +208,8 @@
     "whatsapp": "WhatsApp",
     "area_sqft": "Área:",
     "see_more": "Ver más",
-    "development_label": "Desarrollo"
+    "development_label": "Desarrollo",
+    "uploaded_by": "Publicado por"
   },
   "development_detail": {
     "back_to_list": "Volver a la lista",

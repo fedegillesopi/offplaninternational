@@ -58,14 +58,20 @@ export async function PropertySidebar({
         </div>
         <div className="min-w-0 flex flex-col gap-1">
           <span className="font-body text-xs font-medium text-[--text-primary] tracking-wide">
-            {listedByType === "broker" ? "Broker" : t("developer_label")}
+            {t("uploaded_by")}
           </span>
-          <Link
-            href={sellerHref}
-            className="w-full truncate font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
-          >
-            {sellerName}
-          </Link>
+          {listedByType === "private_seller" ? (
+            <span className="w-full truncate font-body text-sm font-medium text-[--text-primary]">
+              {sellerName}
+            </span>
+          ) : (
+            <Link
+              href={sellerHref}
+              className="w-full truncate font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
+            >
+              {sellerName}
+            </Link>
+          )}
         </div>
       </div>
 

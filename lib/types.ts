@@ -146,6 +146,7 @@ export interface PropertyData {
   developer_logo: string;
   broker_name: string;
   broker_slug: string;
+  private_seller_name: string;
   development_name: string;
   development_slug: string;
   development_total_area: number;

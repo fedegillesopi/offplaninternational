@@ -146,6 +146,7 @@
     "developer": "Developer",
     "amenities": "Amenities",
     "area_label": "Area:",
+    "no_properties": "No properties available yet",
     "contact": "Contact",
     "selected": "selected",
     "filter_options": {
@@ -207,7 +208,8 @@
     "whatsapp": "WhatsApp",
     "area_sqft": "Area:",
     "see_more": "See more",
-    "development_label": "Development"
+    "development_label": "Development",
+    "uploaded_by": "Uploaded by"
   },
   "development_detail": {
     "back_to_list": "Back to List",
