@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.7 — 20-Ago-2026
-**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014)
+**Versión:** 1.8 — 25-Ago-2026
+**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 10 secciones, milestones CRUD, CRUD completo)
 
 ---
 
@@ -97,8 +97,15 @@
 | Seed de 42 comunidades de Dubai + 42 traducciones base (`supabase/seed/communities.sql`) | Backend | ✅ Implementado |
 | Sanitizador HTML allowlist + validación de `google_map_url` (seguridad) | Frontend | ✅ Implementado |
 | Dashboard de inversor (favoritos, consultas) | Inversor | ❌ Pendiente |
-| Paneles específicos por role (Properties/Analytics para Developer, Listings/Clients para Broker, My Property para Private Seller) | Vendedor | ❌ Pendiente |
+| Paneles específicos por role (Properties para todos, Analytics para Developer, Broker Profile para Broker, Clients para Broker) | Vendedor | ✅ Implementado (parcial: Properties + profiles)|
 | Broker profile page `/broker/[slug]` (header, description, active properties) + form `/app/broker` + migración 014 | Vendedor/Broker | ✅ Implementado |
+| Property upload form con 10 secciones (basic info, location, details, pricing, milestones, amenities, images, tags, links, visibility) | Vendedor | ✅ Implementado |
+| MilestonesEditor CRUD para plan de pago | Vendedor | ✅ Implementado |
+| PropertyList table con 7 columnas (property, status, price, location, specs, created, actions) | Vendedor | ✅ Implementado |
+| Dashboard pages: property listing (`/app/properties`), create (`/app/properties/new`), edit (`/app/properties/[id]/edit`) | Vendedor | ✅ Implementado |
+| Server actions: `saveProperty`, `deleteProperty`, `saveMilestones` con validaciones y ownership checks | Backend | ✅ Implementado |
+| Data access: `getMyProperties`, `getMyProperty` para queries del dashboard | Backend | ✅ Implementado |
+| Namespace `property_form` traducido en 7 locales | Vendedor | ✅ Implementado |
 | Mapa global con unidades geolocalizadas | Público | ❌ Pendiente |
 
 ### 3.2 Fuera de alcance del MVP
@@ -554,6 +561,101 @@ Otras rutas:
 - **Páginas:** `app/[locale]/broker/[slug]/page.tsx`, `app/app/broker/page.tsx`
 - **CSS:** `.rich-description` en `globals.css` (compartida con developer)
 - **Sidebar:** Broker Profile item en `NAV_BY_ROLE` (broker role)
+
+### 6.8 Property Upload & Management (plataforma /app/properties)
+
+#### 6.8.1 Listado de propiedades del vendedor (/app/properties)
+- **Ruta:** `/app/properties` (sin locale prefix, requiere auth)
+- **Server page:** verifica sesión via `getUser()`, carga `getMyProperties(user.id)` y renderiza `PropertyList`
+- **PropertyList** (`components/platform/property-list.tsx`, server): tabla HTML con 7 columnas (Property, Status, Price, Location, Specs, Created, Actions)
+  - Status con badges coloreados (available=verde, sold=rojo, reserved=amarillo, off_market=gris)
+  - Botón "Edit" enlace a `/app/properties/{id}/edit`
+  - Empty state con CTA "Create your first property"
+- **Botón "Create Property"** en el header, enlace a `/app/properties/new`
+
+#### 6.8.2 Crear propiedad (/app/properties/new)
+- **Server page:** verifica sesión + perfil (`user_profiles`), carga ciudades por operating country, amenities, subcategories, y developments (solo para developers con `developer_id`)
+- Renderiza `PropertyForm` con `property={null}` (modo creación)
+- **Sidebar:** Link "Properties" en `NAV_BY_ROLE` para todos los roles
+
+#### 6.8.3 Editar propiedad (/app/properties/[id]/edit)
+- **Server page:** verifica sesión, carga `getMyProperty(user.id, id)` con ownership check
+- Si la propiedad no existe o no pertenece al usuario → redirect a `/app/properties`
+- Carga milestones de la propiedad (`payment_plan_milestones` filtrado por `property_id`, ordenado por `sort_order`)
+- Renderiza `PropertyForm` con `property={property}` + `milestones` (modo edición)
+- **Delete:** botón destructivo en el form, ejecuta `deleteProperty(id)` con ownership check
+
+#### 6.8.4 PropertyForm (`components/platform/property-form.tsx`, client)
+Formulario completo con 10 secciones:
+
+| Sección | Campos |
+|---|---|
+| **Basic Information** | Title*, Slug (auto, read-only + copy URL), Description (textarea), Property Type (select), Subcategory (select grouped by category), Status (select) |
+| **Location** | Country (read-only desde perfil), City (select por operating country), Community, Address |
+| **Property Details** | Bedrooms, Bathrooms, Floor, Area (sqft, auto-calc sqm), Balcony checkbox, Garden checkbox |
+| **Pricing** | Price*, Currency (select), Deposit %, Deposit Amount (auto-calculated from % + price), Handover Date, Payment Plan Months, Post Handover checkbox |
+| **Payment Plan Milestones** | `MilestonesEditor` — CRUD dinámico de hitos |
+| **Amenities** | Toggle pills agrupados por categoría (desde `property_amenities` curados) |
+| **Images** | Cover Image (ImageUpload a bucket `property-images`), Gallery Images (upload múltiple, hasta 10, con preview y delete) |
+| **Tags** | Input + Enter para agregar tags, chips removibles |
+| **Links** | Development (select de developments propios, solo para developers) |
+| **Visibility** | Active checkbox (controla `is_active`) |
+
+**Comportamiento del form:**
+- `hasChanges`: compara cada campo contra el valor original; botón Save deshabilitado sin cambios
+- **Slug auto-generado** desde title via `slugify()`, read-only, con botón copy de URL pública
+- **Auto-cálculos:** sqm se calcula de sqft (`× 0.092903`); deposit_amount se calcula de price × deposit%
+- **Guardado:** `saveProperty()` → `saveMilestones()` → `router.refresh()` (o redirect a `/app/properties` si es nuevo)
+- **Delete:** `confirm()` nativo → `deleteProperty()` → redirect a `/app/properties`
+
+#### 6.8.5 MilestonesEditor (`components/platform/milestones-editor.tsx`, client)
+- Editor dinámico de hitos del plan de pago (CRUD: add, edit, remove, reorder)
+- Cada hito tiene: milestone_name*, percentage (0–100), amount (auto-calculated), due_date, description
+- **Validación:** total de percentages no puede exceder 100%
+- Recibe `propertyPrice` y `currency` para auto-calcular `amount` desde `percentage`
+
+#### 6.8.6 Server Actions (`lib/actions.ts`)
+
+**`saveProperty(payload)`：**
+- Requiere sesión (`getUser()`) + role válido (developer/broker/private_seller)
+- Valida: title (requerido, max), slug regex `^[a-z0-9-]+$`, description max (tras sanitizar), property_type, status, currency, price > 0, deposit_percentage 0–100
+- Auto-calcula area_sqm↔sqft y deposit_amount↔deposit_percentage si falta uno
+- Sanitiza description con `sanitizeUserHtml()`
+- **INSERT** si no hay `id` (con `listed_by_id` y `listed_by_type` del perfil); **UPDATE** si hay `id` (filtrado por `listed_by_id` = user — ownership check)
+- Devuelve `{ id, error }`
+
+**`deleteProperty(propertyId)`：**
+- Requiere sesión + ownership check (`listed_by_id = user.id`)
+- DELETE de la propiedad (milestones se eliminan en cascade por FK)
+
+**`saveMilestones(payload)`：**
+- Requiere sesión + ownership check vía subquery a `properties`
+- Valida: milestone names requeridos (max 200), percentages 0–100, total ≤ 100%
+- Estrategia: DELETE todos los milestones existentes → INSERT los nuevos (reemplazo completo, no upsert individual)
+- Devuelve `{ error }`
+
+#### 6.8.7 Data Access (`lib/properties.ts`)
+
+**`getMyProperties(userProfileId)`：**
+- Query a `properties` con joins a `developers`, `user_profiles`, `developments`, `payment_plan_milestones`
+- Filtra por `listed_by_id = userProfileId`
+- Resuelve `broker_name`/`broker_slug` condicionalmente para `listed_by_type = 'broker'`
+- Retorna `PropertyData[]` ordenado por `created_at DESC`
+
+**`getMyProperty(userProfileId, propertyId)`：**
+- Misma query que `getMyProperties` pero filtrando por `id = propertyId` + `listed_by_id = userProfileId`
+- Retorna `PropertyData | null` (ownership check incluido)
+
+#### 6.8.8 Fix PropertyCard — logo rendering condicional
+- `property-card.tsx`: developer_logo se renderiza condicionalmente (`{property.developer_logo && (...)}`) para evitar error de `src=""` vacío en el `<Image>`
+
+#### 6.8.9 Traducciones
+- Namespace `property_form` agregado a los 7 archivos de mensajes (`messages/{locale}.json`)
+- Dashboard sin i18n por ahora (strings hardcodeados en inglés)
+
+#### 6.8.10 Fix Tailwind
+- Agregado `primary.DEFAULT` en `tailwind.config.ts` para que las clases de utilidad `border-primary`, `bg-primary/10`, `text-primary` funcionen correctamente
+
 
 
 ---
@@ -1078,7 +1180,8 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 | `/app/developer` | Developer | Form de perfil de la promotora (rich text TipTap, slug, cover/logo, city, on-time, contacto) |
 | `/app/broker` | Broker | Form de perfil del broker (rich text TipTap, slug, profile image, city, contacto, transacciones) |
 | `/app/properties` | Autenticado | Listado de propiedades del seller |
-| `/app/properties/new` | Autenticado | Publicar nueva propiedad (wizard multi-step) |
+| `/app/properties/new` | Autenticado | Crear propiedad (PropertyForm con 10 secciones) |
+| `/app/properties/[id]/edit` | Autenticado | Editar propiedad existente (PropertyForm + milestones + delete) |
 | `/app/analytics` | Developer | Analytics (pendiente) |
 | `/app/clients` | Broker | Clientes (pendiente) |
 
@@ -1259,13 +1362,34 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 ```
 
 **Servicios consumidos:** TipTap (rich-text-editor.tsx), lib/storage.ts (uploadImage), lib/actions.ts (saveBrokerProfile), lib/sanitize-html.ts (sanitizeUserHtml), lib/brokers.ts, lib/cities.ts, lib/countries.ts
+
+### Flujo J: Vendedor crea, edita y elimina propiedades (plataforma /app/properties)
+
+```
+1. Vendedor navega a /app → sidebar "Properties" (/app/properties)
+2. Server page verifica sesión, carga getMyProperties(user.id) y renderiza PropertyList
+3. PropertyList muestra tabla con 7 columnas: Property, Status, Price, Location, Specs, Created, Actions
+4. Botón "Create Property" → /app/properties/new
+5. NewPropertyPage carga ciudades del operating_country, amenities, subcategories, y developments (solo developers)
+6. PropertyForm muestra 10 secciones: Basic Info, Location, Details, Pricing, Milestones, Amenities, Images, Tags, Links, Visibility
+7. Slug se auto-genera desde Title (read-only); sqm se auto-calcula de sqft; deposit_amount se auto-calcula de price × deposit%
+8. Sube cover image a property-images bucket; gallery images (hasta 10) al mismo bucket
+9. Editar milestones con MilestonesEditor (CRUD dinámico); validación de total ≤ 100%
+10. Save → saveProperty() (validación server-side + sanitización description + ownership check) → saveMilestones() → router.refresh()
+11. Botón "Edit" en PropertyList → /app/properties/{id}/edit → mismo PropertyForm en modo edición
+12. Botón "Delete" en modo edición → confirm() nativo → deleteProperty() (ownership check) → redirect a /app/properties
+13. hasChanges compara cada campo; botón Save deshabilitado sin cambios
+```
+
+**Servicios consumidos:** lib/actions.ts (saveProperty, deleteProperty, saveMilestones), lib/properties.ts (getMyProperties, getMyProperty), lib/cities.ts, lib/property-amenities.ts, lib/property-subcategories.ts, lib/storage.ts (uploadImage), lib/sanitize-html.ts (sanitizeUserHtml), lib/utils.ts (slugify)
+
 ---
 
 ## 9. REGLAS DE NEGOCIO
 
 1. **La moneda por defecto es USD** (global, no por locale). El usuario puede cambiarla y persiste 30 días.
 2. **Las tasas de cambio son fijas en MVP.** No se consultan APIs externas. Se actualizan manualmente en `lib/exchange-rates.ts`.
-3. **Los datos de propiedades del sitio público son mockeados en MVP.** No hay conexión a base de datos real. Datos en `lib/mock-properties.ts`.
+3. **Los datos de propiedades del sitio público (listado y detalle) están conectados a Supabase.** La tabla `properties` se lee directamente. El dashboard de vendedores también lee de DB (`getMyProperties`). `lib/mock-properties.ts` fue eliminado.
 4. **La búsqueda en homepage tiene UI pero no funcionalidad real.** Es placeholder visual.
 5. **Los botones Contact y WhatsApp en PropertyCards y detalle de propiedad son placeholder.** No ejecutan consulta real (no hay endpoint ni conexión a DB).
 6. **Las rutas de promotoras existen y leen de DB.** `/developers` y `/developer/[slug]` consultan Supabase (solo `is_verified = true`) desde el 05-Ago-2026. `/development/[slug]` sigue con mock data (no conectada a DB).
@@ -1273,8 +1397,8 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 8. **La geo-detección funciona solo en producción** (Vercel, Cloudflare, AWS). En local se usa default locale.
 9. **Solo email/password en MVP.** Sin OAuth social.
 10. **Usar `getUser()` en vez de `getClaims()`** para verificar sesión server-side (el JWT puede estar expirado aunque los claims se decodifiquen).
-11. **El dashboard y sus componentes (SectionCards, DataTable) usan datos mockeados.** Son placeholder visual.
-12. **Las sub-rutas del dashboard (properties, analytics, listings, clients, my-property) están definidas en la navegación del sidebar pero las páginas aún no existen.** Al navegar darán 404.
+11. **Las propiedades del dashboard (`/app/properties`) se leen de Supabase via `getMyProperties()`.** El PropertyList es un componente real conectado a DB. SectionCards y DataTable del dashboard principal siguen con datos mock.
+12. **Las páginas del dashboard de properties (`/app/properties`, `/app/properties/new`, `/app/properties/[id]/edit`) están implementadas y conectadas a DB.** Las sub-rutas `analytics` (Developer) y `clients` (Broker) siguen sin implementar.
 13. **La tabla `user_profiles` se crea automáticamente al registrarse** vía trigger `handle_new_user()`. El role se extrae de `raw_user_meta_data->>'role'` (default: 'developer'). El onboarding se completa post-confirmación de email.
 14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/app`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
 15. **El confirm route handler lee la cookie `NEXT_LOCALE`** para determinar el locale del usuario antes de redirigir. Fallback: `ae`.
@@ -1304,6 +1428,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 39. **La página pública del broker solo es visible para brokers verificados.** `getBrokerBySlug()` filtra por `is_verified = true`. El broker dueño puede ver su perfil sin verificar vía la política RLS `broker_profiles_select_own`.
 40. **El sidebar de propiedad linka a `/broker/{slug}` o `/developer/{slug}` según `listed_by_type`.** La propiedad tiene campos `broker_name` y `broker_slug` que se resuelven al vender el broker. Si el broker no tiene perfil público (no verificado o no creado), el link puede no funcionar.
 41. **Las descripciones de broker usan el mismo sanitizador que las de developer.** `sanitizeUserHtml()` con la misma allowlist. El componente `BrokerDescription` usa la clase `.rich-description` compartida en `globals.css`.
+42. **El upload y gestión de propiedades (`/app/properties`) está implementado para los 3 roles.** El form PropertyForm tiene 10 secciones, incluye MilestonesEditor para plan de pago, auto-cálculos (sqm↔sqft, deposit_amount↔%), slug auto-generado, y gallery upload al bucket `property-images`. Las server actions (`saveProperty`, `deleteProperty`, `saveMilestones`) incluyen validaciones server-side y ownership checks (`listed_by_id = user.id`). Las descripciones se sanitizan con `sanitizeUserHtml()` antes de persistir./
 
 ---
 
@@ -1317,7 +1442,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - El locale/idioma se puede inferir por geolocalización del país de origen
 
 **Restricciones:**
-- Datos de propiedades del sitio público mockeados para MVP — las tablas `developments`, `properties` y `payment_plan_milestones` existen en Supabase pero la UI pública aún no las consulta; `developers` SÍ se consulta (listado y detalle, solo verified) y `communities` se leen de DB (migración 008 + seed)
+- Las tablas `properties`, `payment_plan_milestones`, `developers`, `developments` y `communities` se leen de Supabase en la UI pública y en el dashboard de vendedores. `lib/mock-properties.ts` fue eliminado. La tabla `developments` aún no tiene página de listado conectada a DB (usa mock data)
 - Sin mapa funcional en MVP (pendiente geolocalización)
 - Sin pagos integrados en la plataforma
 - Sin comparador de propiedades
@@ -1328,8 +1453,8 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - La ruta `/development/[slug]` usa mock data (no conectada a DB); `/developer/[slug]` sí lee de DB
 - Sin dashboard de inversor (favoritos, consultas)
 - Los botones de contacto (WhatsApp, Phone) no ejecutan acciones reales
-- El dashboard y su tabla de datos usan datos de relleno (no son propiedades reales)
-- Las sub-rutas del sidebar del dashboard (analytics, clients, settings) no tienen páginas implementadas
+- La página principal del dashboard (`/app`) sigue con datos mock (SectionCards, DataTable). El listado de propiedades (`/app/properties`) ahora lee de Supabase
+- Las sub-rutas del sidebar del dashboard `analytics` (Developer) y `clients` (Broker) no tienen páginas implementadas. `properties` (todos los roles) SÍ está implementado con CRUD completo
 - Los pricing plans están configurados pero no se cobran ni se aplican
 - La ruta `/app` no tiene page.tsx funcional (solo placeholder)
 - La migración 008 + seed de communities no están ejecutadas en producción (requieren SQL Editor manual)
@@ -1403,10 +1528,20 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - Integración de `PropertySidebar` con `listedByType`: link condicional a `/broker/{slug}` o `/developer/{slug}`
 - Campos `broker_name` y `broker_slug` en `PropertyData`
 - Namespace `broker_detail` traducido en 7 locales (ae, ar, es, gb, pt, br, mx)
+- Property upload form (`PropertyForm`) con 10 secciones: Basic Info, Location, Details, Pricing, Milestones, Amenities, Images, Tags, Links, Visibility
+- `MilestonesEditor` CRUD para plan de pago con validación de total ≤ 100%
+- `PropertyList` table con 7 columnas (property, status, price, location, specs, created, actions) en `/app/properties`
+- Dashboard pages de propiedades: listing (`/app/properties`), create (`/app/properties/new`), edit (`/app/properties/[id]/edit`)
+- Server actions: `saveProperty`, `deleteProperty`, `saveMilestones` con validaciones server-side y ownership checks
+- Data access: `getMyProperties`, `getMyProperty` para queries del dashboard
+- Namespace `property_form` traducido en 7 locales
+- Fix `PropertyCard`: logo rendering condicional para evitar `src=""` vacío
+- `primary.DEFAULT` agregado a Tailwind config para clases de utilidad `border-primary`, `bg-primary/10`, `text-primary`
+- `lib/mock-properties.ts` eliminado — todas las fuentes de datos ahora son reales (Supabase)
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
-- **Corto plazo:** Conectar `/development/[slug]` a la tabla `developments` (hoy usa mock data) — el listado de `properties` sigue con mock data
+- **Corto plazo:** Conectar `/development/[slug]` a la tabla `developments` (hoy usa mock data)
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)
 - **Mediano plazo:** Dashboard de inversor (favoritos, consultas)
@@ -1455,3 +1590,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 | TipTap | Librería de editor rich text (ProseMirror) usada en los forms de developer y broker para la descripción |
 | sanitizeUserHtml | Sanitizador HTML para contenido user-generated: allowlist estricto de tags y origin check de imágenes; se aplica en cliente y servidor |
 | broker_profiles | Tabla de perfiles públicos de brokers con datos profesionales (migración 014), patrón similar a `developers` pero con campos específicos de broker |
+| PropertyForm | Componente de formulario para crear/editar propiedades en el dashboard; 10 secciones (basic info, location, details, pricing, milestones, amenities, images, tags, links, visibility); client component con auto-cálculos y detección de cambios |
+| MilestonesEditor | Componente CRUD dinámico para gestionar hitos del plan de pago de una propiedad; incluye validación de total ≤ 100% y auto-cálculo de montos |
+| PropertyList | Componente de tabla en el dashboard del vendedor que muestra las propiedades del usuario con 7 columnas (property, status, price, location, specs, created, actions) |
+| Ownership check | Verificación server-side de que el usuario autenticado es el dueño de la entidad que intenta modificar (ej: `listed_by_id = user.id` en properties, `user_profile_id = user.id` en developers/brokers) |
