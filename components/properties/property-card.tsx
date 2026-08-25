@@ -50,16 +50,18 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
             <span>{property.city}</span>
             <span>{property.community}</span>
           </div>
-          <Image
-            src={property.developer_logo}
-            alt={property.developer_name}
-            width={60}
-            height={30}
-            className="h-auto w-[80px] rounded-1 p-2 shadow-lg"
-          />
+          {property.developer_logo && (
+            <Image
+              src={property.developer_logo}
+              alt={property.developer_name}
+              width={60}
+              height={30}
+              className="h-auto w-[80px] rounded-1 p-2 shadow-lg"
+            />
+          )}
         </div>
 
-        <p className="font-body text-base font-regular text-[--text-primary]">
+        <p className="line-clamp-2 font-body text-base font-regular text-[--text-primary]">
           {property.description}
         </p>
 

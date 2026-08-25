@@ -293,3 +293,81 @@ export async function getProperties(): Promise<PropertyData[]> {
 
   return results;
 }
+
+export async function getMyProperties(
+  userProfileId: string,
+): Promise<PropertyData[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select(`
+      *,
+      developers:developer_id ( name, slug, logo_url ),
+      user_profiles:listed_by_id ( full_name ),
+      developments:development_id ( name, slug, amenities ),
+      payment_plan_milestones ( * )
+    `)
+    .eq("listed_by_id", userProfileId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  const rows = data as unknown as PropertyRow[];
+  const results: PropertyData[] = [];
+
+  for (const row of rows) {
+    let brokerName = "";
+    let brokerSlug = "";
+    if (row.listed_by_type === "broker") {
+      const { data: broker } = await supabase
+        .from("broker_profiles")
+        .select("name, slug")
+        .eq("user_profile_id", row.listed_by_id)
+        .maybeSingle();
+      brokerName = broker?.name ?? "";
+      brokerSlug = broker?.slug ?? "";
+    }
+    results.push(toPropertyData(row, brokerName, brokerSlug));
+  }
+
+  return results;
+}
+
+export async function getMyProperty(
+  userProfileId: string,
+  propertyId: string,
+): Promise<PropertyData | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select(`
+      *,
+      developers:developer_id ( name, slug, logo_url ),
+      user_profiles:listed_by_id ( full_name ),
+      developments:development_id ( name, slug, amenities ),
+      payment_plan_milestones ( * )
+    `)
+    .eq("id", propertyId)
+    .eq("listed_by_id", userProfileId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as unknown as PropertyRow;
+
+  let brokerName = "";
+  let brokerSlug = "";
+  if (row.listed_by_type === "broker") {
+    const { data: broker } = await supabase
+      .from("broker_profiles")
+      .select("name, slug")
+      .eq("user_profile_id", row.listed_by_id)
+      .maybeSingle();
+    brokerName = broker?.name ?? "";
+    brokerSlug = broker?.slug ?? "";
+  }
+
+  return toPropertyData(row, brokerName, brokerSlug);
+}

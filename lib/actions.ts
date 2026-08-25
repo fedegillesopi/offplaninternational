@@ -201,3 +201,307 @@ export async function saveBrokerProfile(
 
   return { error: null };
 }
+
+// ── Properties ──────────────────────────────────────────────────────────────
+
+export interface SavePropertyPayload {
+  id?: string;
+  title: string;
+  slug: string;
+  description: string;
+  property_type: string;
+  status: string;
+  country: string;
+  city: string;
+  community: string;
+  address: string;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  area_sqft: number | null;
+  area_sqm: number | null;
+  floor: number | null;
+  has_balcony: boolean;
+  has_garden: boolean;
+  price: number;
+  currency: string;
+  deposit_percentage: number | null;
+  deposit_amount: number | null;
+  has_post_handover: boolean;
+  handover_date: string | null;
+  payment_plan_months: number | null;
+  amenities: string[];
+  tags: string[];
+  images: string[];
+  cover_image: string | null;
+  developer_id: string | null;
+  development_id: string | null;
+  is_active: boolean;
+}
+
+const MAX_TITLE = 200;
+const MAX_ADDRESS = 500;
+const MAX_COMMUNITY = 200;
+
+const PROPERTY_TYPES = ["apartment", "villa", "townhouse", "penthouse", "duplex"];
+const STATUSES = ["available", "sold", "reserved", "off_market"];
+const CURRENCIES = ["AED", "USD", "EUR", "GBP"];
+
+function toNull(v: string | undefined | null): string | null {
+  if (v === undefined || v === null) return null;
+  const t = v.trim();
+  return t === "" ? null : t;
+}
+
+function toNumNull(v: number | null | undefined): number | null {
+  if (v === undefined || v === null) return null;
+  return Number.isFinite(v) ? v : null;
+}
+
+export async function saveProperty(
+  payload: SavePropertyPayload,
+): Promise<{ id: string | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { id: null, error: "You must be signed in." };
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const listed_by_type = profile?.role ?? null;
+  if (
+    !listed_by_type ||
+    !["developer", "broker", "private_seller"].includes(listed_by_type)
+  ) {
+    return { id: null, error: "Invalid user role." };
+  }
+
+  const title = payload.title.trim();
+  const slug = payload.slug.trim();
+  const description = sanitizeUserHtml(payload.description);
+  const community = toNull(payload.community);
+  const address = toNull(payload.address);
+
+  if (!title) return { id: null, error: "Title is required." };
+  if (title.length > MAX_TITLE) return { id: null, error: "Title is too long." };
+  if (!/^[a-z0-9-]+$/.test(slug)) return { id: null, error: "Invalid slug." };
+  if (description.length > MAX_DESCRIPTION) {
+    return { id: null, error: "Description is too long." };
+  }
+  if (!PROPERTY_TYPES.includes(payload.property_type)) {
+    return { id: null, error: "Invalid property type." };
+  }
+  if (!STATUSES.includes(payload.status)) {
+    return { id: null, error: "Invalid status." };
+  }
+  if (!CURRENCIES.includes(payload.currency)) {
+    return { id: null, error: "Invalid currency." };
+  }
+  if (!payload.price || payload.price <= 0) {
+    return { id: null, error: "Price must be greater than 0." };
+  }
+  if (community && community.length > MAX_COMMUNITY) {
+    return { id: null, error: "Community is too long." };
+  }
+  if (address && address.length > MAX_ADDRESS) {
+    return { id: null, error: "Address is too long." };
+  }
+  if (
+    payload.deposit_percentage !== null &&
+    (payload.deposit_percentage < 0 || payload.deposit_percentage > 100)
+  ) {
+    return {
+      id: null,
+      error: "Deposit percentage must be between 0 and 100.",
+    };
+  }
+
+  let area_sqft = toNumNull(payload.area_sqft);
+  let area_sqm = toNumNull(payload.area_sqm);
+  if (area_sqft && !area_sqm) area_sqm = Math.round(area_sqft * 0.092903 * 100) / 100;
+  if (area_sqm && !area_sqft) area_sqft = Math.round(area_sqm / 0.092903 * 100) / 100;
+
+  let deposit_amount = toNumNull(payload.deposit_amount);
+  if (payload.deposit_percentage && !deposit_amount) {
+    deposit_amount = Math.round(payload.price * payload.deposit_percentage) / 100;
+  }
+
+  const fields = {
+    title,
+    slug,
+    description,
+    property_type: payload.property_type,
+    status: payload.status,
+    country: payload.country,
+    city: payload.city.trim(),
+    community,
+    address,
+    bedrooms: toNumNull(payload.bedrooms),
+    bathrooms: toNumNull(payload.bathrooms),
+    area_sqft,
+    area_sqm,
+    floor: toNumNull(payload.floor),
+    has_balcony: payload.has_balcony,
+    has_garden: payload.has_garden,
+    price: payload.price,
+    currency: payload.currency,
+    deposit_percentage: toNumNull(payload.deposit_percentage),
+    deposit_amount,
+    has_post_handover: payload.has_post_handover,
+    handover_date: toNull(payload.handover_date),
+    payment_plan_months: toNumNull(payload.payment_plan_months),
+    amenities: payload.amenities,
+    tags: payload.tags,
+    images: payload.images,
+    cover_image: payload.cover_image,
+    developer_id: toNull(payload.developer_id),
+    development_id: toNull(payload.development_id),
+    is_active: payload.is_active,
+  };
+
+  let dbError: { message: string } | null;
+  let savedId: string | null = payload.id ?? null;
+
+  if (payload.id) {
+    const { data, error } = await supabase
+      .from("properties")
+      .update(fields)
+      .eq("id", payload.id)
+      .eq("listed_by_id", user.id)
+      .select("id")
+      .maybeSingle();
+    dbError = error;
+    savedId = data?.id ?? null;
+  } else {
+    const { data, error } = await supabase
+      .from("properties")
+      .insert({ ...fields, listed_by_id: user.id, listed_by_type })
+      .select("id")
+      .maybeSingle();
+    dbError = error;
+    savedId = data?.id ?? null;
+  }
+
+  if (dbError) {
+    console.error("saveProperty:", dbError.message);
+    return { id: null, error: "Could not save property. Please try again." };
+  }
+
+  return { id: savedId, error: null };
+}
+
+export async function deleteProperty(
+  propertyId: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase
+    .from("properties")
+    .delete()
+    .eq("id", propertyId)
+    .eq("listed_by_id", user.id);
+
+  if (error) {
+    console.error("deleteProperty:", error.message);
+    return { error: "Could not delete property. Please try again." };
+  }
+
+  return { error: null };
+}
+
+// ── Payment Plan Milestones ─────────────────────────────────────────────────
+
+export interface MilestonePayload {
+  property_id: string;
+  milestones: {
+    id?: string;
+    milestone_name: string;
+    percentage: number;
+    amount: number | null;
+    due_date: string | null;
+    description: string | null;
+    sort_order: number;
+  }[];
+}
+
+const MAX_MILESTONE_NAME = 200;
+
+export async function saveMilestones(
+  payload: MilestonePayload,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { data: property } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("id", payload.property_id)
+    .eq("listed_by_id", user.id)
+    .maybeSingle();
+
+  if (!property) return { error: "Property not found." };
+
+  let totalPercentage = 0;
+  for (const m of payload.milestones) {
+    const name = m.milestone_name.trim();
+    if (!name) return { error: "Milestone name is required." };
+    if (name.length > MAX_MILESTONE_NAME) {
+      return { error: "Milestone name is too long." };
+    }
+    if (m.percentage < 0 || m.percentage > 100) {
+      return { error: "Milestone percentage must be between 0 and 100." };
+    }
+    totalPercentage += m.percentage;
+  }
+
+  if (totalPercentage > 100) {
+    return { error: "Total milestone percentage cannot exceed 100%." };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("payment_plan_milestones")
+    .delete()
+    .eq("property_id", payload.property_id);
+
+  if (deleteError) {
+    console.error("saveMilestones (delete):", deleteError.message);
+    return { error: "Could not save milestones. Please try again." };
+  }
+
+  if (payload.milestones.length > 0) {
+    const rows = payload.milestones.map((m, i) => ({
+      property_id: payload.property_id,
+      milestone_name: m.milestone_name.trim(),
+      percentage: m.percentage,
+      amount: toNumNull(m.amount),
+      due_date: toNull(m.due_date),
+      description: toNull(m.description),
+      sort_order: m.sort_order ?? i,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("payment_plan_milestones")
+      .insert(rows);
+
+    if (insertError) {
+      console.error("saveMilestones (insert):", insertError.message);
+      return { error: "Could not save milestones. Please try again." };
+    }
+  }
+
+  return { error: null };
+}
