@@ -9,13 +9,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/platform/image-upload";
+import { RichTextEditor } from "@/components/platform/rich-text-editor";
 import {
   MilestonesEditor,
   type Milestone,
 } from "@/components/platform/milestones-editor";
 import { saveProperty, saveMilestones, deleteProperty } from "@/lib/actions";
 import { uploadImage } from "@/lib/storage";
-import { slugify } from "@/lib/utils";
+import { isHtmlText, slugify, toEditorHtml } from "@/lib/utils";
 import type { PropertyData, UserRole } from "@/lib/types";
 import type { PropertyAmenity } from "@/lib/property-amenities";
 import type { PropertySubcategory } from "@/lib/property-subcategories";
@@ -224,7 +225,7 @@ export function PropertyForm({
     ? Boolean(title)
     : Boolean(
       title !== property!.title ||
-      description !== property!.description ||
+      description.trim() !== toEditorHtml(property!.description || "").trim() ||
       propertyType !== property!.property_type ||
       status !== property!.status ||
       city !== property!.city ||
@@ -400,12 +401,12 @@ export function PropertyForm({
 
         <div className="space-y-2">
           <Label>Description</Label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+          <RichTextEditor
+            defaultValue={isHtmlText(description) ? description : toEditorHtml(description)}
+            onChange={setDescription}
+            userId={userId}
             placeholder="Describe the property..."
+            bucket="property-images"
           />
         </div>
 

@@ -10,6 +10,7 @@ import { PropertyDetailsTable } from "@/components/properties/property-details-t
 import { PropertyAmenitiesGrid } from "@/components/properties/property-amenities-grid";
 import { PropertyPaymentPlan } from "@/components/properties/property-payment-plan";
 import { PropertyTags } from "@/components/properties/property-tags";
+import { PropertyDescription } from "@/components/properties/property-description";
 import { RelatedProperties } from "@/components/properties/related-properties";
 import { getPropertyBySlug, getRelatedProperties } from "@/lib/properties";
 import { Link } from "@/i18n/navigation";
@@ -116,9 +117,7 @@ export default async function PropertyDetailPage({
                 {property.title}
               </h1>
 
-              <p className="font-body text-base font-light leading-relaxed text-[--text-primary]">
-                {property.descriptionFull}
-              </p>
+              <PropertyDescription text={property.descriptionFull} />
             </div>
 
             <div className="h-px w-full bg-[--grey-50]" />
