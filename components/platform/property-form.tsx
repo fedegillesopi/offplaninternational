@@ -403,7 +403,7 @@ export function PropertyForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Subcategory</Label>
+            <Label>Category</Label>
             <select
               value={subcategory}
               onChange={(e) => setSubcategory(e.target.value)}
