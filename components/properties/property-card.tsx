@@ -7,6 +7,7 @@ import type { PropertyData } from "@/lib/types";
 
 export async function PropertyCard({ property }: { property: PropertyData }) {
   const t = await getTranslations("properties");
+  const coverSrc = property.cover_image ?? property.images[0];
 
   return (
     <div className="flex w-full max-w-[1000px] flex-col overflow-hidden rounded-2 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] md:flex-row">
@@ -14,13 +15,19 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
         href={`/property/${property.slug}`}
         className="relative block h-[200px] w-full shrink-0 md:h-auto md:w-[320px] lg:w-[360px]"
       >
-        <Image
-          src={property.images[0]}
-          alt={property.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 360px"
-        />
+        {coverSrc ? (
+          <Image
+            src={coverSrc}
+            alt={property.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 360px"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[--grey-50] font-body text-sm text-[--grey-300]">
+            {property.title}
+          </div>
+        )}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 px-2 py-4 md:gap-4 md:p-6">

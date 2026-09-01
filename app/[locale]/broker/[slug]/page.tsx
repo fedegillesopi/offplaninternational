@@ -2,15 +2,13 @@ import { notFound } from "next/navigation"
 import { getTranslations } from "next-intl/server"
 import { Navbar } from "@/components/site/navbar"
 import { Footer } from "@/components/site/footer"
-import { BackToHome } from "@/components/site/back-to-home"
-import { Breadcrumb } from "@/components/site/breadcrumb"
 import { BrokerHeader } from "@/components/brokers/broker-header"
 import { BrokerDescription } from "@/components/brokers/broker-description"
 import { PropertyCard } from "@/components/properties/property-card"
 import { getBrokerBySlug } from "@/lib/brokers"
+import { getBrokerActiveProperties } from "@/lib/properties"
 import { createClient } from "@/lib/supabase/server"
 import { Link } from "@/i18n/navigation"
-import type { PropertyData } from "@/lib/types"
 
 export default async function BrokerDetailPage({
   params,
@@ -25,25 +23,21 @@ export default async function BrokerDetailPage({
 
   const supabase = await createClient()
 
-  const [countResult, propertiesResult] = await Promise.all([
+  const [countResult, properties] = await Promise.all([
     supabase
       .from("properties")
       .select("*", { count: "exact", head: true })
       .eq("listed_by_id", broker.userProfileId)
       .eq("listed_by_type", "broker")
       .eq("is_active", true),
-    supabase
-      .from("properties")
-      .select("*")
-      .eq("listed_by_id", broker.userProfileId)
-      .eq("listed_by_type", "broker")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(5)
+    getBrokerActiveProperties(
+      broker.userProfileId,
+      broker.name,
+      broker.slug,
+    ),
   ])
 
   const activePropertiesCount = countResult.count ?? 0
-  const properties = (propertiesResult.data ?? []) as unknown as PropertyData[]
 
   return (
     <div className="body-wrapper mx-auto w-full">

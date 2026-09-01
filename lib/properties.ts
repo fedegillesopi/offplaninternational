@@ -294,6 +294,35 @@ export async function getProperties(): Promise<PropertyData[]> {
   return results;
 }
 
+export async function getBrokerActiveProperties(
+  userProfileId: string,
+  brokerName: string,
+  brokerSlug: string,
+  limit = 5,
+): Promise<PropertyData[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select(`
+      *,
+      developers:developer_id ( name, slug, logo_url ),
+      user_profiles:listed_by_id ( full_name ),
+      developments:development_id ( name, slug, amenities ),
+      payment_plan_milestones ( * )
+    `)
+    .eq("listed_by_id", userProfileId)
+    .eq("listed_by_type", "broker")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  const rows = data as unknown as PropertyRow[];
+  return rows.map((row) => toPropertyData(row, brokerName, brokerSlug));
+}
+
 export async function getMyProperties(
   userProfileId: string,
 ): Promise<PropertyData[]> {
