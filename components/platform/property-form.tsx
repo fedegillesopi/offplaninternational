@@ -20,6 +20,7 @@ import { isHtmlText, slugify, toEditorHtml } from "@/lib/utils";
 import type { PropertyData, UserRole } from "@/lib/types";
 import type { PropertyAmenity } from "@/lib/property-amenities";
 import type { PropertySubcategory } from "@/lib/property-subcategories";
+import type { CommunityOption } from "@/lib/communities";
 
 interface PropertyFormProps {
   property: PropertyData | null;
@@ -27,7 +28,9 @@ interface PropertyFormProps {
   userId: string;
   userRole: UserRole;
   cities: string[];
+  communities: CommunityOption[];
   countryLabel: string;
+  country: string;
   amenities: PropertyAmenity[];
   subcategories: PropertySubcategory[];
   developments: { id: string; name: string }[];
@@ -59,7 +62,9 @@ export function PropertyForm({
   userId,
   userRole,
   cities,
+  communities,
   countryLabel,
+  country,
   amenities,
   subcategories,
   developments,
@@ -138,6 +143,15 @@ export function PropertyForm({
   const slug = slugify(title);
 
   const cityOptions = city && !cities.includes(city) ? [city, ...cities] : cities;
+
+  const existingCommunity = property?.community
+    ? communities.find((c) => c.slug === property.community)
+    : undefined;
+  const communityOptions = existingCommunity
+    ? communities
+    : property?.community
+      ? [{ slug: property.community, name: property.community }, ...communities]
+      : communities;
 
   // Auto-calculate area_sqm from sqft
   const handleAreaSqftChange = (val: string) => {
@@ -258,7 +272,7 @@ export function PropertyForm({
         description,
         subcategory: subcategory || null,
         status,
-        country: property?.country ?? "",
+        country: property?.country || country,
         city,
         community,
         address,
@@ -467,11 +481,18 @@ export function PropertyForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Community</Label>
-            <Input
+            <select
               value={community}
               onChange={(e) => setCommunity(e.target.value)}
-              placeholder="e.g. Dubai Marina"
-            />
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+            >
+              <option value="">None</option>
+              {communityOptions.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <Label>Address</Label>

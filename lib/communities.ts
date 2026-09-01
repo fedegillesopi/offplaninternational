@@ -125,3 +125,32 @@ export async function getCommunityBySlug(
 
   return toCommunity(data as unknown as CommunityRow, locale);
 }
+
+export interface CommunityOption {
+  slug: string;
+  name: string;
+}
+
+export async function getCommunitiesByCountry(
+  country: string,
+  locale: string,
+): Promise<CommunityOption[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*, community_translations(*)")
+    .eq("country", country)
+    .eq("is_active", true)
+    .order("slug");
+
+  if (error) {
+    console.error("getCommunitiesByCountry:", error.message);
+    return [];
+  }
+
+  return (data as unknown as CommunityRow[])
+    .map((row) => toCommunity(row, locale))
+    .sort((a, b) => a.name.localeCompare(b.name, locale))
+    .map((c) => ({ slug: c.slug, name: c.name }));
+}

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { PropertyForm } from "@/components/platform/property-form";
 import { getMyProperty } from "@/lib/properties";
@@ -6,6 +7,7 @@ import { getCitiesByCountry } from "@/lib/cities";
 import { getPropertyAmenities } from "@/lib/property-amenities";
 import { getPropertySubcategories } from "@/lib/property-subcategories";
 import { getCountryCode, getCountryLabel } from "@/lib/countries";
+import { getCommunitiesByCountry } from "@/lib/communities";
 import type { PaymentPlanMilestone } from "@/lib/types";
 
 interface EditPropertyPageProps {
@@ -34,9 +36,12 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
 
   if (!property) redirect("/app/properties");
 
+  const cookieStore = await cookies();
+  const locale = cookieStore.get("NEXT_LOCALE")?.value ?? "ae";
   const countryCode = getCountryCode(profile.operating_country);
   const countryLabel = getCountryLabel(profile.operating_country);
   const cities = await getCitiesByCountry(countryCode);
+  const communities = await getCommunitiesByCountry(countryCode, locale);
   const amenities = await getPropertyAmenities();
   const subcategories = await getPropertySubcategories();
 
@@ -88,7 +93,9 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
           userId={user.id}
           userRole={profile.role}
           cities={cities}
+          communities={communities}
           countryLabel={countryLabel}
+          country={countryCode}
           amenities={amenities}
           subcategories={subcategories}
           developments={developments}

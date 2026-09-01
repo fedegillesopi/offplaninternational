@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Bed, Bath, MapPin, Phone, MessageCircle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { CurrencyPrice } from "@/components/shared/currency-price";
+import { stripHtmlToText } from "@/lib/utils";
 import type { PropertyData } from "@/lib/types";
 
 export async function PropertyCard({ property }: { property: PropertyData }) {
@@ -54,8 +55,23 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
           </div>
           <div className="flex items-center gap-1 font-body text-sm font-light text-[--grey-300]">
             <MapPin className="h-4 w-4 text-[--primary-main]" />
+            {property.country && (
+              <>
+                <span>{property.country}</span>
+                <span>,</span>
+              </>
+            )}
             <span>{property.city}</span>
-            <span>{property.community}</span>
+            {property.community_slug ? (
+              <Link
+                href={`/community/${property.community_slug}`}
+                className="text-[--primary-main] hover:underline"
+              >
+                {property.community_name}
+              </Link>
+            ) : (
+              <span>{property.community_name}</span>
+            )}
           </div>
           {property.developer_logo && (
             <Image
@@ -69,7 +85,7 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
         </div>
 
         <p className="line-clamp-2 font-body text-base font-regular text-[--text-primary]">
-          {property.description}
+          {stripHtmlToText(property.description)}
         </p>
 
         <div className="flex gap-2">

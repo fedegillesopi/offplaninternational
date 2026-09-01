@@ -73,7 +73,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                 {formatPrice(p.price, p.currency)}
               </td>
               <td className="px-4 py-3 text-muted-foreground">
-                {p.city}{p.community ? ` · ${p.community}` : ""}
+                {p.city}{p.community_name ? ` · ${p.community_name}` : ""}
               </td>
               <td className="px-4 py-3 text-muted-foreground">
                 {p.beds} bed · {p.baths} bath · {p.area.toLocaleString()} sqft

@@ -63,11 +63,24 @@ export default async function PropertyDetailPage({
               <div className="flex flex-wrap items-center gap-2 font-body text-sm font-light text-[--text-primary]">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4 text-[--primary-main]" />
-                  <span>{property.country}</span>
-                  <span>,</span>
+                  {property.country && (
+                    <>
+                      <span>{property.country}</span>
+                      <span>,</span>
+                    </>
+                  )}
                   <span>{property.city}</span>
                   <span>,</span>
-                  <span>{property.community}</span>
+                  {property.community_slug ? (
+                    <Link
+                      href={`/community/${property.community_slug}`}
+                      className="text-[--primary-main] hover:underline"
+                    >
+                      {property.community_name}
+                    </Link>
+                  ) : (
+                    <span>{property.community_name}</span>
+                  )}
                 </div>
 
                 <span className="text-[--grey-200]">|</span>
