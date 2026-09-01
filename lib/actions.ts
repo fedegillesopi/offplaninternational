@@ -209,7 +209,7 @@ export interface SavePropertyPayload {
   title: string;
   slug: string;
   description: string;
-  property_type: string;
+  subcategory: string | null;
   status: string;
   country: string;
   city: string;
@@ -242,7 +242,6 @@ const MAX_TITLE = 200;
 const MAX_ADDRESS = 500;
 const MAX_COMMUNITY = 200;
 
-const PROPERTY_TYPES = ["apartment", "villa", "townhouse", "penthouse", "duplex"];
 const STATUSES = ["available", "sold", "reserved", "off_market"];
 const CURRENCIES = ["AED", "USD", "EUR", "GBP"];
 
@@ -286,15 +285,13 @@ export async function saveProperty(
   const description = sanitizeUserHtml(payload.description);
   const community = toNull(payload.community);
   const address = toNull(payload.address);
+  const subcategory = toNull(payload.subcategory);
 
   if (!title) return { id: null, error: "Title is required." };
   if (title.length > MAX_TITLE) return { id: null, error: "Title is too long." };
   if (!/^[a-z0-9-]+$/.test(slug)) return { id: null, error: "Invalid slug." };
   if (description.length > MAX_DESCRIPTION) {
     return { id: null, error: "Description is too long." };
-  }
-  if (!PROPERTY_TYPES.includes(payload.property_type)) {
-    return { id: null, error: "Invalid property type." };
   }
   if (!STATUSES.includes(payload.status)) {
     return { id: null, error: "Invalid status." };
@@ -310,6 +307,20 @@ export async function saveProperty(
   }
   if (address && address.length > MAX_ADDRESS) {
     return { id: null, error: "Address is too long." };
+  }
+  if (subcategory && subcategory.length > 200) {
+    return { id: null, error: "Subcategory is too long." };
+  }
+  if (subcategory) {
+    const { data: subcat, error: subcatError } = await supabase
+      .from("property_subcategories")
+      .select("slug")
+      .eq("slug", subcategory)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (subcatError || !subcat) {
+      return { id: null, error: "Invalid subcategory." };
+    }
   }
   if (
     payload.deposit_percentage !== null &&
@@ -335,7 +346,7 @@ export async function saveProperty(
     title,
     slug,
     description,
-    property_type: payload.property_type,
+    subcategory,
     status: payload.status,
     country: payload.country,
     city: payload.city.trim(),

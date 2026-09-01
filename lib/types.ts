@@ -2,8 +2,6 @@ export type UserRole = "developer" | "broker" | "private_seller";
 
 export type PropertyStatus = "available" | "sold" | "reserved" | "off_market";
 
-export type PropertyType = "apartment" | "villa" | "townhouse" | "penthouse" | "duplex";
-
 export type PropertyCurrency = "AED" | "USD" | "EUR" | "GBP";
 
 export interface UserProfile {
@@ -108,8 +106,6 @@ export interface PropertyData {
   community: string;
   address: string | null;
 
-  property_type: PropertyType;
-  category: string;
   subcategory: string;
   beds: number;
   baths: number;

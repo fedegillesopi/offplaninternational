@@ -15,7 +15,7 @@ interface PropertyRow {
   city: string;
   community: string | null;
   address: string | null;
-  property_type: string;
+  subcategory: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
   area_sqft: number | null;
@@ -49,14 +49,6 @@ interface PropertyRow {
   } | null;
   payment_plan_milestones: PaymentPlanMilestone[] | null;
 }
-
-const CATEGORY_MAP: Record<string, string> = {
-  apartment: "Apartment",
-  villa: "Villa",
-  townhouse: "Townhouse",
-  penthouse: "Penthouse",
-  duplex: "Duplex",
-};
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -105,9 +97,7 @@ function toPropertyData(
     community: row.community ?? "",
     address: row.address,
 
-    property_type: row.property_type as PropertyData["property_type"],
-    category: CATEGORY_MAP[row.property_type] ?? row.property_type,
-    subcategory: CATEGORY_MAP[row.property_type] ?? row.property_type,
+    subcategory: row.subcategory ?? "",
     beds: row.bedrooms ?? 0,
     baths: row.bathrooms ?? 0,
     area: row.area_sqft ?? 0,

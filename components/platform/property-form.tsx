@@ -33,14 +33,6 @@ interface PropertyFormProps {
   developments: { id: string; name: string }[];
 }
 
-const PROPERTY_TYPES = [
-  { value: "apartment", label: "Apartment" },
-  { value: "villa", label: "Villa" },
-  { value: "townhouse", label: "Townhouse" },
-  { value: "penthouse", label: "Penthouse" },
-  { value: "duplex", label: "Duplex" },
-];
-
 const STATUSES = [
   { value: "available", label: "Available" },
   { value: "sold", label: "Sold" },
@@ -85,7 +77,6 @@ export function PropertyForm({
   // Basic Info
   const [title, setTitle] = useState(property?.title ?? "");
   const [description, setDescription] = useState(property?.description ?? "");
-  const [propertyType, setPropertyType] = useState<string>(property?.property_type ?? "apartment");
   const [status, setStatus] = useState<string>(property?.status ?? "available");
   const [subcategory, setSubcategory] = useState(property?.subcategory ?? "");
 
@@ -226,7 +217,7 @@ export function PropertyForm({
     : Boolean(
       title !== property!.title ||
       description.trim() !== toEditorHtml(property!.description || "").trim() ||
-      propertyType !== property!.property_type ||
+      subcategory !== property!.subcategory ||
       status !== property!.status ||
       city !== property!.city ||
       community !== property!.community ||
@@ -265,7 +256,7 @@ export function PropertyForm({
         title,
         slug,
         description,
-        property_type: propertyType,
+        subcategory: subcategory || null,
         status,
         country: property?.country ?? "",
         city,
@@ -410,21 +401,7 @@ export function PropertyForm({
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Property Type</Label>
-            <select
-              value={propertyType}
-              onChange={(e) => setPropertyType(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-            >
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Subcategory</Label>
             <select

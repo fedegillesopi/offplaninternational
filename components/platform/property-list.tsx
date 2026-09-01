@@ -13,14 +13,6 @@ const STATUS_STYLES: Record<string, string> = {
   off_market: "bg-gray-100 text-gray-600",
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  apartment: "Apartment",
-  villa: "Villa",
-  townhouse: "Townhouse",
-  penthouse: "Penthouse",
-  duplex: "Duplex",
-};
-
 function formatPrice(price: number, currency: string): string {
   return `${currency} ${price.toLocaleString()}`;
 }
@@ -66,7 +58,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                 <div>
                   <p className="font-medium">{p.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {TYPE_LABELS[p.property_type] ?? p.property_type}
+                    {p.subcategory || p.city}
                   </p>
                 </div>
               </td>

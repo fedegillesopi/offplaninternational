@@ -73,7 +73,7 @@ export default async function PropertyDetailPage({
                 <span className="text-[--grey-200]">|</span>
 
                 <span className="font-medium text-[--primary-main]">
-                  {property.category}
+                  {property.subcategory}
                 </span>
 
                 <span className="text-[--grey-200]">|</span>

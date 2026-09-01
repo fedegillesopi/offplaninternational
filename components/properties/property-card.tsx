@@ -32,7 +32,7 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
 
       <div className="flex flex-1 flex-col gap-2 px-2 py-4 md:gap-4 md:p-6">
         <div className="flex items-center gap-1 font-body text-sm font-light text-[--text-primary]">
-          <span className="font-medium text-[--primary-main]">{property.category}</span>
+          <span className="font-medium text-[--primary-main]">{property.subcategory}</span>
           <span className="text-[--grey-200]">|</span>
           <Bed className="h-4 w-4" />
           <span className="text-md font-medium">{property.beds}</span>
