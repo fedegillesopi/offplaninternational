@@ -129,6 +129,7 @@ export interface PropertyData {
   images: string[];
   cover_image: string | null;
   amenities: string[];
+  amenity_names: Record<string, string>;
   tags: string[];
 
   is_featured: boolean;

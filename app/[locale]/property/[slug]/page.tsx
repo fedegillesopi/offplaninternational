@@ -146,6 +146,7 @@ export default async function PropertyDetailPage({
 
             <PropertyAmenitiesGrid
               amenities={property.amenities}
+              amenityNames={property.amenity_names}
               title={td("property_amenities")}
             />
 

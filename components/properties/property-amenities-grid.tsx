@@ -2,44 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Dumbbell,
-  Car,
-  Shield,
-  Bell,
-  Flower2,
-  Sun,
-  Sparkles,
-  ToyBrick,
-  PawPrint,
-  Home,
-  Binoculars,
-  Waves,
-  X,
-} from "lucide-react";
+import { Check, X } from "lucide-react";
 
-const amenityIconMap: Record<string, { icon: typeof Dumbbell; label: string }> = {
-  pool: { icon: Waves, label: "Luxury Pool" },
-  gym: { icon: Dumbbell, label: "Fully Equipped Gym" },
-  parking: { icon: Car, label: "Covered Parking" },
-  security: { icon: Shield, label: "24/7 Security" },
-  concierge: { icon: Bell, label: "Concierge Service" },
-  garden: { icon: Flower2, label: "Private Garden" },
-  balcony: { icon: Sun, label: "Balcony" },
-  spa: { icon: Sparkles, label: "Spa & Wellness" },
-  kids_play: { icon: ToyBrick, label: "Kids Play Area" },
-  pet_friendly: { icon: PawPrint, label: "Pet Friendly" },
-  smart_home: { icon: Home, label: "Smart Home System" },
-  sea_view: { icon: Binoculars, label: "Sea View" },
-};
+function humanizeSlug(slug: string): string {
+  return slug
+    .replace(/[-_]/g, " ")
+    .replace(/\.\w*/g, "")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 const VISIBLE_COUNT = 4;
 
 export function PropertyAmenitiesGrid({
   amenities,
+  amenityNames,
   title,
 }: {
   amenities: string[];
+  amenityNames?: Record<string, string>;
   title: string;
 }) {
   const t = useTranslations("property_detail");
@@ -56,7 +36,10 @@ export function PropertyAmenitiesGrid({
     };
   }, [isModalOpen]);
 
-  const filtered = amenities.filter((key) => amenityIconMap[key]);
+  const filtered = amenities.map((key) => {
+    const name = amenityNames?.[key] ?? humanizeSlug(key);
+    return { slug: key, name };
+  });
 
   if (filtered.length === 0) return null;
 
@@ -71,22 +54,20 @@ export function PropertyAmenitiesGrid({
         </h3>
 
         <div className="flex flex-wrap gap-2">
-          {visible.map((key) => {
-            const amenity = amenityIconMap[key];
-            const Icon = amenity.icon;
-            return (
-              <div
-                key={key}
-                className="flex flex-col items-center gap-1 rounded-1 bg-[--primary-light] p-2 text-center"
-                style={{ width: "100px", height: "100px" }}
-              >
-                <Icon className="h-8 w-8 text-[--primary-main]" />
-                <span className="font-body text-sm font-regular text-[--primary-main]">
-                  {amenity.label}
-                </span>
-              </div>
-            );
-          })}
+          {visible.map(({ slug, name }) => (
+            <div
+              key={slug}
+              className="flex flex-col items-center gap-1 rounded-1 bg-[--primary-light] p-2 text-center"
+              style={{ width: "100px", height: "100px" }}
+            >
+              <span className="flex h-8 w-8 items-center justify-center text-[--primary-main]">
+                <Check className="h-5 w-5" />
+              </span>
+              <span className="font-body text-sm font-regular text-[--primary-main]">
+                {name}
+              </span>
+            </div>
+          ))}
           {hasMore && (
             <button
               onClick={() => setModalOpen(true)}
@@ -125,23 +106,19 @@ export function PropertyAmenitiesGrid({
               </button>
             </div>
             <div className="overflow-y-auto">
-              {filtered.map((key, index) => {
-                const amenity = amenityIconMap[key];
-                const Icon = amenity.icon;
-                return (
-                  <div key={key}>
-                    <div className="flex items-center gap-3 px-1 py-3">
-                      <Icon className="h-5 w-5 shrink-0 text-[--primary-main]" />
-                      <span className="font-body text-base font-regular text-[--text-primary]">
-                        {amenity.label}
-                      </span>
-                    </div>
-                    {index < filtered.length - 1 && (
-                      <div className="h-px w-full bg-[--grey-50]" />
-                    )}
+              {filtered.map(({ slug, name }, index) => (
+                <div key={slug}>
+                  <div className="flex items-center gap-3 px-1 py-3">
+                    <Check className="h-5 w-5 shrink-0 text-[--primary-main]" />
+                    <span className="font-body text-base font-regular text-[--text-primary]">
+                      {name}
+                    </span>
                   </div>
-                );
-              })}
+                  {index < filtered.length - 1 && (
+                    <div className="h-px w-full bg-[--grey-50]" />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
