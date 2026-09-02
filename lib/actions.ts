@@ -220,8 +220,6 @@ export interface SavePropertyPayload {
   area_sqft: number | null;
   area_sqm: number | null;
   floor: number | null;
-  has_balcony: boolean;
-  has_garden: boolean;
   price: number;
   currency: string;
   deposit_percentage: number | null;
@@ -356,8 +354,6 @@ export async function saveProperty(
     area_sqft,
     area_sqm,
     floor: toNumNull(payload.floor),
-    has_balcony: payload.has_balcony,
-    has_garden: payload.has_garden,
     price: payload.price,
     currency: payload.currency,
     deposit_percentage: toNumNull(payload.deposit_percentage),

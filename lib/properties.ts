@@ -23,8 +23,6 @@ interface PropertyRow {
   area_sqft: number | null;
   area_sqm: number | null;
   floor: number | null;
-  has_balcony: boolean;
-  has_garden: boolean;
   price: number;
   currency: string;
   deposit_percentage: number | null;
@@ -188,8 +186,6 @@ function toPropertyData(
     area_sqft: row.area_sqft,
     area_sqm: row.area_sqm,
     floor: row.floor,
-    has_balcony: row.has_balcony,
-    has_garden: row.has_garden,
 
     price: row.price,
     currency: row.currency as PropertyData["currency"],

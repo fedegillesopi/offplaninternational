@@ -100,8 +100,6 @@ export function PropertyForm({
   const [areaSqft, setAreaSqft] = useState(property?.area_sqft?.toString() ?? "");
   const [areaSqm, setAreaSqm] = useState(property?.area_sqm?.toString() ?? "");
   const [floor, setFloor] = useState(property?.floor?.toString() ?? "");
-  const [hasBalcony, setHasBalcony] = useState(property?.has_balcony ?? false);
-  const [hasGarden, setHasGarden] = useState(property?.has_garden ?? false);
 
   // Pricing
   const [price, setPrice] = useState(property?.price?.toString() ?? "");
@@ -249,8 +247,6 @@ export function PropertyForm({
       (areaSqft || "") !== (property!.area_sqft?.toString() || "") ||
       (areaSqm || "") !== (property!.area_sqm?.toString() || "") ||
       (floor || "") !== (property!.floor?.toString() || "") ||
-      hasBalcony !== property!.has_balcony ||
-      hasGarden !== property!.has_garden ||
       (price || "0") !== (property!.price?.toString() || "0") ||
       currency !== property!.currency ||
       (depositPercentage || "") !== (property!.deposit_percentage?.toString() || "") ||
@@ -288,8 +284,6 @@ export function PropertyForm({
         area_sqft: areaSqft ? Number(areaSqft) : null,
         area_sqm: areaSqm ? Number(areaSqm) : null,
         floor: floor ? Number(floor) : null,
-        has_balcony: hasBalcony,
-        has_garden: hasGarden,
         price: price ? Number(price) : 0,
         currency,
         deposit_percentage: depositPercentage ? Number(depositPercentage) : null,
@@ -588,29 +582,6 @@ export function PropertyForm({
               onChange={(e) => setAreaSqm(e.target.value)}
               placeholder="Auto-calculated"
             />
-          </div>
-        </div>
-
-        <div className="flex gap-6">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="has_balcony"
-              checked={hasBalcony}
-              onCheckedChange={(c) => setHasBalcony(c === true)}
-            />
-            <Label htmlFor="has_balcony" className="font-normal">
-              Balcony
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="has_garden"
-              checked={hasGarden}
-              onCheckedChange={(c) => setHasGarden(c === true)}
-            />
-            <Label htmlFor="has_garden" className="font-normal">
-              Garden
-            </Label>
           </div>
         </div>
       </div>

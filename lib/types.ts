@@ -101,9 +101,6 @@ export interface PropertyData {
   area_sqft: number | null;
   area_sqm: number | null;
   floor: number | null;
-  has_balcony: boolean;
-  has_garden: boolean;
-
   price: number;
   currency: PropertyCurrency;
   deposit_percentage: number | null;
