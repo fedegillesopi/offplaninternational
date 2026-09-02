@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-header";
 import { PropertyForm } from "@/components/platform/property-form";
 import { getCitiesByCountry } from "@/lib/cities";
 import { getPropertyAmenities } from "@/lib/property-amenities";
@@ -57,7 +58,7 @@ export default async function NewPropertyPage() {
 
   return (
     <div className="p-4 lg:p-6">
-      <h1 className="text-2xl font-bold">Create Property</h1>
+      <PageHeader title="Create Property" backHref="/app/properties" />
       <div className="mt-6">
         <PropertyForm
           property={null}

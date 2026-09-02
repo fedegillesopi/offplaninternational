@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-header";
 import { PropertyForm } from "@/components/platform/property-form";
 import { getMyProperty } from "@/lib/properties";
 import { getCitiesByCountry } from "@/lib/cities";
@@ -68,7 +69,7 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
 
   return (
     <div className="p-4 lg:p-6">
-      <h1 className="text-2xl font-bold">Edit Property</h1>
+      <PageHeader title="Edit Property" backHref="/app/properties" />
       <div className="mt-6">
         <PropertyForm
           property={property}

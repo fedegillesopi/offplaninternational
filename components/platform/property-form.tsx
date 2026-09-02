@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ImageUpload } from "@/components/platform/image-upload";
-import { RichTextEditor } from "@/components/platform/rich-text-editor";
+import { BasicInformationSection } from "@/components/platform/property-form/basic-information-section";
+import { LocationSection } from "@/components/platform/property-form/location-section";
+import { PropertyDetailsSection } from "@/components/platform/property-form/property-details-section";
+import { DevelopmentDetailsSection } from "@/components/platform/property-form/development-details-section";
+import { TagsSection } from "@/components/platform/property-form/tags-section";
+import { AmenitiesSection } from "@/components/platform/property-form/amenities-section";
+import { ImagesSection } from "@/components/platform/property-form/images-section";
+import { VisibilitySection } from "@/components/platform/property-form/visibility-section";
 import { saveProperty, deleteProperty } from "@/lib/actions";
 import { uploadImage } from "@/lib/storage";
-import { isHtmlText, slugify, toEditorHtml } from "@/lib/utils";
+import { slugify, toEditorHtml } from "@/lib/utils";
 import type { PropertyData, UserRole } from "@/lib/types";
 import type { PropertyAmenity } from "@/lib/property-amenities";
 import type { PropertySubcategory } from "@/lib/property-subcategories";
@@ -32,26 +32,6 @@ interface PropertyFormProps {
   ownDeveloperName?: string;
 }
 
-const STATUSES = [
-  { value: "available", label: "Available" },
-  { value: "sold", label: "Sold" },
-  { value: "reserved", label: "Reserved" },
-  { value: "off_market", label: "Off Market" },
-];
-
-const CURRENCIES = [
-  { value: "AED", label: "AED" },
-  { value: "USD", label: "USD" },
-  { value: "EUR", label: "EUR" },
-  { value: "GBP", label: "GBP" },
-];
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="text-lg font-medium border-b pb-2">{children}</h3>
-  );
-}
-
 export function PropertyForm({
   property,
   userId,
@@ -66,8 +46,6 @@ export function PropertyForm({
   ownDeveloperName = "",
 }: PropertyFormProps) {
   const router = useRouter();
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,10 +109,8 @@ export function PropertyForm({
   const [tags, setTags] = useState<string[]>(property?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
 
-  // Links
+  // Links + Development Details
   const [developmentId, setDevelopmentId] = useState(property?.development_id ?? "");
-
-  // Development Details
   const [development, setDevelopment] = useState(property?.development ?? "");
   const [developmentArea, setDevelopmentArea] = useState(
     property?.development_area?.toString() ?? "",
@@ -150,8 +126,6 @@ export function PropertyForm({
 
   const cityOptions = city && !cities.includes(city) ? [city, ...cities] : cities;
 
-  const CUSTOM_VALUE = "__custom__";
-
   const filteredCommunities = useMemo(() => {
     const existingCommunity = property?.community
       ? communities.find((c) => c.slug === property.community)
@@ -160,14 +134,14 @@ export function PropertyForm({
       ? communities
       : property?.community
         ? [
-            { slug: property.community, name: property.community, city: null },
-            ...communities,
-          ]
+          { slug: property.community, name: property.community, city: null },
+          ...communities,
+        ]
         : communities;
     return options.filter((c) => !c.city || c.city === city);
   }, [communities, city, property?.community]);
 
-  const communitySelectValue = communityIsCustom ? CUSTOM_VALUE : community;
+  const CUSTOM_VALUE = "__custom__";
 
   // Auto-calculate area_sqm from sqft
   const handleAreaSqftChange = (val: string) => {
@@ -199,7 +173,6 @@ export function PropertyForm({
       setTags([...tags, t]);
     }
     setTagInput("");
-    tagInputRef.current?.focus();
   };
 
   const removeTag = (tag: string) => {
@@ -232,6 +205,33 @@ export function PropertyForm({
     setSelectedAmenities((prev) =>
       prev.includes(slug) ? prev.filter((a) => a !== slug) : [...prev, slug],
     );
+  };
+
+  // City change also resets community if no longer matching
+  const handleCityChange = (newCity: string) => {
+    setCity(newCity);
+    if (
+      community &&
+      !communities.some(
+        (c) => c.slug === community && (!c.city || c.city === newCity),
+      )
+    ) {
+      setCommunity("");
+      setCommunityCustom("");
+      setCommunityIsCustom(false);
+    }
+  };
+
+  const handleCommunityChange = (val: string) => {
+    if (val === CUSTOM_VALUE) {
+      setCommunity("");
+      setCommunityCustom("");
+      setCommunityIsCustom(true);
+    } else {
+      setCommunity(val);
+      setCommunityCustom("");
+      setCommunityIsCustom(false);
+    }
   };
 
   // Copy public URL
@@ -332,7 +332,6 @@ export function PropertyForm({
   // Delete
   const handleDelete = async () => {
     if (!property?.id) return;
-    if (!confirm("Are you sure you want to delete this property?")) return;
 
     setSaving(true);
     setError(null);
@@ -373,555 +372,111 @@ export function PropertyForm({
 
   return (
     <div className="max-w-2xl space-y-8">
-      {/* Basic Information */}
-      <div className="space-y-4">
-        <SectionHeading>Basic Information</SectionHeading>
+      <BasicInformationSection
+        title={title}
+        slug={slug}
+        description={description}
+        subcategory={subcategory}
+        status={status}
+        userId={userId}
+        groupedSubcategories={groupedSubcategories}
+        copied={copied}
+        onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
+        onSubcategoryChange={setSubcategory}
+        onStatusChange={setStatus}
+        onCopy={handleCopy}
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Title</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Luxury Penthouse in Downtown Dubai"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Slug</Label>
-            <div className="flex gap-2">
-              <Input value={slug} readOnly className="bg-muted" />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleCopy}
-                title="Copy public URL"
-              >
-                {copied ? <Check /> : <Copy />}
-              </Button>
-            </div>
-          </div>
-        </div>
+      <LocationSection
+        countryLabel={countryLabel}
+        city={city}
+        cityOptions={cityOptions}
+        community={community}
+        communityIsCustom={communityIsCustom}
+        communityCustom={communityCustom}
+        filteredCommunities={filteredCommunities}
+        address={address}
+        onCityChange={handleCityChange}
+        onCommunityChange={handleCommunityChange}
+        onCommunityCustomChange={setCommunityCustom}
+        onAddressChange={setAddress}
+      />
 
-        <div className="space-y-2">
-          <Label>Description</Label>
-          <RichTextEditor
-            defaultValue={isHtmlText(description) ? description : toEditorHtml(description)}
-            onChange={setDescription}
-            userId={userId}
-            placeholder="Describe the property..."
-            bucket="property-images"
-          />
-        </div>
+      <PropertyDetailsSection
+        bedrooms={bedrooms}
+        bathrooms={bathrooms}
+        floor={floor}
+        areaSqft={areaSqft}
+        areaSqm={areaSqm}
+        price={price}
+        currency={currency}
+        depositPercentage={depositPercentage}
+        depositAmount={depositAmount}
+        hasPostHandover={hasPostHandover}
+        handoverDate={handoverDate}
+        onBedroomsChange={setBedrooms}
+        onBathroomsChange={setBathrooms}
+        onFloorChange={setFloor}
+        onAreaSqftChange={handleAreaSqftChange}
+        onAreaSqmChange={setAreaSqm}
+        onPriceChange={setPrice}
+        onCurrencyChange={setCurrency}
+        onDepositPercentageChange={handleDepositPercentageChange}
+        onDepositAmountChange={setDepositAmount}
+        onHasPostHandoverChange={setHasPostHandover}
+        onHandoverDateChange={setHandoverDate}
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <select
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-            >
-              <option value="">None</option>
-              {Object.entries(groupedSubcategories).map(([cat, subs]) => (
-                <optgroup key={cat} label={cat}>
-                  {subs.map((s) => (
-                    <option key={s.id} value={s.slug}>
-                      {s.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <DevelopmentDetailsSection
+        userRole={userRole}
+        developments={developments}
+        developmentId={developmentId}
+        development={development}
+        developmentArea={developmentArea}
+        developerName={developerName}
+        onDevelopmentIdChange={setDevelopmentId}
+        onDevelopmentChange={setDevelopment}
+        onDevelopmentAreaChange={setDevelopmentArea}
+        onDeveloperNameChange={setDeveloperName}
+      />
 
-      {/* Location */}
-      <div className="space-y-4">
-        <SectionHeading>Location</SectionHeading>
+      <TagsSection
+        tags={tags}
+        tagInput={tagInput}
+        onTagInputChange={setTagInput}
+        onAdd={addTag}
+        onRemove={removeTag}
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Country</Label>
-            <Input value={countryLabel} readOnly className="bg-muted" />
-          </div>
-          <div className="space-y-2">
-            <Label>City</Label>
-            <select
-              value={city}
-              onChange={(e) => {
-                const newCity = e.target.value;
-                setCity(newCity);
-                if (
-                  community &&
-                  !communities.some(
-                    (c) => c.slug === community && (!c.city || c.city === newCity),
-                  )
-                ) {
-                  setCommunity("");
-                  setCommunityCustom("");
-                  setCommunityIsCustom(false);
-                }
-              }}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-            >
-              <option value="">Select city</option>
-              {cityOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Community</Label>
-            <select
-              value={communitySelectValue}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === CUSTOM_VALUE) {
-                  setCommunity("");
-                  setCommunityCustom("");
-                  setCommunityIsCustom(true);
-                } else {
-                  setCommunity(val);
-                  setCommunityCustom("");
-                  setCommunityIsCustom(false);
-                }
-              }}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-            >
-              <option value="">None</option>
-              {filteredCommunities.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-              <option value={CUSTOM_VALUE}>Other (type below)</option>
-            </select>
-            {communitySelectValue === CUSTOM_VALUE && (
-              <Input
-                value={communityCustom}
-                onChange={(e) => setCommunityCustom(e.target.value)}
-                placeholder="Type community name"
-              />
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>Address</Label>
-            <Input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Full address (optional)"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Property Details */}
-      <div className="space-y-4">
-        <SectionHeading>Property Details</SectionHeading>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Bedrooms</Label>
-            <Input
-              type="number"
-              min={0}
-              max={10}
-              value={bedrooms}
-              onChange={(e) => setBedrooms(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Bathrooms</Label>
-            <Input
-              type="number"
-              min={0}
-              max={10}
-              value={bathrooms}
-              onChange={(e) => setBathrooms(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Floor</Label>
-            <Input
-              type="number"
-              min={0}
-              value={floor}
-              onChange={(e) => setFloor(e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Area (sqft)</Label>
-            <Input
-              type="number"
-              min={0}
-              value={areaSqft}
-              onChange={(e) => handleAreaSqftChange(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Area (sqm)</Label>
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              value={areaSqm}
-              onChange={(e) => setAreaSqm(e.target.value)}
-              placeholder="Auto-calculated"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Pricing */}
-      <div className="space-y-4">
-        <SectionHeading>Pricing</SectionHeading>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Price</Label>
-            <Input
-              type="number"
-              min={0}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Currency</Label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Deposit %</Label>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={depositPercentage}
-              onChange={(e) => handleDepositPercentageChange(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Deposit Amount</Label>
-            <Input
-              type="number"
-              min={0}
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="Auto-calculated"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Handover Date</Label>
-            <Input
-              type="date"
-              value={handoverDate}
-              onChange={(e) => setHandoverDate(e.target.value)}
-            />
-          </div>
-          <div className="flex items-end pb-1">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="post_handover"
-                checked={hasPostHandover}
-                onCheckedChange={(c) => setHasPostHandover(c === true)}
-              />
-              <Label htmlFor="post_handover" className="font-normal">
-                Post Handover
-              </Label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Amenities */}
       {amenities.length > 0 && (
-        <div className="space-y-4">
-          <SectionHeading>Amenities</SectionHeading>
-          {Object.entries(groupedAmenities).map(([cat, items]) => (
-            <div key={cat} className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">{cat}</p>
-              <div className="flex flex-wrap gap-2">
-                {items.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => toggleAmenity(a.slug)}
-                    className={`inline-flex items-center rounded-full border px-3 py-1 text-sm transition-colors ${selectedAmenities.includes(a.slug)
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-input text-muted-foreground hover:border-primary/50"
-                      }`}
-                  >
-                    {a.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Images */}
-      <div className="space-y-4">
-        <SectionHeading>Images</SectionHeading>
-
-        <ImageUpload
-          label="Cover Image"
-          value={coverImage}
-          onChange={setCoverImage}
-          userId={userId}
-          folder="covers"
-          bucket="property-images"
+        <AmenitiesSection
+          groupedAmenities={groupedAmenities}
+          selectedAmenities={selectedAmenities}
+          onToggle={toggleAmenity}
         />
-
-        <div className="space-y-2">
-          <Label>Gallery Images ({images.length}/10)</Label>
-          <div className="grid grid-cols-3 gap-3">
-            {images.map((url, i) => (
-              <div key={i} className="relative aspect-square overflow-hidden rounded-md border">
-                <Image
-                  src={url}
-                  alt={`Gallery ${i + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 672px) 33vw, 200px"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute right-1 top-1 h-6 w-6"
-                  onClick={() => removeImage(i)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </div>
-          {images.length < 10 && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-dashed"
-              onClick={() => galleryInputRef.current?.click()}
-              disabled={uploadingGallery}
-            >
-              {uploadingGallery ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Images
-                </>
-              )}
-            </Button>
-          )}
-          <input
-            ref={galleryInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files) handleGalleryUpload(e.target.files);
-              e.target.value = "";
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Tags */}
-      <div className="space-y-4">
-        <SectionHeading>Tags</SectionHeading>
-        <div className="flex gap-2">
-          <Input
-            ref={tagInputRef}
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addTag();
-              }
-            }}
-            placeholder="Type a tag and press Enter"
-          />
-          <Button type="button" variant="outline" onClick={addTag}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-sm"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Links */}
-      {(userRole === "developer" || developments.length > 0) && (
-        <div className="space-y-4">
-          <SectionHeading>Links</SectionHeading>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {developments.length > 0 && (
-              <div className="space-y-2">
-                <Label>Development</Label>
-                <select
-                  value={developmentId}
-                  onChange={(e) => setDevelopmentId(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-                >
-                  <option value="">None</option>
-                  {developments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        </div>
       )}
 
-      {/* Development Details */}
-      <div className="space-y-4">
-        <SectionHeading>Development Details</SectionHeading>
+      <ImagesSection
+        coverImage={coverImage}
+        images={images}
+        uploadingGallery={uploadingGallery}
+        userId={userId}
+        onCoverChange={setCoverImage}
+        onGalleryFiles={handleGalleryUpload}
+        onRemoveImage={removeImage}
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Development</Label>
-            <Input
-              value={development}
-              onChange={(e) => setDevelopment(e.target.value)}
-              placeholder="e.g. One Zabeel"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Development Area (sqft)</Label>
-            <Input
-              type="number"
-              min={0}
-              value={developmentArea}
-              onChange={(e) => setDevelopmentArea(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Developer</Label>
-          <Input
-            value={developerName}
-            onChange={
-              userRole === "developer"
-                ? undefined
-                : (e) => setDeveloperName(e.target.value)
-            }
-            readOnly={userRole === "developer"}
-            className={userRole === "developer" ? "bg-muted" : undefined}
-            placeholder={
-              userRole === "developer"
-                ? "Automatically set to your developer profile"
-                : "Developer name"
-            }
-          />
-        </div>
-      </div>
-
-      {/* Visibility */}
-      <div className="space-y-4">
-        <SectionHeading>Visibility</SectionHeading>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="is_active"
-            checked={isActive}
-            onCheckedChange={(c) => setIsActive(c === true)}
-          />
-          <Label htmlFor="is_active" className="font-normal">
-            Active (visible on public listings)
-          </Label>
-        </div>
-      </div>
-
-      {/* Actions */}
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <div className="flex gap-3">
-        <Button onClick={handleSave} disabled={saving || !hasChanges}>
-          {saving ? "Saving..." : isNew ? "Create Property" : "Save Changes"}
-        </Button>
-        {!isNew && (
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={saving}
-          >
-            Delete
-          </Button>
-        )}
-      </div>
+      <VisibilitySection
+        isActive={isActive}
+        saving={saving}
+        hasChanges={hasChanges}
+        isNew={isNew}
+        error={error}
+        onActiveChange={setIsActive}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

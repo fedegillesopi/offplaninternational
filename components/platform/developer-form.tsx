@@ -219,9 +219,22 @@ export function DeveloperForm({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button onClick={handleSave} disabled={saving || !hasChanges}>
-        {saving ? "Saving..." : isNew ? "Create Profile" : "Save Changes"}
-      </Button>
+      <div className="w-full space-y-3">
+        <Button className="w-full" onClick={handleSave} disabled={saving || !hasChanges}>
+          {saving ? "Saving..." : isNew ? "Create Profile" : "Save Changes"}
+        </Button>
+        {isNew && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => router.push("/app")}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
