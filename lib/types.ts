@@ -128,6 +128,9 @@ export interface PropertyData {
   broker_name: string;
   broker_slug: string;
   private_seller_name: string;
+  developer: string;
+  development: string;
+  development_area: number | null;
   development_name: string;
   development_slug: string;
   development_total_area: number;

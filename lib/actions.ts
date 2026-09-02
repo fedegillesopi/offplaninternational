@@ -230,7 +230,9 @@ export interface SavePropertyPayload {
   tags: string[];
   images: string[];
   cover_image: string | null;
-  developer_id: string | null;
+  development: string | null;
+  development_area: number | null;
+  developer: string | null;
   development_id: string | null;
   is_active: boolean;
 }
@@ -238,6 +240,8 @@ export interface SavePropertyPayload {
 const MAX_TITLE = 200;
 const MAX_ADDRESS = 500;
 const MAX_COMMUNITY = 200;
+const MAX_DEVELOPMENT = 200;
+const MAX_DEVELOPER = 200;
 
 const STATUSES = ["available", "sold", "reserved", "off_market"];
 const CURRENCIES = ["AED", "USD", "EUR", "GBP"];
@@ -248,9 +252,10 @@ function toNull(v: string | undefined | null): string | null {
   return t === "" ? null : t;
 }
 
-function toNumNull(v: number | null | undefined): number | null {
+function toNumNull(v: number | string | null | undefined): number | null {
   if (v === undefined || v === null) return null;
-  return Number.isFinite(v) ? v : null;
+  const n = typeof v === "string" ? Number(v.trim()) : v;
+  return Number.isFinite(n) ? n : null;
 }
 
 export async function saveProperty(
@@ -283,6 +288,8 @@ export async function saveProperty(
   const community = toNull(payload.community);
   const address = toNull(payload.address);
   const subcategory = toNull(payload.subcategory);
+  const development = toNull(payload.development);
+  const developer = toNull(payload.developer);
 
   if (!title) return { id: null, error: "Title is required." };
   if (title.length > MAX_TITLE) return { id: null, error: "Title is too long." };
@@ -328,6 +335,19 @@ export async function saveProperty(
       error: "Deposit percentage must be between 0 and 100.",
     };
   }
+  if (development && development.length > MAX_DEVELOPMENT) {
+    return { id: null, error: "Development is too long." };
+  }
+  if (developer && developer.length > MAX_DEVELOPER) {
+    return { id: null, error: "Developer is too long." };
+  }
+  if (
+    payload.development_area !== null &&
+    payload.development_area !== undefined &&
+    Number(payload.development_area) < 0
+  ) {
+    return { id: null, error: "Development area must be positive." };
+  }
 
   let area_sqft = toNumNull(payload.area_sqft);
   let area_sqm = toNumNull(payload.area_sqm);
@@ -337,6 +357,36 @@ export async function saveProperty(
   let deposit_amount = toNumNull(payload.deposit_amount);
   if (payload.deposit_percentage && !deposit_amount) {
     deposit_amount = Math.round(payload.price * payload.deposit_percentage) / 100;
+  }
+
+  let developer_id: string | null = null;
+  let developer_name: string | null = null;
+  if (listed_by_type === "developer") {
+    const { data: dev } = await supabase
+      .from("developers")
+      .select("id, name")
+      .eq("user_profile_id", user.id)
+      .maybeSingle();
+    developer_id = dev?.id ?? null;
+    developer_name = dev?.name ?? null;
+  }
+
+  let development_id = toNull(payload.development_id);
+  if (!development_id) {
+    development_id = null;
+  } else if (listed_by_type !== "developer") {
+    development_id = null;
+  } else {
+    const { data: devt, error: devtError } = await supabase
+      .from("developments")
+      .select("id")
+      .eq("id", development_id)
+      .eq("developer_id", developer_id ?? "")
+      .eq("is_active", true)
+      .maybeSingle();
+    if (devtError || !devt) {
+      return { id: null, error: "Invalid development." };
+    }
   }
 
   const fields = {
@@ -364,8 +414,11 @@ export async function saveProperty(
     tags: payload.tags,
     images: payload.images,
     cover_image: payload.cover_image,
-    developer_id: toNull(payload.developer_id),
-    development_id: toNull(payload.development_id),
+    development,
+    development_area: toNumNull(payload.development_area),
+    developer: listed_by_type === "developer" ? developer_name : developer,
+    developer_id,
+    development_id,
     is_active: payload.is_active,
   };
 

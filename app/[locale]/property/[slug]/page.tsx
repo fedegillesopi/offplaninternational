@@ -72,7 +72,7 @@ export default async function PropertyDetailPage({
                   <span>{property.city}</span>
                   <span>,</span>
                   {property.community_slug &&
-                  property.community_name !== property.community_slug ? (
+                    property.community_name !== property.community_slug ? (
                     <Link
                       href={`/community/${property.community_slug}`}
                       className="text-[--primary-main] hover:underline"
@@ -162,28 +162,46 @@ export default async function PropertyDetailPage({
                   <span className="font-body text-sm font-light text-[--grey-300]">
                     {td("development_name")}
                   </span>
-                  <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development_name}
-                  </span>
+                  {property.development_slug ? (
+                    <Link
+                      href={`/development/${property.development_slug}`}
+                      className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
+                    >
+                      {property.development_name}
+                    </Link>
+                  ) : (
+                    <span className="font-body text-sm font-medium text-[--text-primary]">
+                      {property.development_name}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
                   <span className="font-body text-sm font-light text-[--grey-300]">
                     {td("total_development_area")}
                   </span>
                   <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development_total_area.toLocaleString()} sqft
+                    {property.development_total_area > 0
+                      ? `${property.development_total_area.toLocaleString()} sqft`
+                      : "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
                   <span className="font-body text-sm font-light text-[--grey-300]">
                     {td("developer_label")}
                   </span>
-                  <Link
-                    href={`/developer/${property.developer_slug}`}
-                    className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
-                  >
-                    {property.developer_name}
-                  </Link>
+                  {property.listed_by_type === "developer" &&
+                  property.developer_slug ? (
+                    <Link
+                      href={`/developer/${property.developer_slug}`}
+                      className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
+                    >
+                      {property.developer_name}
+                    </Link>
+                  ) : (
+                    <span className="font-body text-sm font-medium text-[--text-primary]">
+                      {property.developer_name}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -196,7 +214,7 @@ export default async function PropertyDetailPage({
             <div className="h-px w-full bg-[--grey-50]" />
 
             <div className="flex flex-wrap gap-2 justify-between">
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1">
                 <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
                   {td("community_details")}
                 </h3>

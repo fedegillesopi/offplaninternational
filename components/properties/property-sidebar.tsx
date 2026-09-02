@@ -49,12 +49,18 @@ export async function PropertySidebar({
           <span className="font-body text-xs font-medium text-[--text-primary] tracking-wide">
             {t("development_label")}
           </span>
-          <Link
-            href={`/development/${developmentSlug}`}
-            className="w-full truncate font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
-          >
-            {developmentName}
-          </Link>
+          {developmentSlug ? (
+            <Link
+              href={`/development/${developmentSlug}`}
+              className="w-full truncate font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
+            >
+              {developmentName}
+            </Link>
+          ) : (
+            <span className="w-full truncate font-body text-sm font-medium text-[--text-primary]">
+              {developmentName || "—"}
+            </span>
+          )}
         </div>
         <div className="min-w-0 flex flex-col gap-1">
           <span className="font-body text-xs font-medium text-[--text-primary] tracking-wide">

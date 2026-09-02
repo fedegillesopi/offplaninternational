@@ -29,6 +29,7 @@ interface PropertyFormProps {
   amenities: PropertyAmenity[];
   subcategories: PropertySubcategory[];
   developments: { id: string; name: string }[];
+  ownDeveloperName?: string;
 }
 
 const STATUSES = [
@@ -62,6 +63,7 @@ export function PropertyForm({
   amenities,
   subcategories,
   developments,
+  ownDeveloperName = "",
 }: PropertyFormProps) {
   const router = useRouter();
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -130,8 +132,16 @@ export function PropertyForm({
   const [tagInput, setTagInput] = useState("");
 
   // Links
-  const [developerId, setDeveloperId] = useState(property?.developer_id ?? "");
   const [developmentId, setDevelopmentId] = useState(property?.development_id ?? "");
+
+  // Development Details
+  const [development, setDevelopment] = useState(property?.development ?? "");
+  const [developmentArea, setDevelopmentArea] = useState(
+    property?.development_area?.toString() ?? "",
+  );
+  const [developerName, setDeveloperName] = useState(
+    userRole === "developer" ? ownDeveloperName : (property?.developer ?? ""),
+  );
 
   // Visibility
   const [isActive, setIsActive] = useState(property?.is_active ?? true);
@@ -257,7 +267,9 @@ export function PropertyForm({
       JSON.stringify(images) !== JSON.stringify(property!.images) ||
       JSON.stringify(selectedAmenities) !== JSON.stringify(property!.amenities) ||
       JSON.stringify(tags) !== JSON.stringify(property!.tags) ||
-      (developerId || "") !== (property!.developer_id ?? "") ||
+      (development || "") !== (property!.development || "") ||
+      (developmentArea || "") !== (property!.development_area?.toString() || "") ||
+      (developerName || "") !== (property!.developer ?? "") ||
       (developmentId || "") !== (property!.development_id ?? "") ||
       isActive !== property!.is_active,
     );
@@ -294,7 +306,9 @@ export function PropertyForm({
         tags,
         images,
         cover_image: coverImage || null,
-        developer_id: developerId || null,
+        development: development || null,
+        development_area: developmentArea ? Number(developmentArea) : null,
+        developer: developerName || null,
         development_id: developmentId || null,
         is_active: isActive,
       });
@@ -830,6 +844,51 @@ export function PropertyForm({
           </div>
         </div>
       )}
+
+      {/* Development Details */}
+      <div className="space-y-4">
+        <SectionHeading>Development Details</SectionHeading>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Development</Label>
+            <Input
+              value={development}
+              onChange={(e) => setDevelopment(e.target.value)}
+              placeholder="e.g. One Zabeel"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Development Area (sqft)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={developmentArea}
+              onChange={(e) => setDevelopmentArea(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Developer</Label>
+          <Input
+            value={developerName}
+            onChange={
+              userRole === "developer"
+                ? undefined
+                : (e) => setDeveloperName(e.target.value)
+            }
+            readOnly={userRole === "developer"}
+            className={userRole === "developer" ? "bg-muted" : undefined}
+            placeholder={
+              userRole === "developer"
+                ? "Automatically set to your developer profile"
+                : "Developer name"
+            }
+          />
+        </div>
+      </div>
 
       {/* Visibility */}
       <div className="space-y-4">

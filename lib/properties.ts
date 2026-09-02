@@ -18,6 +18,9 @@ interface PropertyRow {
   community: string | null;
   address: string | null;
   subcategory: string | null;
+  development: string | null;
+  development_area: number | null;
+  developer: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
   area_sqft: number | null;
@@ -208,7 +211,7 @@ function toPropertyData(
     created_at: row.created_at,
     updated_at: row.updated_at,
 
-    developer_name: dev?.name ?? "",
+    developer_name: row.developer ?? dev?.name ?? "",
     developer_slug: dev?.slug ?? "",
     developer_logo: dev?.logo_url ?? "",
     broker_name: brokerName,
@@ -217,9 +220,12 @@ function toPropertyData(
       row.listed_by_type === "private_seller"
         ? row.user_profiles?.full_name ?? ""
         : "",
-    development_name: devt?.name ?? "",
+    developer: row.developer ?? "",
+    development: row.development ?? "",
+    development_area: row.development_area,
+    development_name: row.development ?? devt?.name ?? "",
     development_slug: devt?.slug ?? "",
-    development_total_area: 0,
+    development_total_area: row.development_area ?? 0,
     development_amenities: devt?.amenities ?? [],
     community_name:
       communityData[row.community ?? ""]?.name ?? row.community ?? "",

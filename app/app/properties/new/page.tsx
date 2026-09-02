@@ -34,6 +34,7 @@ export default async function NewPropertyPage() {
   const subcategories = await getPropertySubcategories();
 
   let developments: { id: string; name: string }[] = [];
+  let ownDeveloperName = "";
   if (profile.role === "developer") {
     const { data: dev } = await supabase
       .from("developers")
@@ -42,6 +43,7 @@ export default async function NewPropertyPage() {
       .maybeSingle();
 
     if (dev) {
+      ownDeveloperName = dev.name;
       const { data: devts } = await supabase
         .from("developments")
         .select("id, name")
@@ -68,6 +70,7 @@ export default async function NewPropertyPage() {
           amenities={amenities}
           subcategories={subcategories}
           developments={developments}
+          ownDeveloperName={ownDeveloperName}
         />
       </div>
     </div>
