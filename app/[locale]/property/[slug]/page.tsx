@@ -8,7 +8,6 @@ import { PropertyGallery } from "@/components/properties/property-gallery";
 import { PropertySidebar } from "@/components/properties/property-sidebar";
 import { PropertyDetailsTable } from "@/components/properties/property-details-table";
 import { PropertyAmenitiesGrid } from "@/components/properties/property-amenities-grid";
-import { PropertyPaymentPlan } from "@/components/properties/property-payment-plan";
 import { PropertyTags } from "@/components/properties/property-tags";
 import { PropertyDescription } from "@/components/properties/property-description";
 import { RelatedProperties } from "@/components/properties/related-properties";
@@ -230,12 +229,6 @@ export default async function PropertyDetailPage({
               </div>
 
               <PropertyTags tags={property.tags} />
-            </div>
-
-            <div className="h-px w-full bg-[--grey-50]" />
-
-            <div className="w-full max-w-lg">
-              <PropertyPaymentPlan paymentPlan={property.paymentPlan} />
             </div>
           </div>
 

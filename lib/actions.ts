@@ -228,7 +228,6 @@ export interface SavePropertyPayload {
   deposit_amount: number | null;
   has_post_handover: boolean;
   handover_date: string | null;
-  payment_plan_months: number | null;
   amenities: string[];
   tags: string[];
   images: string[];
@@ -365,7 +364,6 @@ export async function saveProperty(
     deposit_amount,
     has_post_handover: payload.has_post_handover,
     handover_date: toNull(payload.handover_date),
-    payment_plan_months: toNumNull(payload.payment_plan_months),
     amenities: payload.amenities,
     tags: payload.tags,
     images: payload.images,
@@ -430,89 +428,3 @@ export async function deleteProperty(
   return { error: null };
 }
 
-// ── Payment Plan Milestones ─────────────────────────────────────────────────
-
-export interface MilestonePayload {
-  property_id: string;
-  milestones: {
-    id?: string;
-    milestone_name: string;
-    percentage: number;
-    amount: number | null;
-    due_date: string | null;
-    description: string | null;
-    sort_order: number;
-  }[];
-}
-
-const MAX_MILESTONE_NAME = 200;
-
-export async function saveMilestones(
-  payload: MilestonePayload,
-): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
-
-  const { data: property } = await supabase
-    .from("properties")
-    .select("id")
-    .eq("id", payload.property_id)
-    .eq("listed_by_id", user.id)
-    .maybeSingle();
-
-  if (!property) return { error: "Property not found." };
-
-  let totalPercentage = 0;
-  for (const m of payload.milestones) {
-    const name = m.milestone_name.trim();
-    if (!name) return { error: "Milestone name is required." };
-    if (name.length > MAX_MILESTONE_NAME) {
-      return { error: "Milestone name is too long." };
-    }
-    if (m.percentage < 0 || m.percentage > 100) {
-      return { error: "Milestone percentage must be between 0 and 100." };
-    }
-    totalPercentage += m.percentage;
-  }
-
-  if (totalPercentage > 100) {
-    return { error: "Total milestone percentage cannot exceed 100%." };
-  }
-
-  const { error: deleteError } = await supabase
-    .from("payment_plan_milestones")
-    .delete()
-    .eq("property_id", payload.property_id);
-
-  if (deleteError) {
-    console.error("saveMilestones (delete):", deleteError.message);
-    return { error: "Could not save milestones. Please try again." };
-  }
-
-  if (payload.milestones.length > 0) {
-    const rows = payload.milestones.map((m, i) => ({
-      property_id: payload.property_id,
-      milestone_name: m.milestone_name.trim(),
-      percentage: m.percentage,
-      amount: toNumNull(m.amount),
-      due_date: toNull(m.due_date),
-      description: toNull(m.description),
-      sort_order: m.sort_order ?? i,
-    }));
-
-    const { error: insertError } = await supabase
-      .from("payment_plan_milestones")
-      .insert(rows);
-
-    if (insertError) {
-      console.error("saveMilestones (insert):", insertError.message);
-      return { error: "Could not save milestones. Please try again." };
-    }
-  }
-
-  return { error: null };
-}

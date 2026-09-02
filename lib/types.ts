@@ -76,18 +76,6 @@ export interface Development {
   updated_at: string;
 }
 
-export interface PaymentPlanMilestone {
-  id: string;
-  property_id: string;
-  milestone_name: string;
-  percentage: number;
-  amount: number | null;
-  due_date: string | null;
-  description: string | null;
-  sort_order: number;
-  created_at: string;
-}
-
 export interface PropertyData {
   id: string;
   slug: string;
@@ -124,7 +112,6 @@ export interface PropertyData {
   has_post_handover: boolean;
   handover_date: string | null;
   handoverDate: string;
-  payment_plan_months: number | null;
 
   images: string[];
   cover_image: string | null;
@@ -153,12 +140,6 @@ export interface PropertyData {
   community_total_area: number;
   community_description: string;
 
-  paymentPlan: {
-    length: string;
-    depositPercentage: string;
-    depositValue: string;
-    description: string;
-  };
   phone: string;
   whatsapp: string;
 }

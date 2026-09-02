@@ -7,7 +7,6 @@ import { getPropertyAmenities } from "@/lib/property-amenities";
 import { getPropertySubcategories } from "@/lib/property-subcategories";
 import { getCountryCode, getCountryLabel } from "@/lib/countries";
 import { getCommunitiesByCountry } from "@/lib/communities";
-import type { UserProfile } from "@/lib/types";
 
 export default async function NewPropertyPage() {
   const supabase = await createClient();
@@ -60,7 +59,6 @@ export default async function NewPropertyPage() {
       <div className="mt-6">
         <PropertyForm
           property={null}
-          milestones={[]}
           userId={user.id}
           userRole={profile.role}
           cities={cities}

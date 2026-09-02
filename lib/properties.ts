@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { PropertyData, PaymentPlanMilestone } from "@/lib/types";
+import type { PropertyData } from "@/lib/types";
 
 const DEFAULT_LOCALE = "ae";
 
@@ -31,7 +31,6 @@ interface PropertyRow {
   deposit_amount: number | null;
   has_post_handover: boolean;
   handover_date: string | null;
-  payment_plan_months: number | null;
   amenities: string[] | null;
   images: string[] | null;
   cover_image: string | null;
@@ -49,7 +48,6 @@ interface PropertyRow {
     slug: string;
     amenities: string[] | null;
   } | null;
-  payment_plan_milestones: PaymentPlanMilestone[] | null;
 }
 
 function formatDate(iso: string): string {
@@ -146,12 +144,6 @@ function toPropertyData(
 ): PropertyData {
   const dev = row.developers;
   const devt = row.developments;
-  const milestones = (row.payment_plan_milestones ?? [])
-    .sort((a, b) => a.sort_order - b.sort_order);
-
-  const totalDeposit = milestones.length > 0
-    ? milestones[0].percentage
-    : row.deposit_percentage ?? 0;
 
   return {
     id: row.id,
@@ -189,7 +181,6 @@ function toPropertyData(
     has_post_handover: row.has_post_handover,
     handover_date: row.handover_date,
     handoverDate: formatHandoverDate(row.handover_date),
-    payment_plan_months: row.payment_plan_months,
 
     images: row.images ?? [],
     cover_image: row.cover_image,
@@ -222,18 +213,6 @@ function toPropertyData(
     community_total_area: 0,
     community_description: "",
 
-    paymentPlan: {
-      length: row.payment_plan_months
-        ? `${row.payment_plan_months} months`
-        : "",
-      depositPercentage: totalDeposit ? `${totalDeposit}%` : "",
-      depositValue: row.deposit_amount
-        ? `${row.currency} ${row.deposit_amount.toLocaleString()}`
-        : "",
-      description: milestones
-        .map((m) => `${m.percentage}% ${m.milestone_name}`)
-        .join(" / "),
-    },
     phone: "",
     whatsapp: "",
   };
@@ -250,8 +229,7 @@ export async function getPropertyBySlug(
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
-      developments:development_id ( name, slug, amenities ),
-      payment_plan_milestones ( * )
+      developments:development_id ( name, slug, amenities )
     `)
     .eq("slug", slug)
     .eq("is_active", true)
@@ -294,8 +272,7 @@ export async function getRelatedProperties(
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
-      developments:development_id ( name, slug, amenities ),
-      payment_plan_milestones ( * )
+      developments:development_id ( name, slug, amenities )
     `)
     .eq("is_active", true)
     .neq("id", currentId)
@@ -346,8 +323,7 @@ export async function getProperties(): Promise<PropertyData[]> {
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
-      developments:development_id ( name, slug, amenities ),
-      payment_plan_milestones ( * )
+      developments:development_id ( name, slug, amenities )
     `)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -401,8 +377,7 @@ export async function getBrokerActiveProperties(
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
-      developments:development_id ( name, slug, amenities ),
-      payment_plan_milestones ( * )
+      developments:development_id ( name, slug, amenities )
     `)
     .eq("listed_by_id", userProfileId)
     .eq("listed_by_type", "broker")
@@ -441,8 +416,7 @@ export async function getMyProperties(
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
-      developments:development_id ( name, slug, amenities ),
-      payment_plan_milestones ( * )
+      developments:development_id ( name, slug, amenities )
     `)
     .eq("listed_by_id", userProfileId)
     .order("created_at", { ascending: false });
@@ -494,8 +468,7 @@ export async function getMyProperty(
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
-      developments:development_id ( name, slug, amenities ),
-      payment_plan_milestones ( * )
+      developments:development_id ( name, slug, amenities )
     `)
     .eq("id", propertyId)
     .eq("listed_by_id", userProfileId)

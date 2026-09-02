@@ -8,7 +8,6 @@ import { getPropertyAmenities } from "@/lib/property-amenities";
 import { getPropertySubcategories } from "@/lib/property-subcategories";
 import { getCountryCode, getCountryLabel } from "@/lib/countries";
 import { getCommunitiesByCountry } from "@/lib/communities";
-import type { PaymentPlanMilestone } from "@/lib/types";
 
 interface EditPropertyPageProps {
   params: Promise<{ id: string }>;
@@ -65,31 +64,12 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
     }
   }
 
-  const { data: rawMilestones } = await supabase
-    .from("payment_plan_milestones")
-    .select("*")
-    .eq("property_id", id)
-    .order("sort_order");
-
-  const milestones = (rawMilestones ?? []).map(
-    (m: PaymentPlanMilestone) => ({
-      id: m.id,
-      milestone_name: m.milestone_name,
-      percentage: m.percentage,
-      amount: m.amount,
-      due_date: m.due_date,
-      description: m.description,
-      sort_order: m.sort_order,
-    }),
-  );
-
   return (
     <div className="p-4 lg:p-6">
       <h1 className="text-2xl font-bold">Edit Property</h1>
       <div className="mt-6">
         <PropertyForm
           property={property}
-          milestones={milestones}
           userId={user.id}
           userRole={profile.role}
           cities={cities}

@@ -10,11 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/platform/image-upload";
 import { RichTextEditor } from "@/components/platform/rich-text-editor";
-import {
-  MilestonesEditor,
-  type Milestone,
-} from "@/components/platform/milestones-editor";
-import { saveProperty, saveMilestones, deleteProperty } from "@/lib/actions";
+import { saveProperty, deleteProperty } from "@/lib/actions";
 import { uploadImage } from "@/lib/storage";
 import { isHtmlText, slugify, toEditorHtml } from "@/lib/utils";
 import type { PropertyData, UserRole } from "@/lib/types";
@@ -24,7 +20,6 @@ import type { CommunityOption } from "@/lib/communities";
 
 interface PropertyFormProps {
   property: PropertyData | null;
-  milestones: Milestone[];
   userId: string;
   userRole: UserRole;
   cities: string[];
@@ -58,7 +53,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 export function PropertyForm({
   property,
-  milestones: initialMilestones,
   userId,
   userRole,
   cities,
@@ -122,12 +116,6 @@ export function PropertyForm({
     property?.has_post_handover ?? false,
   );
   const [handoverDate, setHandoverDate] = useState(property?.handover_date ?? "");
-  const [paymentPlanMonths, setPaymentPlanMonths] = useState(
-    property?.payment_plan_months?.toString() ?? "",
-  );
-
-  // Milestones
-  const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
 
   // Amenities
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
@@ -269,7 +257,6 @@ export function PropertyForm({
       (depositAmount || "") !== (property!.deposit_amount?.toString() || "") ||
       hasPostHandover !== property!.has_post_handover ||
       (handoverDate || "") !== (property!.handover_date || "") ||
-      (paymentPlanMonths || "") !== (property!.payment_plan_months?.toString() || "") ||
       coverImage !== (property!.cover_image ?? "") ||
       JSON.stringify(images) !== JSON.stringify(property!.images) ||
       JSON.stringify(selectedAmenities) !== JSON.stringify(property!.amenities) ||
@@ -285,7 +272,7 @@ export function PropertyForm({
     setError(null);
 
     try {
-      const { id: savedId, error: saveError } = await saveProperty({
+      const { error: saveError } = await saveProperty({
         id: property?.id,
         title,
         slug,
@@ -309,7 +296,6 @@ export function PropertyForm({
         deposit_amount: depositAmount ? Number(depositAmount) : null,
         has_post_handover: hasPostHandover,
         handover_date: handoverDate || null,
-        payment_plan_months: paymentPlanMonths ? Number(paymentPlanMonths) : null,
         amenities: selectedAmenities,
         tags,
         images,
@@ -322,21 +308,6 @@ export function PropertyForm({
       if (saveError) {
         setError(saveError);
         return;
-      }
-
-      if (savedId && milestones.length > 0) {
-        const { error: milestoneError } = await saveMilestones({
-          property_id: savedId,
-          milestones: milestones.map((m, i) => ({
-            ...m,
-            sort_order: i,
-          })),
-        });
-
-        if (milestoneError) {
-          setError(`Property saved but milestones failed: ${milestoneError}`);
-          return;
-        }
       }
 
       router.refresh();
@@ -708,16 +679,6 @@ export function PropertyForm({
               onChange={(e) => setHandoverDate(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Payment Plan (months)</Label>
-            <Input
-              type="number"
-              min={0}
-              value={paymentPlanMonths}
-              onChange={(e) => setPaymentPlanMonths(e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
           <div className="flex items-end pb-1">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -731,17 +692,6 @@ export function PropertyForm({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Payment Plan Milestones */}
-      <div className="space-y-4">
-        <SectionHeading>Payment Plan Milestones</SectionHeading>
-        <MilestonesEditor
-          value={milestones}
-          onChange={setMilestones}
-          propertyPrice={parseFloat(price) || 0}
-          currency={currency}
-        />
       </div>
 
       {/* Amenities */}
