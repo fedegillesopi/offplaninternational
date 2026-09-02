@@ -62,7 +62,8 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
               </>
             )}
             <span>{property.city}</span>
-            {property.community_slug ? (
+            {property.community_slug &&
+            property.community_name !== property.community_slug ? (
               <Link
                 href={`/community/${property.community_slug}`}
                 className="text-[--primary-main] hover:underline"

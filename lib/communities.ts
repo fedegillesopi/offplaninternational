@@ -129,6 +129,7 @@ export async function getCommunityBySlug(
 export interface CommunityOption {
   slug: string;
   name: string;
+  city: string | null;
 }
 
 export async function getCommunitiesByCountry(
@@ -152,5 +153,5 @@ export async function getCommunitiesByCountry(
   return (data as unknown as CommunityRow[])
     .map((row) => toCommunity(row, locale))
     .sort((a, b) => a.name.localeCompare(b.name, locale))
-    .map((c) => ({ slug: c.slug, name: c.name }));
+    .map((c) => ({ slug: c.slug, name: c.name, city: c.city }));
 }

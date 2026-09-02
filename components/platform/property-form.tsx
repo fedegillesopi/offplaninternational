@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Check, Copy, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
@@ -88,6 +88,16 @@ export function PropertyForm({
   // Location
   const [city, setCity] = useState(property?.city ?? "");
   const [community, setCommunity] = useState(property?.community ?? "");
+  const [communityCustom, setCommunityCustom] = useState(
+    property?.community && !communities.some((c) => c.slug === property.community)
+      ? property.community
+      : "",
+  );
+  const [communityIsCustom, setCommunityIsCustom] = useState(
+    Boolean(
+      property?.community && !communities.some((c) => c.slug === property.community),
+    ),
+  );
   const [address, setAddress] = useState(property?.address ?? "");
 
   // Details
@@ -144,14 +154,24 @@ export function PropertyForm({
 
   const cityOptions = city && !cities.includes(city) ? [city, ...cities] : cities;
 
-  const existingCommunity = property?.community
-    ? communities.find((c) => c.slug === property.community)
-    : undefined;
-  const communityOptions = existingCommunity
-    ? communities
-    : property?.community
-      ? [{ slug: property.community, name: property.community }, ...communities]
-      : communities;
+  const CUSTOM_VALUE = "__custom__";
+
+  const filteredCommunities = useMemo(() => {
+    const existingCommunity = property?.community
+      ? communities.find((c) => c.slug === property.community)
+      : undefined;
+    const options = existingCommunity
+      ? communities
+      : property?.community
+        ? [
+            { slug: property.community, name: property.community, city: null },
+            ...communities,
+          ]
+        : communities;
+    return options.filter((c) => !c.city || c.city === city);
+  }, [communities, city, property?.community]);
+
+  const communitySelectValue = communityIsCustom ? CUSTOM_VALUE : community;
 
   // Auto-calculate area_sqm from sqft
   const handleAreaSqftChange = (val: string) => {
@@ -234,7 +254,7 @@ export function PropertyForm({
       subcategory !== property!.subcategory ||
       status !== property!.status ||
       city !== property!.city ||
-      community !== property!.community ||
+      (communityCustom || community) !== property!.community ||
       (address ?? "") !== (property!.address ?? "") ||
       (bedrooms || "0") !== (property!.beds?.toString() || "0") ||
       (bathrooms || "0") !== (property!.baths?.toString() || "0") ||
@@ -274,7 +294,7 @@ export function PropertyForm({
         status,
         country: property?.country || country,
         city,
-        community,
+        community: communityCustom || community,
         address,
         bedrooms: bedrooms ? Number(bedrooms) : null,
         bathrooms: bathrooms ? Number(bathrooms) : null,
@@ -465,7 +485,20 @@ export function PropertyForm({
             <Label>City</Label>
             <select
               value={city}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={(e) => {
+                const newCity = e.target.value;
+                setCity(newCity);
+                if (
+                  community &&
+                  !communities.some(
+                    (c) => c.slug === community && (!c.city || c.city === newCity),
+                  )
+                ) {
+                  setCommunity("");
+                  setCommunityCustom("");
+                  setCommunityIsCustom(false);
+                }
+              }}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
             >
               <option value="">Select city</option>
@@ -482,17 +515,36 @@ export function PropertyForm({
           <div className="space-y-2">
             <Label>Community</Label>
             <select
-              value={community}
-              onChange={(e) => setCommunity(e.target.value)}
+              value={communitySelectValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === CUSTOM_VALUE) {
+                  setCommunity("");
+                  setCommunityCustom("");
+                  setCommunityIsCustom(true);
+                } else {
+                  setCommunity(val);
+                  setCommunityCustom("");
+                  setCommunityIsCustom(false);
+                }
+              }}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
             >
               <option value="">None</option>
-              {communityOptions.map((c) => (
+              {filteredCommunities.map((c) => (
                 <option key={c.slug} value={c.slug}>
                   {c.name}
                 </option>
               ))}
+              <option value={CUSTOM_VALUE}>Other (type below)</option>
             </select>
+            {communitySelectValue === CUSTOM_VALUE && (
+              <Input
+                value={communityCustom}
+                onChange={(e) => setCommunityCustom(e.target.value)}
+                placeholder="Type community name"
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label>Address</Label>
