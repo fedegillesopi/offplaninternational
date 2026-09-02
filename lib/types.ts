@@ -138,7 +138,7 @@ export interface PropertyData {
   community_name: string;
   community_slug: string;
   community_total_area: number;
-  community_description: string;
+  community_description: string | null;
 
   phone: string;
   whatsapp: string;

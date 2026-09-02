@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { BackToHome } from "@/components/site/back-to-home";
@@ -22,7 +22,8 @@ export default async function PropertyDetailPage({
 }) {
   const { slug } = await params;
   const td = await getTranslations("property_detail");
-  const property = await getPropertyBySlug(slug);
+  const locale = await getLocale();
+  const property = await getPropertyBySlug(slug, locale);
 
   if (!property) notFound();
 
@@ -217,14 +218,16 @@ export default async function PropertyDetailPage({
                       {property.community_total_area.toLocaleString()} sqft
                     </span>
                   </div>
-                  <div className="px-3 py-2">
-                    <span className="font-body text-sm font-light text-[--grey-300]">
-                      {td("description_label")}
-                    </span>
-                    <p className="mt-1 font-body text-sm font-regular text-[--text-primary]">
-                      {property.community_description}
-                    </p>
-                  </div>
+                  {property.community_description && (
+                    <div className="px-3 py-2">
+                      <span className="font-body text-sm font-light text-[--grey-300]">
+                        {td("description_label")}
+                      </span>
+                      <p className="mt-1 font-body text-sm font-regular text-[--text-primary] line-clamp-2">
+                        {property.community_description}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

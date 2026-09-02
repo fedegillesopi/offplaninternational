@@ -65,29 +65,47 @@ function formatHandoverDate(date: string | null): string {
   return `Q${q} - ${d.getFullYear()}`;
 }
 
-async function resolveCommunityNames(
+interface CommunityMeta {
+  name: string;
+  description: string | null;
+}
+
+async function resolveCommunityData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   slugs: string[],
-): Promise<Record<string, string>> {
+  locale: string,
+): Promise<Record<string, CommunityMeta>> {
   const unique = Array.from(new Set(slugs.filter(Boolean)));
   if (unique.length === 0) return {};
 
   const { data, error } = await supabase
     .from("communities")
-    .select("slug, community_translations(locale, name)")
+    .select("slug, community_translations(locale, name, short_description, description)")
     .in("slug", unique);
 
   if (error) return {};
 
-  const map: Record<string, string> = {};
+  const map: Record<string, CommunityMeta> = {};
   for (const row of (data ?? []) as unknown as {
     slug: string;
-    community_translations: { locale: string; name: string }[] | null;
+    community_translations: {
+      locale: string;
+      name: string;
+      short_description: string | null;
+      description: string | null;
+    }[] | null;
   }[]) {
     const tx = row.community_translations ?? [];
-    const name =
-      tx.find((t) => t.locale === DEFAULT_LOCALE)?.name ?? tx[0]?.name ?? row.slug;
-    map[row.slug] = name;
+    const selected =
+      tx.find((t) => t.locale === locale) ??
+      tx.find((t) => t.locale === DEFAULT_LOCALE) ??
+      tx[0];
+    if (!selected) continue;
+    map[row.slug] = {
+      name: selected.name ?? row.slug,
+      description:
+        selected.short_description?.trim() || selected.description?.trim() || null,
+    };
   }
   return map;
 }
@@ -138,7 +156,7 @@ function toPropertyData(
   row: PropertyRow,
   brokerName: string,
   brokerSlug: string,
-  communityNames: Record<string, string>,
+  communityData: Record<string, CommunityMeta>,
   countryFallback: Record<string, string>,
   amenityNames: Record<string, string>,
 ): PropertyData {
@@ -208,10 +226,10 @@ function toPropertyData(
     development_total_area: 0,
     development_amenities: devt?.amenities ?? [],
     community_name:
-      communityNames[row.community ?? ""] ?? row.community ?? "",
+      communityData[row.community ?? ""]?.name ?? row.community ?? "",
     community_slug: row.community ?? "",
     community_total_area: 0,
-    community_description: "",
+    community_description: communityData[row.community ?? ""]?.description ?? null,
 
     phone: "",
     whatsapp: "",
@@ -220,6 +238,7 @@ function toPropertyData(
 
 export async function getPropertyBySlug(
   slug: string,
+  locale: string = DEFAULT_LOCALE,
 ): Promise<PropertyData | null> {
   const supabase = await createClient();
 
@@ -255,10 +274,10 @@ export async function getPropertyBySlug(
     brokerSlug = broker?.slug ?? "";
   }
 
-  const communityNames = await resolveCommunityNames(supabase, [row.community ?? ""]);
+  const communityData = await resolveCommunityData(supabase, [row.community ?? ""], locale);
   const countryFallback = await resolveCountriesFromCities(supabase, [row.city ?? ""]);
   const amenityNames = await resolveAmenityNames(supabase, row.amenities ?? []);
-  return toPropertyData(row, brokerName, brokerSlug, communityNames, countryFallback, amenityNames);
+  return toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames);
 }
 
 export async function getRelatedProperties(
@@ -282,9 +301,10 @@ export async function getRelatedProperties(
   if (error || !data) return [];
 
   const rows = data as unknown as PropertyRow[];
-  const communityNames = await resolveCommunityNames(
+  const communityData = await resolveCommunityData(
     supabase,
     rows.map((r) => r.community ?? ""),
+    DEFAULT_LOCALE,
   );
   const countryFallback = await resolveCountriesFromCities(
     supabase,
@@ -308,7 +328,7 @@ export async function getRelatedProperties(
       brokerName = broker?.name ?? "";
       brokerSlug = broker?.slug ?? "";
     }
-    results.push(toPropertyData(row, brokerName, brokerSlug, communityNames, countryFallback, amenityNames));
+    results.push(toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames));
   }
 
   return results;
@@ -331,9 +351,10 @@ export async function getProperties(): Promise<PropertyData[]> {
   if (error || !data) return [];
 
   const rows = data as unknown as PropertyRow[];
-  const communityNames = await resolveCommunityNames(
+  const communityData = await resolveCommunityData(
     supabase,
     rows.map((r) => r.community ?? ""),
+    DEFAULT_LOCALE,
   );
   const countryFallback = await resolveCountriesFromCities(
     supabase,
@@ -357,7 +378,7 @@ export async function getProperties(): Promise<PropertyData[]> {
       brokerName = broker?.name ?? "";
       brokerSlug = broker?.slug ?? "";
     }
-    results.push(toPropertyData(row, brokerName, brokerSlug, communityNames, countryFallback, amenityNames));
+    results.push(toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames));
   }
 
   return results;
@@ -388,9 +409,10 @@ export async function getBrokerActiveProperties(
   if (error || !data) return [];
 
   const rows = data as unknown as PropertyRow[];
-  const communityNames = await resolveCommunityNames(
+  const communityData = await resolveCommunityData(
     supabase,
     rows.map((r) => r.community ?? ""),
+    DEFAULT_LOCALE,
   );
   const countryFallback = await resolveCountriesFromCities(
     supabase,
@@ -401,7 +423,7 @@ export async function getBrokerActiveProperties(
     rows.flatMap((r) => r.amenities ?? []),
   );
   return rows.map((row) =>
-    toPropertyData(row, brokerName, brokerSlug, communityNames, countryFallback, amenityNames),
+    toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames),
   );
 }
 
@@ -424,9 +446,10 @@ export async function getMyProperties(
   if (error || !data) return [];
 
   const rows = data as unknown as PropertyRow[];
-  const communityNames = await resolveCommunityNames(
+  const communityData = await resolveCommunityData(
     supabase,
     rows.map((r) => r.community ?? ""),
+    DEFAULT_LOCALE,
   );
   const countryFallback = await resolveCountriesFromCities(
     supabase,
@@ -450,7 +473,7 @@ export async function getMyProperties(
       brokerName = broker?.name ?? "";
       brokerSlug = broker?.slug ?? "";
     }
-    results.push(toPropertyData(row, brokerName, brokerSlug, communityNames, countryFallback, amenityNames));
+    results.push(toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames));
   }
 
   return results;
@@ -459,6 +482,7 @@ export async function getMyProperties(
 export async function getMyProperty(
   userProfileId: string,
   propertyId: string,
+  locale: string = DEFAULT_LOCALE,
 ): Promise<PropertyData | null> {
   const supabase = await createClient();
 
@@ -490,8 +514,8 @@ export async function getMyProperty(
     brokerSlug = broker?.slug ?? "";
   }
 
-  const communityNames = await resolveCommunityNames(supabase, [row.community ?? ""]);
+  const communityData = await resolveCommunityData(supabase, [row.community ?? ""], locale);
   const countryFallback = await resolveCountriesFromCities(supabase, [row.city ?? ""]);
   const amenityNames = await resolveAmenityNames(supabase, row.amenities ?? []);
-  return toPropertyData(row, brokerName, brokerSlug, communityNames, countryFallback, amenityNames);
+  return toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames);
 }
