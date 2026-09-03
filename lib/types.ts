@@ -2,8 +2,6 @@ export type UserRole = "developer" | "broker" | "private_seller";
 
 export type PropertyStatus = "available" | "sold" | "reserved" | "off_market";
 
-export type PropertyType = "apartment" | "villa" | "townhouse" | "penthouse" | "duplex";
-
 export type PropertyCurrency = "AED" | "USD" | "EUR" | "GBP";
 
 export interface UserProfile {
@@ -55,6 +53,10 @@ export interface BrokerProfile {
   phone: string | null;
   whatsapp: string | null;
   closed_transactions: number;
+  rera_card_url: string | null;
+  qr_code_url: string | null;
+  agency_orn: string | null;
+  details_confirmed: boolean;
   is_verified: boolean;
   created_at: string;
   updated_at: string;
@@ -78,18 +80,6 @@ export interface Development {
   updated_at: string;
 }
 
-export interface PaymentPlanMilestone {
-  id: string;
-  property_id: string;
-  milestone_name: string;
-  percentage: number;
-  amount: number | null;
-  due_date: string | null;
-  description: string | null;
-  sort_order: number;
-  created_at: string;
-}
-
 export interface PropertyData {
   id: string;
   slug: string;
@@ -108,8 +98,6 @@ export interface PropertyData {
   community: string;
   address: string | null;
 
-  property_type: PropertyType;
-  category: string;
   subcategory: string;
   beds: number;
   baths: number;
@@ -117,9 +105,6 @@ export interface PropertyData {
   area_sqft: number | null;
   area_sqm: number | null;
   floor: number | null;
-  has_balcony: boolean;
-  has_garden: boolean;
-
   price: number;
   currency: PropertyCurrency;
   deposit_percentage: number | null;
@@ -128,11 +113,11 @@ export interface PropertyData {
   has_post_handover: boolean;
   handover_date: string | null;
   handoverDate: string;
-  payment_plan_months: number | null;
 
   images: string[];
   cover_image: string | null;
   amenities: string[];
+  amenity_names: Record<string, string>;
   tags: string[];
 
   is_featured: boolean;
@@ -146,6 +131,10 @@ export interface PropertyData {
   developer_logo: string;
   broker_name: string;
   broker_slug: string;
+  private_seller_name: string;
+  developer: string;
+  development: string;
+  development_area: number | null;
   development_name: string;
   development_slug: string;
   development_total_area: number;
@@ -153,14 +142,8 @@ export interface PropertyData {
   community_name: string;
   community_slug: string;
   community_total_area: number;
-  community_description: string;
+  community_description: string | null;
 
-  paymentPlan: {
-    length: string;
-    depositPercentage: string;
-    depositValue: string;
-    description: string;
-  };
   phone: string;
   whatsapp: string;
 }

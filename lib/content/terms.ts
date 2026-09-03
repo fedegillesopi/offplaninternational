@@ -50,7 +50,7 @@ const pt: Section[] = [
 ]
 
 export function getTermsContent(locale: string): Section[] {
-  const lang = locale === "ae" || locale === "gb" ? "en" :
+  const lang = locale === "ae" || locale === "en" || locale === "gb" ? "en" :
                locale === "br" || locale === "pt" ? "pt" : "es"
   return { en, es, pt }[lang] ?? en
 }

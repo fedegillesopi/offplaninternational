@@ -147,7 +147,7 @@ export function RichTextEditor({
 
       <EditorContent
         editor={editor}
-        className="min-h-[140px] rounded-md border border-input focus-within:ring-1 focus-within:ring-ring"
+        className="max-h-[300px] min-h-[140px] overflow-y-auto rounded-md border border-input focus-within:ring-1 focus-within:ring-ring"
       />
 
       <input

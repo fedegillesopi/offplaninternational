@@ -46,12 +46,7 @@ export function AuthCallbackClient() {
         .single()
 
       if (profile && !profile.profile_completed) {
-        const locale =
-          document.cookie
-            .split("; ")
-            .find((r) => r.startsWith("NEXT_LOCALE="))
-            ?.split("=")[1] || "ae"
-        window.location.href = `/${locale}/auth/onboarding/${profile.role}`
+        window.location.href = `/auth/onboarding/${profile.role}`
       } else {
         window.location.href = "/app"
       }

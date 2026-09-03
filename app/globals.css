@@ -245,3 +245,7 @@
   height: auto;
   border-radius: 8px;
 }
+
+.property-description p {
+  margin-bottom: 1rem;
+}

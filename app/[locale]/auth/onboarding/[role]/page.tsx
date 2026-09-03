@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
@@ -14,9 +14,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/platform/image-upload";
 import { useRouter } from "next/navigation";
 import { Building2, Briefcase, User } from "lucide-react";
 import type { UserRole } from "@/lib/types";
+import { slugify } from "@/lib/utils";
 
 const COUNTRIES = [
   { label: "United Arab Emirates", value: "AE" },
@@ -58,11 +61,26 @@ export default function OnboardingPage() {
   const [companyName, setCompanyName] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [operatingCountry, setOperatingCountry] = useState("AE");
-  const [licenseNumber, setLicenseNumber] = useState("");
+  const [reraCardUrl, setReraCardUrl] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [agencyOrn, setAgencyOrn] = useState("");
+  const [detailsConfirmed, setDetailsConfirmed] = useState(false);
   const [phone, setPhone] = useState("");
   const [countryOfResidence, setCountryOfResidence] = useState("AE");
+  const [userId, setUserId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    loadUser();
+  }, []);
 
   if (!config) {
     return (
@@ -93,10 +111,6 @@ export default function OnboardingPage() {
         updateData.operating_country = operatingCountry;
       }
 
-      if (role === "broker") {
-        updateData.license_number = licenseNumber;
-      }
-
       if (role === "private_seller") {
         updateData.country_of_residence = countryOfResidence;
       }
@@ -107,6 +121,40 @@ export default function OnboardingPage() {
         .eq("id", user.id);
 
       if (updateError) throw updateError;
+
+      if (role === "broker") {
+        const { data: brokerRow } = await supabase
+          .from("broker_profiles")
+          .select("id")
+          .eq("user_profile_id", user.id)
+          .maybeSingle();
+
+        if (brokerRow) {
+          const { error: brokerUpdateError } = await supabase
+            .from("broker_profiles")
+            .update({
+              rera_card_url: reraCardUrl || null,
+              qr_code_url: qrCodeUrl || null,
+              agency_orn: agencyOrn || null,
+              details_confirmed: detailsConfirmed,
+            })
+            .eq("id", brokerRow.id);
+          if (brokerUpdateError) throw brokerUpdateError;
+        } else {
+          const { error: brokerInsertError } = await supabase
+            .from("broker_profiles")
+            .insert({
+              user_profile_id: user.id,
+              name: companyName || user.user_metadata?.full_name || "Broker",
+              slug: slugify(companyName || user.user_metadata?.full_name || "broker"),
+              rera_card_url: reraCardUrl || null,
+              qr_code_url: qrCodeUrl || null,
+              agency_orn: agencyOrn || null,
+              details_confirmed: detailsConfirmed,
+            });
+          if (brokerInsertError) throw brokerInsertError;
+        }
+      }
 
       router.push(`/${locale}/auth/payment`);
     } catch (err) {
@@ -172,16 +220,56 @@ export default function OnboardingPage() {
               )}
 
               {role === "broker" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="licenseNumber">License number *</Label>
-                  <Input
-                    id="licenseNumber"
-                    placeholder="BRK-12345"
-                    required
-                    value={licenseNumber}
-                    onChange={(e) => setLicenseNumber(e.target.value)}
-                  />
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <Label>RERA Broker Card / ID *</Label>
+                    <ImageUpload
+                      label="RERA Broker Card / ID"
+                      value={reraCardUrl}
+                      onChange={setReraCardUrl}
+                      userId={userId}
+                      folder="rera"
+                      bucket="broker-images"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>QR Code</Label>
+                    <ImageUpload
+                      label="QR Code"
+                      value={qrCodeUrl}
+                      onChange={setQrCodeUrl}
+                      userId={userId}
+                      folder="qr"
+                      bucket="broker-images"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="agencyOrn">Agency ORN (Office Registration Number)</Label>
+                    <Input
+                      id="agencyOrn"
+                      placeholder="e.g. ORN-12345"
+                      value={agencyOrn}
+                      onChange={(e) => setAgencyOrn(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The enterprise that employs you must provide its Office
+                      Registration Number.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="detailsConfirmed"
+                      checked={detailsConfirmed}
+                      onCheckedChange={(v) => setDetailsConfirmed(v === true)}
+                    />
+                    <Label htmlFor="detailsConfirmed" className="text-sm">
+                      I confirm these details are up to date
+                    </Label>
+                  </div>
+                </>
               )}
 
               {role === "private_seller" && (
