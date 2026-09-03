@@ -20,10 +20,19 @@ CREATE POLICY "properties_insert"
       SELECT role FROM public.user_profiles WHERE id = auth.uid()
     )
     AND (
-      (listed_by_type = 'developer'
-       AND developer_id = (
-         SELECT id FROM public.developers WHERE user_profile_id = auth.uid()
-       ))
+      (
+        listed_by_type = 'developer'
+        AND developer_id = (
+          SELECT id FROM public.developers WHERE user_profile_id = auth.uid()
+        )
+      )
+      OR (
+        listed_by_type = 'developer'
+        AND developer_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM public.developers WHERE user_profile_id = auth.uid()
+        )
+      )
       OR
       (listed_by_type <> 'developer' AND developer_id IS NULL)
     )
@@ -33,14 +42,24 @@ CREATE POLICY "properties_update"
   ON public.properties FOR UPDATE
   USING (auth.uid() = listed_by_id)
   WITH CHECK (
-    listed_by_type = (
+    auth.uid() = listed_by_id
+    AND listed_by_type = (
       SELECT role FROM public.user_profiles WHERE id = auth.uid()
     )
     AND (
-      (listed_by_type = 'developer'
-       AND developer_id = (
-         SELECT id FROM public.developers WHERE user_profile_id = auth.uid()
-       ))
+      (
+        listed_by_type = 'developer'
+        AND developer_id = (
+          SELECT id FROM public.developers WHERE user_profile_id = auth.uid()
+        )
+      )
+      OR (
+        listed_by_type = 'developer'
+        AND developer_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM public.developers WHERE user_profile_id = auth.uid()
+        )
+      )
       OR
       (listed_by_type <> 'developer' AND developer_id IS NULL)
     )

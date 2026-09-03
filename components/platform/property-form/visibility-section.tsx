@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -27,6 +26,7 @@ interface VisibilitySectionProps {
   onActiveChange: (checked: boolean) => void
   onSave: () => void
   onDelete: () => void
+  onCancel: () => void
 }
 
 export function VisibilitySection({
@@ -38,8 +38,8 @@ export function VisibilitySection({
   onActiveChange,
   onSave,
   onDelete,
+  onCancel,
 }: VisibilitySectionProps) {
-  const router = useRouter()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   return (
@@ -73,7 +73,7 @@ export function VisibilitySection({
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => router.push("/app/properties")}
+            onClick={onCancel}
             disabled={saving}
           >
             Cancel

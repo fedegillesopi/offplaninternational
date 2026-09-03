@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { FormSection } from "@/components/platform/property-form/form-section";
 
 const CURRENCIES = [
@@ -136,17 +137,16 @@ export function PropertyDetailsSection({
           </div>
           <div className="space-y-2">
             <Label>Currency</Label>
-            <select
+            <NativeSelect
               value={currency}
               onChange={(e) => onCurrencyChange(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
             >
               {CURRENCIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         </div>
 

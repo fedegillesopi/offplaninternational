@@ -2,6 +2,7 @@ import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextEditor } from "@/components/platform/rich-text-editor";
 import { FormSection } from "@/components/platform/property-form/form-section";
 import { isHtmlText, toEditorHtml } from "@/lib/utils";
@@ -87,10 +88,9 @@ export function BasicInformationSection({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Category</Label>
-          <select
+          <NativeSelect
             value={subcategory}
             onChange={(e) => onSubcategoryChange(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
           >
             <option value="">None</option>
             {Object.entries(groupedSubcategories).map(([cat, subs]) => (
@@ -102,21 +102,20 @@ export function BasicInformationSection({
                 ))}
               </optgroup>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <div className="space-y-2">
           <Label>Status</Label>
-          <select
+          <NativeSelect
             value={status}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
           >
             {STATUSES.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
     </FormSection>

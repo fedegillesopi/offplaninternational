@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { FormSection } from "@/components/platform/property-form/form-section";
 import type { UserRole } from "@/lib/types";
 
@@ -35,10 +36,9 @@ export function DevelopmentDetailsSection({
       {(isDeveloper || developments.length > 0) && (
         <div className="space-y-2">
           <Label>Development (link)</Label>
-          <select
+          <NativeSelect
             value={developmentId}
             onChange={(e) => onDevelopmentIdChange(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
           >
             <option value="">None</option>
             {developments.map((d) => (
@@ -46,7 +46,7 @@ export function DevelopmentDetailsSection({
                 {d.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       )}
 

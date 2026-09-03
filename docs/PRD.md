@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.8 — 25-Ago-2026
-**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 10 secciones, milestones CRUD, CRUD completo)
+**Versión:** 1.9 — 02-Sep-2026
+**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms)
 
 ---
 
@@ -99,7 +99,7 @@
 | Dashboard de inversor (favoritos, consultas) | Inversor | ❌ Pendiente |
 | Paneles específicos por role (Properties para todos, Analytics para Developer, Broker Profile para Broker, Clients para Broker) | Vendedor | ✅ Implementado (parcial: Properties + profiles)|
 | Broker profile page `/broker/[slug]` (header, description, active properties) + form `/app/broker` + migración 014 | Vendedor/Broker | ✅ Implementado |
-| Property upload form con 10 secciones (basic info, location, details, pricing, milestones, amenities, images, tags, links, visibility) | Vendedor | ✅ Implementado |
+| Property upload form con 11 secciones (basic info, location, details, pricing, milestones, development details, amenities, images, tags, visibility) + back button + AlertDialog delete | Vendedor | ✅ Implementado |
 | MilestonesEditor CRUD para plan de pago | Vendedor | ✅ Implementado |
 | PropertyList table con 7 columnas (property, status, price, location, specs, created, actions) | Vendedor | ✅ Implementado |
 | Dashboard pages: property listing (`/app/properties`), create (`/app/properties/new`), edit (`/app/properties/[id]/edit`) | Vendedor | ✅ Implementado |
@@ -574,39 +574,61 @@ Otras rutas:
 - **Botón "Create Property"** en el header, enlace a `/app/properties/new`
 
 #### 6.8.2 Crear propiedad (/app/properties/new)
-- **Server page:** verifica sesión + perfil (`user_profiles`), carga ciudades por operating country, amenities, subcategories, y developments (solo para developers con `developer_id`)
-- Renderiza `PropertyForm` con `property={null}` (modo creación)
+- **Server page:** verifica sesión + perfil (`user_profiles`), carga ciudades por operating country, amenities, subcategories, communities, y developments (solo para developers con `developer_id`)
+- **PageHeader con back button:** "Back" + flecha → `/app/properties`
+- Renderiza `PropertyForm` con `property={null}` (modo creación), `ownDeveloperName` (nombre del developer del perfil, solo para developer)
 - **Sidebar:** Link "Properties" en `NAV_BY_ROLE` para todos los roles
 
 #### 6.8.3 Editar propiedad (/app/properties/[id]/edit)
 - **Server page:** verifica sesión, carga `getMyProperty(user.id, id)` con ownership check
 - Si la propiedad no existe o no pertenece al usuario → redirect a `/app/properties`
 - Carga milestones de la propiedad (`payment_plan_milestones` filtrado por `property_id`, ordenado por `sort_order`)
-- Renderiza `PropertyForm` con `property={property}` + `milestones` (modo edición)
-- **Delete:** botón destructivo en el form, ejecuta `deleteProperty(id)` con ownership check
+- **PageHeader con back button:** "Back" + flecha → `/app/properties`
+- Renderiza `PropertyForm` con `property={property}` + `milestones` (modo edición), `ownDeveloperName`
+- **Delete:** botón destructivo abre **AlertDialog de confirmación** (Radix UI `AlertDialog`) preguntando "Are you sure?" → ejecuta `deleteProperty(id)` con ownership check
 
 #### 6.8.4 PropertyForm (`components/platform/property-form.tsx`, client)
-Formulario completo con 10 secciones:
+Formulario completo con 11 secciones, cada una encapsulada en un componente `FormSection` (`components/platform/property-form/form-section.tsx`) que renderiza un título con borde inferior.
 
-| Sección | Campos |
-|---|---|
-| **Basic Information** | Title*, Slug (auto, read-only + copy URL), Description (textarea), Property Type (select), Subcategory (select grouped by category), Status (select) |
-| **Location** | Country (read-only desde perfil), City (select por operating country), Community, Address |
-| **Property Details** | Bedrooms, Bathrooms, Floor, Area (sqft, auto-calc sqm), Balcony checkbox, Garden checkbox |
-| **Pricing** | Price*, Currency (select), Deposit %, Deposit Amount (auto-calculated from % + price), Handover Date, Payment Plan Months, Post Handover checkbox |
-| **Payment Plan Milestones** | `MilestonesEditor` — CRUD dinámico de hitos |
-| **Amenities** | Toggle pills agrupados por categoría (desde `property_amenities` curados) |
-| **Images** | Cover Image (ImageUpload a bucket `property-images`), Gallery Images (upload múltiple, hasta 10, con preview y delete) |
-| **Tags** | Input + Enter para agregar tags, chips removibles |
-| **Links** | Development (select de developments propios, solo para developers) |
-| **Visibility** | Active checkbox (controla `is_active`) |
+| Sección | Componente | Campos |
+|---|---|---|
+| **Basic Information** | `BasicInformationSection` | Title*, Slug (auto, read-only + copy URL), Description (textarea), Property Type (select), Subcategory (select grouped by category), Status (select) |
+| **Location** | `LocationSection` | Country (read-only desde perfil), City (select por operating country), Community (select filtrado por ciudad), Address |
+| **Property Details** | `PropertyDetailsSection` | Bedrooms, Bathrooms, Floor, Area (sqft, auto-calc sqm), Balcony checkbox, Garden checkbox |
+| **Pricing** | *(inline en PropertyForm)* | Price*, Currency (select), Deposit %, Deposit Amount (auto-calculated from % + price), Handover Date, Payment Plan Months, Post Handover checkbox |
+| **Payment Plan Milestones** | `MilestonesEditor` | CRUD dinámico de hitos |
+| **Development Details** | `DevelopmentDetailsSection` | Development (link) (dropdown de developments propios, solo developer), Development (texto plano, todos los roles), Development Area (sqft) (número libre), Developer (auto-completado read-only para developer / editable para broker y private_seller) |
+| **Amenities** | `AmenitiesSection` | Toggle pills agrupados por categoría (desde `property_amenities` curados) |
+| **Images** | `ImagesSection` | Cover Image (ImageUpload a bucket `property-images`), Gallery Images (upload múltiple, hasta 10, con preview y delete) |
+| **Tags** | `TagsSection` | Input + Enter para agregar tags, chips removibles |
+| **Visibility** | `VisibilitySection` | Active checkbox (controla `is_active`), botones de acción |
+
+**Componentes de sección en `components/platform/property-form/`:**
+Cada sección es un archivo independiente: `basic-information-section.tsx`, `location-section.tsx`, `property-details-section.tsx`, `development-details-section.tsx`, `tags-section.tsx`, `amenities-section.tsx`, `images-section.tsx`, `visibility-section.tsx`, `form-section.tsx` (wrapper compartido).
+
+**Behavior of Development Details section:**
+- **Development (link):** dropdown de developments activos del propio developer (solo visible para rol developer); `development_id` se guarda en BD como FK. En la página pública, si tiene `development_slug` se linkea a `/development/{slug}`.
+- **Development (texto):** campo de texto libre para todos los roles. Se guarda en la columna `development` de `properties`. En la página pública se muestra en la tabla "Development Details".
+- **Development Area (sqft):** número libre. Se guarda en `development_area`. Se muestra formateado como `X sqft` en la página pública.
+- **Developer:**
+  - **Rol developer:** se autocompleta con `developers.name` del perfil del usuario (`ownDeveloperName`); campo read-only. En BD se guarda el nombre en `developer` y el ID en `developer_id`.
+  - **Rol broker / private_seller:** campo de texto editable (nombre del developer como texto plano). En BD `developer_id` se fuerza a null y se guarda solo el texto en `developer`. En la página pública, si el `listed_by_type` es `developer` y tiene `developer_slug` se linkea a `/developer/{slug}`; si no, se muestra como texto plano.
+
+**NOTA:** `community_total_area` queda hardcodeado a 0 (pedido explícito del usuario de no tocarlo).
+
+**Botones de acción (dentro de `VisibilitySection`):**
+- Los botones son **full-width y apilados** verticalmente (uno debajo del otro en un contenedor `space-y-3`).
+- **Creación:** botón primario "Create Property" + botón outline "Cancel" (navega a `/app/properties`).
+- **Edición:** botón primario "Save Changes" + botón destructivo "Delete".
+- **Delete abre AlertDialog** de confirmación (Radix UI): título "Are you sure?", descripción "This will permanently delete this property...", botones Cancel y Delete. No se usa `confirm()` nativo.
+- **Los forms de broker/developer NO tienen botón Delete** (no existe server action de borrado para perfiles).
 
 **Comportamiento del form:**
 - `hasChanges`: compara cada campo contra el valor original; botón Save deshabilitado sin cambios
 - **Slug auto-generado** desde title via `slugify()`, read-only, con botón copy de URL pública
 - **Auto-cálculos:** sqm se calcula de sqft (`× 0.092903`); deposit_amount se calcula de price × deposit%
 - **Guardado:** `saveProperty()` → `saveMilestones()` → `router.refresh()` (o redirect a `/app/properties` si es nuevo)
-- **Delete:** `confirm()` nativo → `deleteProperty()` → redirect a `/app/properties`
+- **Delete:** AlertDialog → `deleteProperty()` → redirect a `/app/properties`
 
 #### 6.8.5 MilestonesEditor (`components/platform/milestones-editor.tsx`, client)
 - Editor dinámico de hitos del plan de pago (CRUD: add, edit, remove, reorder)
@@ -618,9 +640,13 @@ Formulario completo con 10 secciones:
 
 **`saveProperty(payload)`：**
 - Requiere sesión (`getUser()`) + role válido (developer/broker/private_seller)
-- Valida: title (requerido, max), slug regex `^[a-z0-9-]+$`, description max (tras sanitizar), property_type, status, currency, price > 0, deposit_percentage 0–100
+- Valida: title (requerido, max 200), slug regex `^[a-z0-9-]+$`, description max (tras sanitizar), property_type, status, currency, price > 0, deposit_percentage 0–100, community max 200, address max 500, subcategory max 200, development max 200, developer max 200, development_area >= 0
 - Auto-calcula area_sqm↔sqft y deposit_amount↔deposit_percentage si falta uno
 - Sanitiza description con `sanitizeUserHtml()`
+- **Lógica de developer_id y development_id:**
+  - Si `listed_by_type === "developer"`: busca el registro en `developers` por `user_profile_id`, auto-setea `developer_id` y `developer` con el nombre del perfil (ignora el valor enviado del campo `developer`)
+  - Si `listed_by_type` es broker o private_seller: `developer_id` se fuerza a null; `developer` se guarda como el texto enviado
+  - `development_id`: solo se guarda si es developer Y seleccionó un development del dropdown; para otros roles se fuerza a null
 - **INSERT** si no hay `id` (con `listed_by_id` y `listed_by_type` del perfil); **UPDATE** si hay `id` (filtrado por `listed_by_id` = user — ownership check)
 - Devuelve `{ id, error }`
 
@@ -790,8 +816,11 @@ Creada por migración `007_developers_developments_properties_rebuild.sql` (reem
 | id | uuid | PK, default gen_random_uuid() | ID de la propiedad |
 | listed_by_id | uuid | NOT NULL, FK → user_profiles(id) ON DELETE CASCADE | ID del vendedor |
 | listed_by_type | text | NOT NULL, CHECK IN ('developer', 'broker', 'private_seller') | Tipo de vendedor |
-| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer constructor (opcional) |
-| development_id | uuid | FK → developments(id) ON DELETE SET NULL | Desarrollo/proyecto (opcional) |
+| developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer constructor (opcional, auto-set para rol developer) |
+| development_id | uuid | FK → developments(id) ON DELETE SET NULL | Desarrollo/proyecto (opcional, solo para developer) |
+| development | text | nullable | Nombre del desarrollo (texto libre, todos los roles) — migración 019 |
+| development_area | numeric | nullable | Área total del desarrollo en sqft (número libre) — migración 019 |
+| developer | text | nullable | Nombre del developer (texto plano; auto-completado para developer, editable para broker/private_seller) — migración 019 |
 | status | text | NOT NULL DEFAULT 'available', CHECK IN ('available', 'sold', 'reserved', 'off_market') | Estado |
 | country | text | NOT NULL | País |
 | city | text | NOT NULL | Ciudad |
@@ -1060,14 +1089,18 @@ interface PropertyData {
   developer_logo: string;
   broker_name: string;
   broker_slug: string;
-  development_name: string;
+  private_seller_name: string;
+  developer: string;           // texto plano (migración 019)
+  development: string;         // texto plano del desarrollo (migración 019)
+  development_area: number | null; // área del desarrollo en sqft (migración 019)
+  development_name: string;    // resuelto: row.development ?? devt?.name
   development_slug: string;
-  development_total_area: number;
+  development_total_area: number; // alias de development_area ?? 0
   development_amenities: string[];
   community_name: string;
   community_slug: string;
-  community_total_area: number;
-  community_description: string;
+  community_total_area: number; // hardcodeado a 0 (pedido explícito)
+  community_description: string | null;
 
   // Plan de pago (objeto legacy para UI)
   paymentPlan: {
@@ -1180,7 +1213,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 | `/app/developer` | Developer | Form de perfil de la promotora (rich text TipTap, slug, cover/logo, city, on-time, contacto) |
 | `/app/broker` | Broker | Form de perfil del broker (rich text TipTap, slug, profile image, city, contacto, transacciones) |
 | `/app/properties` | Autenticado | Listado de propiedades del seller |
-| `/app/properties/new` | Autenticado | Crear propiedad (PropertyForm con 10 secciones) |
+| `/app/properties/new` | Autenticado | Crear propiedad (PropertyForm con 11 secciones) |
 | `/app/properties/[id]/edit` | Autenticado | Editar propiedad existente (PropertyForm + milestones + delete) |
 | `/app/analytics` | Developer | Analytics (pendiente) |
 | `/app/clients` | Broker | Clientes (pendiente) |
@@ -1370,15 +1403,18 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 2. Server page verifica sesión, carga getMyProperties(user.id) y renderiza PropertyList
 3. PropertyList muestra tabla con 7 columnas: Property, Status, Price, Location, Specs, Created, Actions
 4. Botón "Create Property" → /app/properties/new
-5. NewPropertyPage carga ciudades del operating_country, amenities, subcategories, y developments (solo developers)
-6. PropertyForm muestra 10 secciones: Basic Info, Location, Details, Pricing, Milestones, Amenities, Images, Tags, Links, Visibility
-7. Slug se auto-genera desde Title (read-only); sqm se auto-calcula de sqft; deposit_amount se auto-calcula de price × deposit%
-8. Sube cover image a property-images bucket; gallery images (hasta 10) al mismo bucket
-9. Editar milestones con MilestonesEditor (CRUD dinámico); validación de total ≤ 100%
-10. Save → saveProperty() (validación server-side + sanitización description + ownership check) → saveMilestones() → router.refresh()
-11. Botón "Edit" en PropertyList → /app/properties/{id}/edit → mismo PropertyForm en modo edición
-12. Botón "Delete" en modo edición → confirm() nativo → deleteProperty() (ownership check) → redirect a /app/properties
-13. hasChanges compara cada campo; botón Save deshabilitado sin cambios
+5. NewPropertyPage carga ciudades del operating_country, amenities, subcategories, communities, y developments (solo developers); carga ownDeveloperName
+6. PageHeader con back button "Back" → /app/properties
+7. PropertyForm muestra 11 secciones: Basic Info, Location, Details, Pricing, Milestones, Development Details, Amenities, Images, Tags, Visibility
+8. Slug se auto-genera desde Title (read-only); sqm se auto-calcula de sqft; deposit_amount se auto-calcula de price × deposit%
+9. Sube cover image a property-images bucket; gallery images (hasta 10) al mismo bucket
+10. Editar milestones con MilestonesEditor (CRUD dinámico); validación de total ≤ 100%
+11. Sección Development Details: Development link (dropdown, solo developer), Development (texto), Development Area (sqft), Developer (auto-completado read-only para developer / editable para otros)
+12. Save → saveProperty() (validación server-side + sanitización description + auto-set developer_id para developer + ownership check) → saveMilestones() → router.refresh()
+13. Botón "Edit" en PropertyList → /app/properties/{id}/edit → mismo PropertyForm en modo edición con back button
+14. Botón "Delete" en modo edición → AlertDialog "Are you sure?" → deleteProperty() (ownership check) → redirect a /app/properties
+15. hasChanges compara cada campo; botón Save deshabilitado sin cambios
+16. Botones full-width y apilados: Create Property + Cancel (creación) / Save + Delete (edición)
 ```
 
 **Servicios consumidos:** lib/actions.ts (saveProperty, deleteProperty, saveMilestones), lib/properties.ts (getMyProperties, getMyProperty), lib/cities.ts, lib/property-amenities.ts, lib/property-subcategories.ts, lib/storage.ts (uploadImage), lib/sanitize-html.ts (sanitizeUserHtml), lib/utils.ts (slugify)
@@ -1428,7 +1464,12 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 39. **La página pública del broker solo es visible para brokers verificados.** `getBrokerBySlug()` filtra por `is_verified = true`. El broker dueño puede ver su perfil sin verificar vía la política RLS `broker_profiles_select_own`.
 40. **El sidebar de propiedad linka a `/broker/{slug}` o `/developer/{slug}` según `listed_by_type`.** La propiedad tiene campos `broker_name` y `broker_slug` que se resuelven al vender el broker. Si el broker no tiene perfil público (no verificado o no creado), el link puede no funcionar.
 41. **Las descripciones de broker usan el mismo sanitizador que las de developer.** `sanitizeUserHtml()` con la misma allowlist. El componente `BrokerDescription` usa la clase `.rich-description` compartida en `globals.css`.
-42. **El upload y gestión de propiedades (`/app/properties`) está implementado para los 3 roles.** El form PropertyForm tiene 10 secciones, incluye MilestonesEditor para plan de pago, auto-cálculos (sqm↔sqft, deposit_amount↔%), slug auto-generado, y gallery upload al bucket `property-images`. Las server actions (`saveProperty`, `deleteProperty`, `saveMilestones`) incluyen validaciones server-side y ownership checks (`listed_by_id = user.id`). Las descripciones se sanitizan con `sanitizeUserHtml()` antes de persistir./
+42. **El upload y gestión de propiedades (`/app/properties`) está implementado para los 3 roles.** El form PropertyForm tiene 11 secciones (componentizadas en `components/platform/property-form/`), incluye MilestonesEditor para plan de pago, Development Details con campos planos, auto-cálculos (sqm↔sqft, deposit_amount↔%), slug auto-generado, y gallery upload al bucket `property-images`. Las server actions (`saveProperty`, `deleteProperty`, `saveMilestones`) incluyen validaciones server-side y ownership checks (`listed_by_id = user.id`). Las descripciones se sanitizan con `sanitizeUserHtml()` antes de persistir.
+43. **Los campos `development`, `development_area` y `developer` son columnas planas en la tabla `properties`** (migración 019). No se reusa la tabla `developments` para el nombre y área del desarrollo en la sección "Development Details". La FK `development_id` se mantiene para el vínculo opcional a un development existente (solo developer).
+44. **Para el rol developer, `developer_id` se auto-setea** desde la tabla `developers` por `user_profile_id`, y `developer` se completa con el nombre del perfil. Para broker/private_seller, `developer_id` se fuerza a null y `developer` se guarda como texto plano.
+45. **`community_total_area` queda hardcodeado a 0** en la resolución de datos de propiedades (`lib/properties.ts`). Pedido explícito del usuario de no tocarlo.
+46. **Los forms de crear/editar propiedad tienen un back button** (`PageHeader` con `backHref="/app/properties"`) que lleva al listado. Los forms de broker y developer NO tienen back button.
+47. **Los botones de acción de los forms son full-width y apilados** (uno debajo del otro). Creación: Create + Cancel. Edición (property): Save + Delete con AlertDialog. Broker/developer: solo Save (sin Delete).
 
 ---
 
@@ -1442,7 +1483,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - El locale/idioma se puede inferir por geolocalización del país de origen
 
 **Restricciones:**
-- Las tablas `properties`, `payment_plan_milestones`, `developers`, `developments` y `communities` se leen de Supabase en la UI pública y en el dashboard de vendedores. `lib/mock-properties.ts` fue eliminado. La tabla `developments` aún no tiene página de listado conectada a DB (usa mock data)
+- Las tablas `properties`, `payment_plan_milestones`, `developers`, `developments` y `communities` se leen de Supabase en la UI pública y en el dashboard de vendedores. `lib/mock-properties.ts` fue eliminado. La tabla `developments` aún no tiene página de listado conectada a DB (usa mock data). `community_total_area` queda hardcodeado a 0 en la resolución de propiedades
 - Sin mapa funcional en MVP (pendiente geolocalización)
 - Sin pagos integrados en la plataforma
 - Sin comparador de propiedades
@@ -1528,7 +1569,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - Integración de `PropertySidebar` con `listedByType`: link condicional a `/broker/{slug}` o `/developer/{slug}`
 - Campos `broker_name` y `broker_slug` en `PropertyData`
 - Namespace `broker_detail` traducido en 7 locales (ae, ar, es, gb, pt, br, mx)
-- Property upload form (`PropertyForm`) con 10 secciones: Basic Info, Location, Details, Pricing, Milestones, Amenities, Images, Tags, Links, Visibility
+- Property upload form (`PropertyForm`) con 11 secciones: Basic Info, Location, Details, Pricing, Milestones, Development Details, Amenities, Images, Tags, Visibility
 - `MilestonesEditor` CRUD para plan de pago con validación de total ≤ 100%
 - `PropertyList` table con 7 columnas (property, status, price, location, specs, created, actions) en `/app/properties`
 - Dashboard pages de propiedades: listing (`/app/properties`), create (`/app/properties/new`), edit (`/app/properties/[id]/edit`)
@@ -1538,6 +1579,15 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - Fix `PropertyCard`: logo rendering condicional para evitar `src=""` vacío
 - `primary.DEFAULT` agregado a Tailwind config para clases de utilidad `border-primary`, `bg-primary/10`, `text-primary`
 - `lib/mock-properties.ts` eliminado — todas las fuentes de datos ahora son reales (Supabase)
+- Migración 019: columnas `development`, `development_area`, `developer` en tabla `properties` (campos planos para la sección Development Details)
+- PropertyForm componentizada en 11 secciones con archivos individuales en `components/platform/property-form/`
+- Sección "Development Details" funcional: Development link (dropdown FK), Development (texto plano), Development Area (sqft), Developer (auto-completado para developer / editable para otros)
+- Página de detalle de propiedad imprime datos de Development Details (nombre, área, developer con link condicional)
+- `PageHeader` con back button en páginas de crear/editar propiedad (`/app/properties/new`, `/app/properties/[id]/edit`)
+- Botones de acción full-width y apilados en PropertyForm (Create+Cancel / Save+Delete)
+- AlertDialog de confirmación (Radix UI) para Delete en PropertyForm (reemplaza `confirm()` nativo)
+- Componente `FormSection` wrapper para secciones del form (`components/platform/property-form/form-section.tsx`)
+- `ownDeveloperName` como prop del PropertyForm (nombre del developer del perfil del usuario)
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
@@ -1590,7 +1640,8 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 | TipTap | Librería de editor rich text (ProseMirror) usada en los forms de developer y broker para la descripción |
 | sanitizeUserHtml | Sanitizador HTML para contenido user-generated: allowlist estricto de tags y origin check de imágenes; se aplica en cliente y servidor |
 | broker_profiles | Tabla de perfiles públicos de brokers con datos profesionales (migración 014), patrón similar a `developers` pero con campos específicos de broker |
-| PropertyForm | Componente de formulario para crear/editar propiedades en el dashboard; 10 secciones (basic info, location, details, pricing, milestones, amenities, images, tags, links, visibility); client component con auto-cálculos y detección de cambios |
+| PropertyForm | Componente de formulario para crear/editar propiedades en el dashboard; 11 secciones (basic info, location, details, pricing, milestones, development details, amenities, images, tags, visibility) + back button + AlertDialog delete; client component con auto-cálculos, detección de cambios y secciones componentizadas en `components/platform/property-form/` |
 | MilestonesEditor | Componente CRUD dinámico para gestionar hitos del plan de pago de una propiedad; incluye validación de total ≤ 100% y auto-cálculo de montos |
 | PropertyList | Componente de tabla en el dashboard del vendedor que muestra las propiedades del usuario con 7 columnas (property, status, price, location, specs, created, actions) |
 | Ownership check | Verificación server-side de que el usuario autenticado es el dueño de la entidad que intenta modificar (ej: `listed_by_id = user.id` en properties, `user_profile_id = user.id` en developers/brokers) |
+| Migration 019 | Migración que agrega columnas planas `development`, `development_area` y `developer` a la tabla `properties` para la sección "Development Details" |

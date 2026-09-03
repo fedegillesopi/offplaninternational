@@ -1,9 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { FormSection } from "@/components/platform/property-form/form-section";
+import { CUSTOM_VALUE } from "@/lib/property-form";
 import type { CommunityOption } from "@/lib/communities";
-
-const CUSTOM_VALUE = "__custom__";
 
 interface LocationSectionProps {
   countryLabel: string;
@@ -45,10 +45,9 @@ export function LocationSection({
         </div>
         <div className="space-y-2">
           <Label>City</Label>
-          <select
+          <NativeSelect
             value={city}
             onChange={(e) => onCityChange(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
           >
             <option value="">Select city</option>
             {cityOptions.map((c) => (
@@ -56,17 +55,16 @@ export function LocationSection({
                 {c}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Community</Label>
-          <select
+          <NativeSelect
             value={communitySelectValue}
             onChange={(e) => onCommunityChange(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
           >
             <option value="">None</option>
             {filteredCommunities.map((c) => (
@@ -75,7 +73,7 @@ export function LocationSection({
               </option>
             ))}
             <option value={CUSTOM_VALUE}>Other (type below)</option>
-          </select>
+          </NativeSelect>
           {communityIsCustom && (
             <Input
               value={communityCustom}

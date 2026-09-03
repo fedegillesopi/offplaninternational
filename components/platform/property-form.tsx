@@ -13,6 +13,7 @@ import { VisibilitySection } from "@/components/platform/property-form/visibilit
 import { saveProperty, deleteProperty } from "@/lib/actions";
 import { uploadImage } from "@/lib/storage";
 import { slugify, toEditorHtml } from "@/lib/utils";
+import { CUSTOM_VALUE } from "@/lib/property-form";
 import type { PropertyData, UserRole } from "@/lib/types";
 import type { PropertyAmenity } from "@/lib/property-amenities";
 import type { PropertySubcategory } from "@/lib/property-subcategories";
@@ -140,8 +141,6 @@ export function PropertyForm({
         : communities;
     return options.filter((c) => !c.city || c.city === city);
   }, [communities, city, property?.community]);
-
-  const CUSTOM_VALUE = "__custom__";
 
   // Auto-calculate area_sqm from sqft
   const handleAreaSqftChange = (val: string) => {
@@ -476,6 +475,7 @@ export function PropertyForm({
         onActiveChange={setIsActive}
         onSave={handleSave}
         onDelete={handleDelete}
+        onCancel={() => router.push("/app/properties")}
       />
     </div>
   );
