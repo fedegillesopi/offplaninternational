@@ -3,10 +3,12 @@ import { getTranslations } from "next-intl/server";
 import { Bed, Bath, MapPin, Phone, MessageCircle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { CurrencyPrice } from "@/components/shared/currency-price";
+import { stripHtmlToText } from "@/lib/utils";
 import type { PropertyData } from "@/lib/types";
 
 export async function PropertyCard({ property }: { property: PropertyData }) {
   const t = await getTranslations("properties");
+  const coverSrc = property.cover_image ?? property.images[0];
 
   return (
     <div className="flex w-full max-w-[1000px] flex-col overflow-hidden rounded-2 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] md:flex-row">
@@ -14,18 +16,24 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
         href={`/property/${property.slug}`}
         className="relative block h-[200px] w-full shrink-0 md:h-auto md:w-[320px] lg:w-[360px]"
       >
-        <Image
-          src={property.images[0]}
-          alt={property.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 360px"
-        />
+        {coverSrc ? (
+          <Image
+            src={coverSrc}
+            alt={property.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 360px"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[--grey-50] font-body text-sm text-[--grey-300]">
+            {property.title}
+          </div>
+        )}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 px-2 py-4 md:gap-4 md:p-6">
         <div className="flex items-center gap-1 font-body text-sm font-light text-[--text-primary]">
-          <span className="font-medium text-[--primary-main]">{property.category}</span>
+          <span className="font-medium text-[--primary-main]">{property.subcategory}</span>
           <span className="text-[--grey-200]">|</span>
           <Bed className="h-4 w-4" />
           <span className="text-md font-medium">{property.beds}</span>
@@ -47,20 +55,38 @@ export async function PropertyCard({ property }: { property: PropertyData }) {
           </div>
           <div className="flex items-center gap-1 font-body text-sm font-light text-[--grey-300]">
             <MapPin className="h-4 w-4 text-[--primary-main]" />
+            {property.country && (
+              <>
+                <span>{property.country}</span>
+                <span>,</span>
+              </>
+            )}
             <span>{property.city}</span>
-            <span>{property.community}</span>
+            {property.community_slug &&
+            property.community_name !== property.community_slug ? (
+              <Link
+                href={`/community/${property.community_slug}`}
+                className="text-[--primary-main] hover:underline"
+              >
+                {property.community_name}
+              </Link>
+            ) : (
+              <span>{property.community_name}</span>
+            )}
           </div>
-          <Image
-            src={property.developer_logo}
-            alt={property.developer_name}
-            width={60}
-            height={30}
-            className="h-auto w-[80px] rounded-1 p-2 shadow-lg"
-          />
+          {property.developer_logo && (
+            <Image
+              src={property.developer_logo}
+              alt={property.developer_name}
+              width={60}
+              height={30}
+              className="h-auto w-[80px] rounded-1 p-2 shadow-lg"
+            />
+          )}
         </div>
 
-        <p className="font-body text-base font-regular text-[--text-primary]">
-          {property.description}
+        <p className="line-clamp-2 font-body text-base font-regular text-[--text-primary]">
+          {stripHtmlToText(property.description)}
         </p>
 
         <div className="flex gap-2">

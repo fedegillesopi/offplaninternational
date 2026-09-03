@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { BackToHome } from "@/components/site/back-to-home";
@@ -8,8 +8,8 @@ import { PropertyGallery } from "@/components/properties/property-gallery";
 import { PropertySidebar } from "@/components/properties/property-sidebar";
 import { PropertyDetailsTable } from "@/components/properties/property-details-table";
 import { PropertyAmenitiesGrid } from "@/components/properties/property-amenities-grid";
-import { PropertyPaymentPlan } from "@/components/properties/property-payment-plan";
 import { PropertyTags } from "@/components/properties/property-tags";
+import { PropertyDescription } from "@/components/properties/property-description";
 import { RelatedProperties } from "@/components/properties/related-properties";
 import { getPropertyBySlug, getRelatedProperties } from "@/lib/properties";
 import { Link } from "@/i18n/navigation";
@@ -22,7 +22,8 @@ export default async function PropertyDetailPage({
 }) {
   const { slug } = await params;
   const td = await getTranslations("property_detail");
-  const property = await getPropertyBySlug(slug);
+  const locale = await getLocale();
+  const property = await getPropertyBySlug(slug, locale);
 
   if (!property) notFound();
 
@@ -62,17 +63,31 @@ export default async function PropertyDetailPage({
               <div className="flex flex-wrap items-center gap-2 font-body text-sm font-light text-[--text-primary]">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4 text-[--primary-main]" />
-                  <span>{property.country}</span>
-                  <span>,</span>
+                  {property.country && (
+                    <>
+                      <span>{property.country}</span>
+                      <span>,</span>
+                    </>
+                  )}
                   <span>{property.city}</span>
                   <span>,</span>
-                  <span>{property.community}</span>
+                  {property.community_slug &&
+                    property.community_name !== property.community_slug ? (
+                    <Link
+                      href={`/community/${property.community_slug}`}
+                      className="text-[--primary-main] hover:underline"
+                    >
+                      {property.community_name}
+                    </Link>
+                  ) : (
+                    <span>{property.community_name}</span>
+                  )}
                 </div>
 
                 <span className="text-[--grey-200]">|</span>
 
                 <span className="font-medium text-[--primary-main]">
-                  {property.category}
+                  {property.subcategory}
                 </span>
 
                 <span className="text-[--grey-200]">|</span>
@@ -116,9 +131,7 @@ export default async function PropertyDetailPage({
                 {property.title}
               </h1>
 
-              <p className="font-body text-base font-light leading-relaxed text-[--text-primary]">
-                {property.descriptionFull}
-              </p>
+              <PropertyDescription text={property.descriptionFull} />
             </div>
 
             <div className="h-px w-full bg-[--grey-50]" />
@@ -134,6 +147,7 @@ export default async function PropertyDetailPage({
 
             <PropertyAmenitiesGrid
               amenities={property.amenities}
+              amenityNames={property.amenity_names}
               title={td("property_amenities")}
             />
 
@@ -148,28 +162,46 @@ export default async function PropertyDetailPage({
                   <span className="font-body text-sm font-light text-[--grey-300]">
                     {td("development_name")}
                   </span>
-                  <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development_name}
-                  </span>
+                  {property.development_slug ? (
+                    <Link
+                      href={`/development/${property.development_slug}`}
+                      className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
+                    >
+                      {property.development_name}
+                    </Link>
+                  ) : (
+                    <span className="font-body text-sm font-medium text-[--text-primary]">
+                      {property.development_name}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
                   <span className="font-body text-sm font-light text-[--grey-300]">
                     {td("total_development_area")}
                   </span>
                   <span className="font-body text-sm font-medium text-[--text-primary]">
-                    {property.development_total_area.toLocaleString()} sqft
+                    {property.development_total_area > 0
+                      ? `${property.development_total_area.toLocaleString()} sqft`
+                      : "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-3 py-2">
                   <span className="font-body text-sm font-light text-[--grey-300]">
                     {td("developer_label")}
                   </span>
-                  <Link
-                    href={`/developer/${property.developer_slug}`}
-                    className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
-                  >
-                    {property.developer_name}
-                  </Link>
+                  {property.listed_by_type === "developer" &&
+                  property.developer_slug ? (
+                    <Link
+                      href={`/developer/${property.developer_slug}`}
+                      className="font-body text-sm font-medium text-[--primary-main] no-underline hover:underline"
+                    >
+                      {property.developer_name}
+                    </Link>
+                  ) : (
+                    <span className="font-body text-sm font-medium text-[--text-primary]">
+                      {property.developer_name}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -182,7 +214,7 @@ export default async function PropertyDetailPage({
             <div className="h-px w-full bg-[--grey-50]" />
 
             <div className="flex flex-wrap gap-2 justify-between">
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1">
                 <h3 className="mb-4 font-heading text-h4 font-bold text-[--text-primary]">
                   {td("community_details")}
                 </h3>
@@ -204,24 +236,20 @@ export default async function PropertyDetailPage({
                       {property.community_total_area.toLocaleString()} sqft
                     </span>
                   </div>
-                  <div className="px-3 py-2">
-                    <span className="font-body text-sm font-light text-[--grey-300]">
-                      {td("description_label")}
-                    </span>
-                    <p className="mt-1 font-body text-sm font-regular text-[--text-primary]">
-                      {property.community_description}
-                    </p>
-                  </div>
+                  {property.community_description && (
+                    <div className="px-3 py-2">
+                      <span className="font-body text-sm font-light text-[--grey-300]">
+                        {td("description_label")}
+                      </span>
+                      <p className="mt-1 font-body text-sm font-regular text-[--text-primary] line-clamp-2">
+                        {property.community_description}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <PropertyTags tags={property.tags} />
-            </div>
-
-            <div className="h-px w-full bg-[--grey-50]" />
-
-            <div className="w-full max-w-lg">
-              <PropertyPaymentPlan paymentPlan={property.paymentPlan} />
             </div>
           </div>
 

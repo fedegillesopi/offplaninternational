@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Check, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { NativeSelect } from "@/components/ui/native-select"
 import { useRouter } from "next/navigation"
 import { ImageUpload } from "@/components/platform/image-upload"
 import { RichTextEditor } from "@/components/platform/rich-text-editor"
@@ -177,10 +178,9 @@ export function BrokerForm({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">City</label>
-            <select
+            <NativeSelect
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
             >
               <option value="">Select city</option>
               {cityOptions.map((c) => (
@@ -188,7 +188,7 @@ export function BrokerForm({
                   {c}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         </div>
 
@@ -238,9 +238,22 @@ export function BrokerForm({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button onClick={handleSave} disabled={saving || !hasChanges}>
-        {saving ? "Saving..." : isNew ? "Create Profile" : "Save Changes"}
-      </Button>
+      <div className="w-full space-y-3">
+        <Button className="w-full" onClick={handleSave} disabled={saving || !hasChanges}>
+          {saving ? "Saving..." : isNew ? "Create Profile" : "Save Changes"}
+        </Button>
+        {isNew && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => router.push("/app")}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
