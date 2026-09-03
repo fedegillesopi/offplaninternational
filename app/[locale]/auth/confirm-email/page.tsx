@@ -43,7 +43,7 @@ export default function ConfirmEmailPage() {
       },
     }
 
-    const lang = locale === "ae" || locale === "gb" ? "en" :
+    const lang = locale === "ae" || locale === "en" || locale === "gb" ? "en" :
                  locale === "br" || locale === "pt" ? "pt" : "es"
     return msgs[lang]?.[key] ?? key
   }

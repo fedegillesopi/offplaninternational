@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const rawType = searchParams.get("type");
-  const locale = request.cookies.get("NEXT_LOCALE")?.value || "ae";
 
   const VALID_TYPES: EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change"];
   const type = rawType && VALID_TYPES.includes(rawType as EmailOtpType)
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        new URL(`/${locale}/auth/error?error=${encodeURIComponent(error.message)}`, origin),
+        new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, origin),
       );
     }
 
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (profile && !profile.profile_completed) {
-        return NextResponse.redirect(new URL(`/${locale}/auth/onboarding/${profile.role}`, origin));
+        return NextResponse.redirect(new URL(`/auth/onboarding/${profile.role}`, origin));
       }
     }
 
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        new URL(`/${locale}/auth/error?error=${encodeURIComponent(error.message)}`, origin),
+        new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, origin),
       );
     }
 
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (profile && !profile.profile_completed) {
-        return NextResponse.redirect(new URL(`/${locale}/auth/onboarding/${profile.role}`, origin));
+        return NextResponse.redirect(new URL(`/auth/onboarding/${profile.role}`, origin));
       }
     }
 
@@ -75,6 +74,6 @@ export async function GET(request: NextRequest) {
   // No PKCE code or token_hash found — might be implicit flow with hash fragment.
   // Redirect to a client page that can read window.location.hash.
   return NextResponse.redirect(
-    new URL(`/${locale}/auth/confirm-client?redirect=${encodeURIComponent(request.url)}`, origin),
+    new URL(`/auth/confirm-client?redirect=${encodeURIComponent(request.url)}`, origin),
   );
 }

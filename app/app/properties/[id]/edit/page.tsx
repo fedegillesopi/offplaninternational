@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-header";
 import { PropertyForm } from "@/components/platform/property-form";
@@ -36,8 +35,7 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
 
   if (!property) redirect("/app/properties");
 
-  const cookieStore = await cookies();
-  const locale = cookieStore.get("NEXT_LOCALE")?.value ?? "ae";
+  const locale = "en";
   const countryCode = getCountryCode(profile.operating_country);
   const countryLabel = getCountryLabel(profile.operating_country);
   const cities = await getCitiesByCountry(countryCode);

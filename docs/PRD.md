@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.9 — 02-Sep-2026
-**Estado:** MVP en desarrollo — Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms)
+**Versión:** 1.10 — 02-Sep-2026
+**Estado:** MVP en desarrollo — i18n inactiva (sitio siempre en inglés, locale default `en`, `localePrefix: never`), Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms)
 
 ---
 
@@ -14,7 +14,7 @@
 **Origen del proyecto:** Iniciativa de Off Plan International para crear un marketplace global de propiedades Off-Plan que elimine intermediarios y centralice la información.
 
 **Mercado objetivo:** Global, con foco inicial en:
-- EAU (mercado principal, default locale)
+- EAU (mercado principal)
 - Reino Unido
 - España
 - Portugal
@@ -27,10 +27,10 @@
 - Sin agentes: contacto directo con la promotora
 - Unidades individuales, no solo proyectos
 - Búsqueda granular con múltiples filtros
-- Multi-moneda y multi-idioma desde el día uno
+- Multi-moneda desde el día uno; i18n (next-intl) preservada pero inactiva (sitio siempre en inglés)
 
 **Arquitectura general:** El proyecto opera como dos experiencias integradas en un mismo dominio:
-1. **Sitio público** (bajo `[locale]`): landing page, listado y detalle de propiedades, auth para inversores. Todo con i18n y geo-detección.
+1. **Sitio público**: landing page, listado y detalle de propiedades, auth para inversores. El contenido se sirve **siempre en inglés** (locale `en`); i18n (next-intl) preservada para posible reactivación futura, sin selector de idioma ni geo-detección activa.
 2. **Plataforma de vendedores** (rutas standalone): dashboard, auth con 3 roles (developer, broker, private seller), gestión de propiedades y métricas. Sin i18n (inglés por ahora).
 
 ---
@@ -57,7 +57,7 @@
 | Feature | Plataforma | Estado |
 |---|---|---|
 | Homepage (hero, features, about, FAQ, contacto, footer) | Público | ✅ Implementado |
-| Sistema i18n con 7 locales y geo-detección | Público | ✅ Implementado |
+| Sistema i18n con next-intl preservado (sitio siempre en inglés; sin geo-detección, sin selector de idioma) | Público | ✅ Implementado (inactivo) |
 | Navbar responsive con menú mobile y CurrencySwitcher | Público | ✅ Implementado |
 | HeroHeader con búsqueda y filtros (categoría, precio, estado) | Público | ✅ Implementado |
 | CurrencySwitcher con persistencia en cookie (NEXT_CURRENCY) | Público | ✅ Implementado |
@@ -68,8 +68,8 @@
 | Signup URL-driven por role: `/auth/sign-up/developer`, `/auth/sign-up/broker`, `/auth/sign-up/private-seller` | Todos | ✅ Implementado |
 | Onboarding post-confirmación: `/auth/onboarding/[role]` con campos condicionales | Todos | ✅ Implementado |
 | Tabla `user_profiles` en Supabase con RLS, trigger y migración desde `developer_profiles` | Todos | ✅ Implementado |
-| Auth i18n: namespace `auth` traducido a 7 locales + auth components con `useTranslations` | Todos | ✅ Implementado |
-| Locale-aware redirects en auth: `emailRedirectTo`, `forgot-password` redirectTo, `confirm/route.ts` con `NEXT_LOCALE` | Todos | ✅ Implementado |
+| Auth i18n: namespace `auth` traducido a 7 locales (archivos de mensajes preservados; contenido servido en inglés `en`) | Todos | ✅ Implementado (inactivo) |
+| Auth sin dependencia de locale en URL: redirects a rutas limpias (`/auth/onboarding/{role}`, `/app`) | Todos | ✅ Implementado |
 | Dashboard unificado con sidebar basado en role (Developer/Broker/Private Seller) | Todos | ✅ Implementado |
 | Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/) | Frontend | ✅ Implementado |
 | Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx) | Frontend | ✅ Implementado |
@@ -248,7 +248,7 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 
 ## 6. FUNCIONALIDADES DETALLADAS
 
-### 6.1 Sitio público (bajo `[locale]`)
+### 6.1 Sitio público (siempre en inglés; carpeta `[locale]` del repo, locale resuelto a `en` sin prefijo en URL)
 
 #### 6.1.1 Homepage
 - **Hero section:** título, subtítulo, campo de búsqueda y dropdowns de filtro (categoría, precio, estado)
@@ -259,26 +259,27 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - **Footer:** navegación, redes sociales, copyright
 - **Navbar:** menú responsive con navLinks traducidos, logo, CurrencySwitcher
 
-#### 6.1.2 Sistema i18n (next-intl v4)
-- 7 locales activos: ae (default), ar, br, es, gb, mx, pt
-- Prefijo de ruta: `as-needed` — el locale default (ae) no aparece en la URL
-- Geo-detección por headers CDN (Vercel, Cloudflare, AWS)
-- Cookie `NEXT_LOCALE` con persistencia de 30 días
-- Traducciones en archivos `messages/{locale}.json`
+#### 6.1.2 Sistema i18n (next-intl v4) — inactivo, sitio siempre en inglés
+- **Decision de negocio (definitiva por ahora):** el sitio se sirve **siempre en inglés** con URLs limpias (sin prefijo de locale). Se mantienen las traducciones y el framework i18n (next-intl) por si se reactiva, pero no hay selector de idioma ni detección geográfica activa.
+- Locales configurados: `en` (default), `ar`, `br`, `es`, `gb`, `mx`, `pt` (los códigos de país quedan "dormidos" en la config)
+- Prefijo de ruta: `never` — URLs sin prefijo: `/`, `/properties`, `/property/[slug]`, `/communities`, `/developers`, `/auth/*`, etc.
+- Cualquier URL con prefijo de locale (`/es/...`, `/ar/...`, etc.) redirige (301) a la versión limpia en inglés
+- Sin geo-detección de idioma y sin cookie `NEXT_LOCALE` (eliminadas)
+- Contenido público y traducciones se muestran en inglés (locale `en`); el contenido legal (privacy, terms, confirm-email) se resuelve a inglés para `en`/`gb`/`ae`
+- Traducciones en archivos `messages/{locale}.json` (7 archivos, preservados para reactivación)
 - Navegación: usar `Link` y `redirect` desde `@/i18n/navigation` (no `next/link`)
-- Mapeo país → locale → moneda default:
-  - EAU → ae → AED | AR → ar → USD | BR → br → USD | ES → es → EUR
-  - GB → gb → GBP | MX → mx → USD | PT → pt → EUR
+- Mapeo país → moneda default (referencial, no modifica el idioma):
+  - EAU → AED | GB → GBP | ES → EUR | PT → EUR | MX → USD | BR → USD | AR → USD
 
-#### 6.1.3 Auth (bajo `/[locale]/auth/`)
+#### 6.1.3 Auth
 - Método: email/password
 - Flujos: registro, login, forgot password, reset password, update password
 - Confirmación de email obligatoria
-- Rutas protegidas via middleware: `proxy.ts` ejecuta `updateSession()` antes de `intlMiddleware()` en rutas de auth para resolver locale correctamente
+- Rutas protegidas via middleware: `proxy.ts` ejecuta `updateSession()` antes de `intlMiddleware()` en rutas de auth
 - `getUser()` server-side para verificar sesión (no `getClaims()`)
 - Tras login exitoso → redirige a `/app` (standalone, sin locale prefix)
-- **i18n:** Todos los formularios de auth usan `useTranslations("auth.*")` con traducciones a 7 locales (ae, ar, br, es, gb, mx, pt)
-- **Locale-aware redirects:** `emailRedirectTo` (sign-up) y `redirectTo` (forgot-password) incluyen locale via `useLocale()`. `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects
+- **i18n:** Los archivos de mensajes `auth` preservan 7 locales, pero el contenido se sirve en inglés (`en`). Sin `useLocale()` ni cookie `NEXT_LOCALE`.
+- **Redirects sin locale en URL:** `emailRedirectTo` (sign-up) y `redirectTo` (forgot-password) apuntan a rutas limpias (`/auth/confirm`, `/auth/update-password`). `confirm/route.ts` redirige a `/auth/onboarding/{role}` o `/app` (sin prefijo de locale)
 
 #### 6.1.4 Currency Switcher
 - 4 monedas disponibles: AED, USD, EUR, GBP
@@ -286,7 +287,7 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - Persistencia en cookie `NEXT_CURRENCY` por 30 días
 - Conversión en vivo con tasas fijas en `lib/exchange-rates.ts` (sin API externa en MVP)
 - Formato por moneda usando `Intl.NumberFormat` con locale específico
-- Provider global (`CurrencyProvider`) envuelve al árbol cliente desde `[locale]/layout.tsx`
+- Provider global (`CurrencyProvider`) envuelve al árbol cliente desde el layout raíz del app
 - `CurrencyPrice` component para renderizar precios con reactividad
 
 #### 6.1.5 Listado de propiedades
@@ -306,7 +307,7 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - ⚠️ **Estado actual:** La UI de búsqueda existe pero no ejecuta acciones reales (navegación ni API call). Pendiente conectar a resultados reales.
 
 #### 6.1.7 Detalle de propiedad
-- Ruta: `/[locale]/property/[slug]` (con slug SEO-friendly)
+- Ruta: `/property/[slug]` (con slug SEO-friendly)
 - Galería de imágenes con flechas prev/next y navegación por thumbnails
 - Sidebar con precio, badge de estado, botones Contact y WhatsApp en row estilo card, y links a development/developer con truncate funcional (`min-w-0` + `w-full`)
 - Details table con datos clave (dormitorios, baños, área, depósito, fecha de entrega, tipo de propiedad, referencia)
@@ -322,14 +323,14 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 
 #### 6.1.8 Página de listado y detalle de comunidades
 
-**Listado (`/[locale]/communities`):**
+**Listado (`/communities`):**
 - Server component que consulta `getCommunities(locale)` con el Supabase server client
-- `getCommunities` hace `select("*, community_translations(*)")` filtrando `is_active = true`; resuelve la traducción con fallback locale → 'ae' → primera; ordena con `localeCompare(locale)`
+- `getCommunities` hace `select("*, community_translations(*)")` filtrando `is_active = true`; resuelve la traducción con fallback locale → `DEFAULT_LOCALE` (`en`) → primera disponible; ordena con `localeCompare(locale)` (ver nota técnica de inconsistencia por filas base en 'ae')
 - `CommunitiesGrid` (client) con input de búsqueda que filtra por nombre, ciudad, location y tags (`useState`/`useMemo`); sin resultados muestra `t("communities.no_results")`
 - `CommunityCard` en `components/site/` (reutilizable) linkea a `/community/{slug}` via `@/i18n/navigation`
 - Namespace `communities` traducido en los 7 locales
 
-**Detalle (`/[locale]/community/[slug]`):**
+**Detalle (`/community/[slug]`):**
 - Server component con `getCommunityBySlug(slug, locale)` (`.maybeSingle()`); si no existe o está inactiva → `notFound()`
 - `CommunityHeader`: imagen destacada (placeholder con iniciales si no hay) + iframe de Google Maps si `google_map_url` pasa la validación
 - Descripción HTML renderizada con `dangerouslySetInnerHTML` SIEMPRE pasando por `sanitizeHtml()` (allowlist de tags, bloqueo de scripts/iframes y neutralización de entidades)
@@ -345,13 +346,13 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 
 #### 6.1.9 Página de listado y detalle de promotoras
 
-**Listado (`/[locale]/developers`):**
+**Listado (`/developers`):**
 - Server component que consulta `getDevelopers()` con el Supabase server client: `select("*")` filtrando `is_verified = true`, ordenado por nombre (`localeCompare(..., "en")`)
 - `DevelopersGrid` (client) con input de búsqueda que filtra por nombre, descripción en texto plano (`stripHtmlToText`) y slug (`useState`/`useMemo`); sin resultados muestra `t("developers.no_results")`
 - `DeveloperCard` en `components/site/` muestra cover image + logo overlay, nombre y descripción con `stripHtmlToText(description)` (line-clamp-2, sin etiquetas ni estilos)
 - Namespace `developers` traducido en los 7 locales (`back_to_home`, `all_developers`, `search_placeholder`, `no_results`)
 
-**Detalle (`/[locale]/developer/[slug]`):**
+**Detalle (`/developer/[slug]`):**
 - Server component con `getDeveloperBySlug(slug)` (`.maybeSingle()` con `is_verified = true`); si no existe → `notFound()`
 - `DeveloperHeader`: cover image + logo (placeholder con iniciales si no hay)
 - Ubicación = `country, city` (join con filtro de vacíos)
@@ -367,36 +368,36 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 ### 6.2 Auth unificado y onboarding (3 roles)
 
 #### 6.2.1 Registro por role (URL-driven)
-- **Ruta base:** `/[locale]/auth/sign-up/[role]` — cada role tiene su propia URL
+- **Ruta base:** `/auth/sign-up/[role]` — cada role tiene su propia URL
 - **Tabs de role:** El componente `sign-up-form.tsx` renderiza 3 tabs (Developer, Broker, Private Seller). Al hacer clic en un tab, navega a `/auth/sign-up/{role}` usando `router.push()`. No hay tabs internos — cada tab es una URL distinta.
 - **Lectura del role:** `SignUpForm` lee el role de `useParams()` (`params.role`). El form inicializa `activeTab` con el role de la URL.
 - **Formulario:** full name, email, password, repeat password (común a los 3 roles)
 - **Submit:** `supabase.auth.signUp()` con `options.data.role = activeTab` y `full_name`. El role se guarda en `raw_user_meta_data` de Supabase.
 - **Redirect post-signup:** `/auth/sign-up-success` (email de confirmación pendiente)
-- **Redirect legacy:** `/[locale]/auth/sign-up` (sin role) redirige a `/auth/sign-up/developer`
+- **Redirect legacy:** `/auth/sign-up` (sin role) redirige a `/auth/sign-up/developer`
 - **Componente:** `components/auth/sign-up-form.tsx` (client, usa `useTranslations("auth.sign_up")`)
-- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha. "Back to home" traducido via `getTranslations("auth")`
+- **Página:** `app/[locale]/auth/sign-up/[role]/page.tsx` — layout split con imagen a la izquierda (lg) y formulario a la derecha. "Back to home" traducido via `getTranslations("auth")` (contenido servido en inglés `en`)
 
 #### 6.2.2 Login unificado
-- **Ruta:** `/[locale]/auth/login` — formulario con email y password
-- **Componente:** `components/auth/login-form.tsx` (client, usa `useTranslations("auth.login")`, `Link` y `useRouter` de `@/i18n/navigation`)
+- **Ruta:** `/auth/login` — formulario con email y password
+- **Componente:** `components/auth/login-form.tsx` (client, `Link` y `useRouter` de `@/i18n/navigation`)
 - **Submit:** `supabase.auth.signInWithPassword()` → redirect a `/app`
 - **Link a registro:** `/auth/sign-up` (redirige a `/auth/sign-up/developer`)
 - **Link a forgot password:** `/auth/forgot-password`
 - **Legacy route:** `(auth)/login/page.tsx` redirige a `/auth/login`
 
 #### 6.2.3 Onboarding post-confirmación
-- **Ruta:** `/[locale]/auth/onboarding/[role]`
-- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) lee la cookie `NEXT_LOCALE` (fallback: `ae`), verifica el OTP con Supabase, lee `user_profiles.role` y `user_profiles.profile_completed`. Si `profile_completed === false`, redirige a `/{locale}/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/{locale}/app`.
+- **Ruta:** `/auth/onboarding/[role]`
+- **Trigger:** El `confirm route handler` (`app/[locale]/auth/confirm/route.ts`) verifica el OTP con Supabase, lee `user_profiles.role` y `user_profiles.profile_completed`. Si `profile_completed === false`, redirige a `/auth/onboarding/{role}`. Si `profile_completed === true`, redirige a `/app`. (Sin cookie `NEXT_LOCALE`; rutas sin prefijo de locale)
 - **Formulario unificado con campos condicionales por role:**
   - **Developer:** company name*, company website, operating country*, phone*
   - **Broker:** company name*, company website, operating country*, license number*, phone*
   - **Private Seller:** country of residence*, phone*
   - (* = obligatorio)
 - **Submit:** Actualiza `user_profiles` con los campos correspondientes + `profile_completed = true`
-- **Post-submit:** Redirige a `/dashboard`
+- **Post-submit:** Redirige a `/app`
 - **Países disponibles:** AE, GB, ES, PT, MX, BR, AR, ID, ME
-- **Componente:** `app/[locale]/auth/onboarding/[role]/page.tsx` (client)
+- **Componente:** `app/[locale]/auth/onboarding/[role]/page.tsx` (client, contenido servido en inglés)
 - **Configuración de role:** `ROLE_CONFIG` define título, ícono (lucide-react: Building2, Briefcase, User) y descripción por role
 
 ### 6.3 Dashboard unificado (rutas standalone)
@@ -458,6 +459,8 @@ Matriz de pricing configurada por role × país:
 - Si `updateSession()` retorna un redirect (status 3xx), se retorna ese redirect directamente
 - Si no hay redirect, se continúa con `intlMiddleware(request)`
 - Las rutas standalone (`/dashboard`, `/login`, `/signup`) siguen ejecutando solo `updateSession()`
+
+> Nota: el regex `authRouteRegex` conserva el patrón de locales opcionales (`/(?:en|ar|...)?/auth`) por compatibilidad con URLs legacy, pero el sitio se sirve siempre en inglés (`en`) con `localePrefix: never`.
 
 ```
 Auth routes (/[locale]/auth/*):
@@ -704,7 +707,7 @@ Cada sección es un archivo independiente: `basic-information-section.tsx`, `loc
 | Drawer mobile | vaul 1.1 | Drawer responsive en DataTable |
 | Iconos | lucide-react 0.511 + @tabler/icons-react 3.44 | Iconografía |
 | Editor rich text | @tiptap/react + starter-kit + extension-image + extension-placeholder + @tiptap/pm (3.29) | Editor de descripciones en los forms de developer y broker |
-| i18n | next-intl 4.12 | Internacionalización |
+| i18n | next-intl 4.12 | Internacionalización — preservada pero inactiva (sitio siempre en inglés) |
 | Temas | next-themes 0.4 | Dark/light mode |
 | Validación | zod 4.4 | Schema de datos en DataTable |
 | Currency | Intl.NumberFormat (nativo) + tasas fijas | Formato y conversión de moneda |
@@ -1178,29 +1181,28 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 
 ### 7.3 Estructura de rutas
 
-#### Sitio público (con i18n)
+#### Sitio público (en inglés, sin prefijo de locale)
 
 | Ruta | Acceso | Descripción |
 |---|---|---|
-| `/` | Público | Homepage |
-| `/[locale]` | Público | Homepage con locale |
-| `/[locale]/properties-list` | Público | Listado de propiedades con filtros |
-| `/[locale]/property/[slug]` | Público | Detalle de propiedad |
-| `/[locale]/communities` | Público | Listado de comunidades (DB + búsqueda client) |
-| `/[locale]/community/[slug]` | Público | Detalle de comunidad (descripción sanitizada, mapa, galería) |
-| `/[locale]/developers` | Público | Listado de promotoras (DB, solo verified, búsqueda por texto visible) |
-| `/[locale]/developer/[slug]` | Público | Detalle de promotora (descripción HTML sanitizada, info card, estilos) |
-| `/[locale]/broker/[slug]` | Público | Detalle de broker (header circular, descripción, propiedades activas, contacto) |
-| `/[locale]/auth/login` | Público | Login unificado |
-| `/[locale]/auth/sign-up/[role]` | Público | Registro por role (developer/broker/private-seller) |
-| `/[locale]/auth/sign-up` | Público | Redirect a `/auth/sign-up/developer` |
-| `/[locale]/auth/forgot-password` | Público | Reset de contraseña |
-| `/[locale]/auth/update-password` | Público | Actualizar contraseña |
-| `/[locale]/auth/confirm` | Público | Callback de confirmación email → onboarding o dashboard |
-| `/[locale]/auth/onboarding/[role]` | Autenticado | Onboarding post-confirmación por role |
-| `/[locale]/auth/error` | Público | Error de autenticación |
-| `/[locale]/auth/sign-up-success` | Público | Éxito de registro |
-| `/[locale]/protected` | Autenticado | Página protegida inversor (placeholder) |
+| `/` | Público | Homepage (locale default `en`, sin prefijo) |
+| `/properties-list` | Público | Listado de propiedades con filtros |
+| `/property/[slug]` | Público | Detalle de propiedad |
+| `/communities` | Público | Listado de comunidades (DB + búsqueda client) |
+| `/community/[slug]` | Público | Detalle de comunidad (descripción sanitizada, mapa, galería) |
+| `/developers` | Público | Listado de promotoras (DB, solo verified, búsqueda por texto visible) |
+| `/developer/[slug]` | Público | Detalle de promotora (descripción HTML sanitizada, info card, estilos) |
+| `/broker/[slug]` | Público | Detalle de broker (header circular, descripción, propiedades activas, contacto) |
+| `/auth/login` | Público | Login unificado |
+| `/auth/sign-up/[role]` | Público | Registro por role (developer/broker/private-seller) |
+| `/auth/sign-up` | Público | Redirect a `/auth/sign-up/developer` |
+| `/auth/forgot-password` | Público | Reset de contraseña |
+| `/auth/update-password` | Público | Actualizar contraseña |
+| `/auth/confirm` | Público | Callback de confirmación email → onboarding o dashboard |
+| `/auth/onboarding/[role]` | Autenticado | Onboarding post-confirmación por role |
+| `/auth/error` | Público | Error de autenticación |
+| `/auth/sign-up-success` | Público | Éxito de registro |
+| `/protected` | Autenticado | Página protegida inversor (placeholder) |
 
 #### Plataforma de vendedores (sin i18n)
 
@@ -1222,13 +1224,14 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 
 - **Autenticación:** Supabase Auth con sesiones gestionadas por cookies
 - **Middleware unificado:** `proxy.ts` combina:
-  - next-intl locale routing (público)
-  - Geo-detección (público)
+  - next-intl locale routing (público, solo default `en`)
+  - `stripLocalePrefix()`: redirige (301) cualquier URL con prefijo de locale (`/es/...`, `/ar/...`) a la versión limpia en inglés
   - Auth middleware para rutas protegidas y dashboard
+  - Sin geo-detección de idioma (eliminada)
 - **Fix auth routes:** En `proxy.ts`, las rutas de auth ejecutan `updateSession()` antes de `intlMiddleware()` para resolver el locale correctamente antes de redirigir
 - **Protección del dashboard:** `updateSession()` en `lib/supabase/middleware.ts` verifica sesión en `/app/*`. Si no hay usuario, redirige a `/auth/login`. Si hay usuario en `/auth/login` o `/auth/sign-up`, redirige a `/app`.
-- **Protección del sitio público:** `updateSession()` también protege `/[locale]/protected` y `/[locale]/auth/*` (excepto rutas públicas como login, sign-up, forgot-password, etc.)
-- **Onboarding gate:** El confirm route handler lee la cookie `NEXT_LOCALE` y `user_profiles.profile_completed`. Si es `false`, redirige a `/{locale}/auth/onboarding/{role}`. Si es `true`, redirige a `/{locale}/app`.
+- **Protección del sitio público:** `updateSession()` también protege `/protected` y `/auth/*` (excepto rutas públicas como login, sign-up, forgot-password, etc.)
+- **Onboarding gate:** El confirm route handler lee `user_profiles.profile_completed`. Si es `false`, redirige a `/auth/onboarding/{role}`. Si es `true`, redirige a `/app`. (Sin cookie `NEXT_LOCALE`; rutas sin prefijo de locale)
 - **Verificación de sesión:** `getUser()` server-side (no `getClaims()`) — el JWT puede estar expirado aunque los claims se decodifiquen
 - **Variables de entorno:** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - **RLS en user_profiles:** cada usuario solo puede leer/escribir su propio perfil
@@ -1257,13 +1260,13 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 ### Flujo A: Inversor busca propiedades (sitio público)
 
 ```
-1. Inversor llega a la homepage (detecta locale por cookie o geo)
+1. Inversor llega a la homepage (siempre en inglés, sin detección de idioma)
 2. Usa campo de búsqueda o dropdowns de filtro (categoría, precio, estado)
 3. Navega a /properties-list
 4. Usa filtros avanzados (location, category, price range, status, + more)
 5. Explora PropertyCards con precios en su moneda
 6. Puede cambiar moneda con CurrencySwitcher — todas las cards se actualizan en vivo
-7. Hace clic en una card → navega a /[locale]/property/[slug] (detalle de propiedad)
+7. Hace clic en una card → navega a /property/[slug] (detalle de propiedad)
 8. Ve gallery, details, amenities, payment plan, tags, related properties
 9. Hace clic en "Contact" o WhatsApp en el detalle o sidebar
 ```
@@ -1279,10 +1282,10 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 2. Ve 3 tabs (Developer, Broker, Private Seller) — el tab activo corresponde a la URL. Labels traducidos via useTranslations("auth.sign_up")
 3. Si cambia de tab, navega a /auth/sign-up/{nuevo-role} (URL cambia)
 4. Completa formulario: full name, email, password, repeat password
-5. Submit → supabase.auth.signUp() con options.data.role = activeTab y emailRedirectTo = ${origin}/${locale}/auth/confirm
+5. Submit → supabase.auth.signUp() con options.data.role = activeTab y emailRedirectTo = ${origin}/auth/confirm (sin prefijo de locale)
 6. Trigger handle_new_user() crea registro en user_profiles con role, email y campos vacíos
 7. Redirige a /auth/sign-up-success (email de confirmación pendiente)
-8. Usuario confirma email → /[locale]/auth/confirm route handler lee cookie NEXT_LOCALE
+8. Usuario confirma email → /auth/confirm route handler verifica OTP y redirige a /auth/onboarding/{role} o /app
 ```
 
 **Servicios consumidos:** Supabase Auth, user_profiles (trigger)
@@ -1290,11 +1293,10 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 ### Flujo C: Onboarding post-confirmación
 
 ```
-1. Confirm route handler lee cookie NEXT_LOCALE (fallback: ae)
-2. Verifica OTP con supabase.auth.verifyOtp()
-3. Lee user_profiles.role y user_profiles.profile_completed
-4. Si profile_completed === false → redirect a /{locale}/auth/onboarding/{role}
-5. Si profile_completed === true → redirect a /{locale}/app
+1. Confirm route handler verifica OTP con supabase.auth.verifyOtp() (sin cookie NEXT_LOCALE)
+2. Lee user_profiles.role y user_profiles.profile_completed
+3. Si profile_completed === false → redirect a /auth/onboarding/{role}
+4. Si profile_completed === true → redirect a /app
 6. Onboarding page muestra formulario con campos condicionales:
    - Developer: company name*, company website, operating country*, phone*
    - Broker: company name*, company website, operating country*, license number*, phone*
@@ -1308,7 +1310,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 ### Flujo D: Login de vendedor
 
 ```
-1. Usuario navega a /auth/login (o /login que redirige aquí). Textos traducidos via useTranslations("auth.login")
+1. Usuario navega a /auth/login (o /login que redirige aquí). Contenido servido en inglés (`en`)
 2. Completa formulario con email y password
 3. Submit → supabase.auth.signInWithPassword()
 4. Si éxito → redirige a /app
@@ -1349,9 +1351,9 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 ### Flujo G: Navegación de comunidades (listado + detalle)
 
 ```
-1. Usuario navega a /[locale]/communities
+1. Usuario navega a /communities
 2. communities/page.tsx (server) llama a getCommunities(locale): select("*, community_translations(*)") filtrando is_active = true
-3. Se resuelve la traducción con fallback locale → 'ae' → primera y se ordena con localeCompare(locale)
+3. Se resuelve la traducción con fallback locale → `DEFAULT_LOCALE` (`en`) → primera y se ordena con localeCompare(locale)
 4. CommunitiesGrid (client) filtra por texto (nombre, ciudad, location, tags) con useState/useMemo
 5. Clic en CommunityCard → /community/{slug} (via @/i18n/navigation)
 6. community/[slug]/page.tsx llama a getCommunityBySlug(slug, locale) con .maybeSingle(); si no existe o está inactiva → notFound()
@@ -1373,7 +1375,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 6. Sube imagen → uploadImage() al bucket developer-images/{userId}/description/ → se embebe como <img>
 7. Save → sanitizeUserHtml() en cliente → saveDeveloperProfile() (server action: getUser + validaciones + sanitización servidor + upsert)
 8. Botón Save deshabilitado si no hay cambios; router.refresh() tras guardar
-9. Público: /developers muestra la card con texto plano (stripHtmlToText) y /developer/[slug] el HTML sanitizado con estilos
+9. Público: /developers muestra la card con texto plano (stripHtmlToText) y /developer/[slug] el HTML sanitizado con estilos (ids en texto no traducibles)
 ```
 
 **Servicios consumidos:** TipTap (rich-text-editor.tsx), lib/storage.ts (uploadImage), lib/actions.ts (saveDeveloperProfile), lib/sanitize-html.ts (sanitizeUserHtml), lib/developers.ts, lib/cities.ts, lib/countries.ts
@@ -1429,25 +1431,25 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 4. **La búsqueda en homepage tiene UI pero no funcionalidad real.** Es placeholder visual.
 5. **Los botones Contact y WhatsApp en PropertyCards y detalle de propiedad son placeholder.** No ejecutan consulta real (no hay endpoint ni conexión a DB).
 6. **Las rutas de promotoras existen y leen de DB.** `/developers` y `/developer/[slug]` consultan Supabase (solo `is_verified = true`) desde el 05-Ago-2026. `/development/[slug]` sigue con mock data (no conectada a DB).
-7. **El locale default (ae) no aparece en la URL.** Evita redirects innecesarios para EAU, mercado principal.
-8. **La geo-detección funciona solo en producción** (Vercel, Cloudflare, AWS). En local se usa default locale.
+7. **El sitio se sirve siempre en inglés (locale `en`).** `defaultLocale = "en"` y `localePrefix = "never"`: las URLs no tienen prefijo de locale (`/`, `/properties`, `/property/[slug]`, etc.). Cualquier URL con prefijo de locale (`/es/...`, `/ar/...`) redirige (301) a la versión limpia en inglés. No hay selector de idioma visible para el usuario final; i18n (next-intl) está preservada pero inactiva.
+8. **No hay geo-detección de idioma.** Se eliminó la detección geográfica y la cookie `NEXT_LOCALE`. El contenido se sirve siempre en inglés.
 9. **Solo email/password en MVP.** Sin OAuth social.
 10. **Usar `getUser()` en vez de `getClaims()`** para verificar sesión server-side (el JWT puede estar expirado aunque los claims se decodifiquen).
 11. **Las propiedades del dashboard (`/app/properties`) se leen de Supabase via `getMyProperties()`.** El PropertyList es un componente real conectado a DB. SectionCards y DataTable del dashboard principal siguen con datos mock.
 12. **Las páginas del dashboard de properties (`/app/properties`, `/app/properties/new`, `/app/properties/[id]/edit`) están implementadas y conectadas a DB.** Las sub-rutas `analytics` (Developer) y `clients` (Broker) siguen sin implementar.
 13. **La tabla `user_profiles` se crea automáticamente al registrarse** vía trigger `handle_new_user()`. El role se extrae de `raw_user_meta_data->>'role'` (default: 'developer'). El onboarding se completa post-confirmación de email.
 14. **El middleware de auth para el dashboard es independiente del i18n.** Las rutas `/app`, `/login` y `/signup` no tienen locale prefix y no pasan por next-intl.
-15. **El confirm route handler lee la cookie `NEXT_LOCALE`** para determinar el locale del usuario antes de redirigir. Fallback: `ae`.
+15. **El confirm route handler redirige a rutas sin prefijo de locale.** Verifica OTP y `user_profiles.profile_completed`: redirige a `/auth/onboarding/{role}` o `/app`. No usa cookie `NEXT_LOCALE`.
 16. **Los pricing plans están configurados pero no se aplican.** Son referencia para futura implementación de planes pagos.
 17. **El role se almacena en dos lugares:** `raw_user_meta_data` de Supabase Auth (al registrarse) y `user_profiles.role` (tabla propia). El confirm route handler y el app layout leen de `user_profiles`.
 18. **Los componentes usan campos planos para acceder a datos de tablas relacionadas.** `PropertyData` incluye campos "joined" (`developer_name`, `development_name`, etc.) que replican datos de `developers` y `developments`. Cuando se conecte a Supabase real, se resolverán vía `select` con joins o vistas materializadas.
-19. **Auth forms están completamente traducidos.** Namespace `auth` en `messages/{locale}.json` con secciones: login, sign_up, forgot_password, update_password, back_to_home. Auth components usan `useTranslations("auth.*")`.
-20. **emailRedirectTo y redirectTo incluyen locale.** El sign-up form usa `useLocale()` para construir `${origin}/${locale}/auth/confirm`. El forgot-password form usa el mismo patrón para `${origin}/${locale}/auth/update-password`.
+19. **Auth forms con i18n preservada pero contenido en inglés.** Namespace `auth` en `messages/{locale}.json` con 7 locales, pero el contenido se sirve en inglés (`en`). Los form components ya no usan `useLocale()`.
+20. **emailRedirectTo y redirectTo apuntan a rutas sin prefijo de locale.** El sign-up form construye `${origin}/auth/confirm` y el forgot-password form `${origin}/auth/update-password`. Sin `useLocale()`.
 21. **Componentes organizados por dominio.** `site/` (público), `properties/` (listado/detalle), `auth/` (formularios), `shared/` (currency), `platform/` (dashboard). `ui/` solo primitivas shadcn.
 22. **La ruta del dashboard es `/app`** (no `/dashboard`). Rename realizado para simplificar.
 23. **El CTA "See properties" del detalle de comunidad apunta a `/properties-list?community={slug}`, ruta inexistente.** La lista real es `/properties` y no lee query params. ⚠️
 24. **Las comunidades son contenido curado en DB, no user-generated.** Solo se escriben vía migración/seed (service_role). No hay INSERT/UPDATE desde cliente.
-25. **Las traducciones de comunidades se resuelven con fallback locale → 'ae' → primera disponible.** Hoy solo existe la fila base 'ae' (inglés en todos los locales); las traducciones se agregan por fila en `community_translations`, no en los mensajes.
+25. **Las traducciones de comunidades se resuelven con fallback locale → `DEFAULT_LOCALE` (`en`) → primera disponible.** Hoy solo existe la fila base 'ae' (inglés en todos los locales); las traducciones se agregan por fila en `community_translations`, no en los mensajes. ⚠️ Ver nota técnica de inconsistencia (DEFAULT_LOCALE `en` vs filas base `ae`).
 26. **`developer_id` en communities está NULL** (el CSV de Webflow no traía developers). El seed no lo pisa en el `DO UPDATE`. El bloque "Main Developer" se reimplementará cuando haya datos.
 27. **Las descripciones de comunidades usan `dangerouslySetInnerHTML` solo tras `sanitizeHtml()`.** No aplicar a contenido user-generated.
 28. **Los iframes de Google Maps se renderizan solo si la URL pasa la validación** (host `google.com/maps` + path `/maps/`), con `sandbox` y `referrerPolicy="no-referrer"`.
@@ -1480,7 +1482,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - Los vendedores (developers, brokers, private sellers) tienen capacidad técnica para listar sus unidades (o reciben asistencia)
 - El mercado Off-Plan es suficientemente grande como para justificar una plataforma global
 - Los inversores están dispuestos a contactar a vendedores directamente sin agente de por medio
-- El locale/idioma se puede inferir por geolocalización del país de origen
+- El sitio se sirve siempre en inglés; i18n (next-intl) está preservada pero inactiva, sin selector de idioma ni geo-detección
 
 **Restricciones:**
 - Las tablas `properties`, `payment_plan_milestones`, `developers`, `developments` y `communities` se leen de Supabase en la UI pública y en el dashboard de vendedores. `lib/mock-properties.ts` fue eliminado. La tabla `developments` aún no tiene página de listado conectada a DB (usa mock data). `community_total_area` queda hardcodeado a 0 en la resolución de propiedades
@@ -1502,13 +1504,16 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - Las traducciones de comunidades solo existen en locale 'ae' (el contenido se muestra en inglés en todos los locales)
 - El CTA "See properties" de comunidades apunta a una ruta inexistente (`/properties-list?community={slug}`)
 
+**⚠️ Nota técnica — Inconsistencia de datos detectada:**
+- Las traducciones base de comunidades en `community_translations` (seed/migración 008) usan `locale = 'ae'` (contenido en inglés), mientras que el código ahora usa `DEFAULT_LOCALE = "en"`. La resolución cae por fallback a `translations[0]`, por lo que el contenido en inglés se muestra igual, pero no hay match directo. Pendiente decidir si renombrar el locale base a `en` o mantener `ae` como fallback de contenido. No se modifica dato alguno en esta tarea.
+
 ---
 
 ## 11. ROADMAP EVOLUTIVO
 
 ### ✅ Completado
 - Homepage completa con hero, features, about, FAQ, contacto, footer
-- Sistema i18n completo con 7 locales, geo-detección y routing as-needed
+- Sistema i18n con next-intl preservado pero inactivo: sitio siempre en inglés, `defaultLocale = en`, `localePrefix = never`, sin geo-detección, sin cookie `NEXT_LOCALE`, sin selector de idioma
 - Auth completo con 3 roles (developer, broker, private seller)
 - Signup URL-driven por role con tabs y navegación
 - Onboarding post-confirmación con campos condicionales por role
@@ -1534,11 +1539,11 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - `property-card.tsx` migrado a campos planos (`developer_name`, `developer_logo`, `city`, `community`)
 - Detalle de propiedad migrado a campos planos (todas las referencias anidadas eliminadas)
 - `RelatedProperties` se renderiza correctamente
-- Auth i18n: namespace `auth` traducido a 7 locales (login, sign-up, forgot-password, update-password, back_to_home)
-- Auth components actualizados con `useTranslations("auth.*")`
+- Auth i18n: namespace `auth` con 7 locales (archivos de mensajes preservados; contenido servido en inglés `en`)
+- Auth components con i18n preservada (sin `useLocale()`; contenido servido en inglés)
 - Role labels traducidos en sign-up form
-- `emailRedirectTo` y `forgot-password` redirectTo incluyen locale
-- `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware
+- `emailRedirectTo` y `forgot-password` redirectTo apuntan a rutas sin prefijo de locale
+- `confirm/route.ts` redirige a rutas limpias (`/auth/onboarding/{role}`, `/app`) sin cookie `NEXT_LOCALE`
 - Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/)
 - Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx)
 - Route group `(auth)/` eliminada
@@ -1598,7 +1603,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 - **Corto plazo:** Ejecutar migración 008 + seed de communities en Supabase (producción)
 - **Corto plazo:** Conectar el CTA "See properties" de communities a `/properties` con query param `community`
 - **Corto plazo:** Asignar `developer_id` a cada comunidad (dato pendiente en Webflow)
-- **Mediano plazo:** Traducir comunidades a locales adicionales (hoy solo existe la fila base 'ae')
+- **Mediano plazo:** Traducir comunidades a locales adicionales (hoy solo existe la fila base 'ae') — condicional a reactivar i18n
 - **Mediano plazo:** Panel de administración completo para vendedores (gestión de propiedades, consultas)
 - **Mediano plazo:** Mapa global con unidades geolocalizadas
 - **Mediano plazo:** Conectar DataTable del dashboard a datos reales de propiedades
@@ -1629,7 +1634,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 | Fecha de entrega | Fecha estimada en que la unidad estará lista para escriturar |
 | MVP | Minimum Viable Product — versión inicial con funcionalidades esenciales |
 | i18n | Internacionalización — soporte multi-idioma |
-| Locale | Identificador de idioma/región (ej: ae, es, gb, br) |
+| Locale | Identificador de idioma/región (ej: en, ae, es, gb, br). El sitio se sirve siempre en `en` (default); los demás quedan dormidos en la config |
 | RLS | Row Level Security — mecanismo de seguridad a nivel de fila en Supabase |
 | user_profiles | Tabla unificada de perfiles con roles (reemplaza developer_profiles como tabla principal) |
 | SectionCards | Componente de tarjetas de métricas en el dashboard |
@@ -1645,3 +1650,6 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`.
 | PropertyList | Componente de tabla en el dashboard del vendedor que muestra las propiedades del usuario con 7 columnas (property, status, price, location, specs, created, actions) |
 | Ownership check | Verificación server-side de que el usuario autenticado es el dueño de la entidad que intenta modificar (ej: `listed_by_id = user.id` en properties, `user_profile_id = user.id` en developers/brokers) |
 | Migration 019 | Migración que agrega columnas planas `development`, `development_area` y `developer` a la tabla `properties` para la sección "Development Details" |
+| localePrefix: never | Configuración de next-intl que elimina el prefijo de locale de las URLs; cualquier URL con prefijo (`/es/...`, `/ar/...`) redirige (301) a la versión limpia en inglés |
+| DEFAULT_LOCALE = en | Locale default del sitio (inglés). Toda la UI pública se sirve en inglés; i18n preservada pero inactiva |
+| community_translations | Tabla de traducciones por comunidad y locale; la fila base usa `locale = 'ae'` (contenido en inglés), pendiente decidir si renombrar a `en` |

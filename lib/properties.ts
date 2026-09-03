@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PropertyData } from "@/lib/types";
 
-const DEFAULT_LOCALE = "ae";
+const DEFAULT_LOCALE = "en";
 
 interface PropertyRow {
   id: string;

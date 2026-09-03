@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-const DEFAULT_LOCALE = "ae";
+const DEFAULT_LOCALE = "en";
 
 const ALLOWED_MAP_HOSTS = new Set(["www.google.com", "maps.google.com", "google.com"]);
 

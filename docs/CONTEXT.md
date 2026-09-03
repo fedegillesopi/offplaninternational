@@ -27,7 +27,8 @@
 - [x] Sección FAQ con accordion
 - [x] Banner de contacto
 - [x] Footer con links de navegación, redes sociales, copyright
-- [x] Sistema i18n con 7 locales y geo-detección
+- [x] Sistema i18n con 7 locales (los demás dormidos; el sitio se sirve siempre en inglés)
+- [x] Sitio forzado en inglés (`defaultLocale: "en"`, `localePrefix: "never"`); otros locales dormidos, sin prefijo de URL ni geo-detección; cualquier URL con prefijo de locale se redirige (301)
 - [x] CurrencySwitcher en navbar con persistencia en cookie (NEXT_CURRENCY)
 - [x] Sistema de moneda: formato por locale + mapa locale→moneda por defecto
 - [x] Página de listado de propiedades (estructura + cards + filtros + cambio de moneda en vivo)
@@ -68,7 +69,7 @@
 - [x] Role labels traducidos en sign-up form (`t("roles.${role}")`)
 - [x] `emailRedirectTo` en sign-up incluye locale via `useLocale()`
 - [x] `forgot-password-form` redirectTo incluye locale
-- [x] `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware (`/app`, `/auth/onboarding/`, `/auth/error`)
+- [x] `confirm/route.ts` redirige a paths sin prefijo de locale (`/app`, `/auth/onboarding/`, `/auth/error`); ya no lee cookie `NEXT_LOCALE`
 - [x] Componentes reorganizados en directorios por dominio: `site/`, `properties/`, `auth/`, `shared/`, `platform/`
 - [x] Directorios vacíos listos para roles: `developers/`, `brokers/`, `private-sellers/`
 - [x] Template cleanup: 13 archivos eliminados (hero, logos, deploy-button, env-var-warning, theme-switcher, section-cards, data-table, tutorial/*, protected/layout+page, ui/sidebar.tsx)
@@ -80,7 +81,7 @@
 ### Comunidades
 - [x] Migración 008: tablas `communities` y `community_translations` (patrón 007)
 - [x] Seed `supabase/seed/communities.sql`: 42 comunidades de Dubai + 42 traducciones locale 'ae' (upserts idempotentes)
-- [x] Data access `lib/communities.ts`: `getCommunities(locale)` y `getCommunityBySlug(slug, locale)` con fallback de traducción locale → 'ae' → primera
+- [x] Data access `lib/communities.ts`: `getCommunities(locale)` y `getCommunityBySlug(slug, locale)` con fallback de traducción locale → 'en' → primera (DEFAULT_LOCALE = "en" desde 02-sep-2026; antes 'ae')
 - [x] Página de listado `/[locale]/communities` (server) con búsqueda client-side
 - [x] Página de detalle `/[locale]/community/[slug]` (server) con `notFound()`, descripción HTML sanitizada y galería condicional
 - [x] `CommunityCard` en `components/site/` (compartido con grid de communities)
@@ -568,7 +569,7 @@ Definir tablas de `favorites` e `inquiries`.
 ```
 offplaninternational/
 ├── AGENTS.md                          # Instrucciones para agentes de opencode
-├── proxy.ts                           # Middleware combinado (i18n + geo + auth)
+├── proxy.ts                           # Middleware combinado (i18n + auth + strip de prefijo de locale)
 ├── next.config.ts                     # Next config con plugin next-intl
 ├── tailwind.config.ts                 # Tailwind config (shadcn-compatible, sin custom spacing)
 ├── tsconfig.json                      # TypeScript config
@@ -591,7 +592,7 @@ offplaninternational/
 │   │   ├── broker/page.tsx            # Broker Profile (form con editor TipTap, solo rol broker)
 │   │   ├── profile/page.tsx           # Perfil del usuario
 │   │   └── settings/page.tsx          # Settings (placeholder, solo heading)
-│   └── [locale]/
+│   └── [locale]/                      # Segmento de locale (next-intl resuelve "en" sin prefijo en la URL; `localePrefix: "never"`)
 │       ├── layout.tsx                 # NextIntlClientProvider + CurrencyProvider wrapper
 │       ├── page.tsx                   # Homepage (composicion de componentes)
 │       ├── auth/
@@ -606,7 +607,7 @@ offplaninternational/
 │       │   ├── payment/page.tsx       # Seleccion de plan post-signup
 │       │   ├── forgot-password/page.tsx
 │       │   ├── update-password/page.tsx
-│       │   ├── confirm/route.ts       # Callback de confirmacion (lee NEXT_LOCALE cookie)
+│       │   ├── confirm/route.ts       # Callback de confirmacion (redirige sin prefijo de locale)
 │       │   └── error/page.tsx
 │       ├── properties/page.tsx        # Listado de propiedades con filtros + cards (DB via getProperties)
 │       ├── property/[slug]/page.tsx   # Detalle de propiedad
@@ -734,7 +735,7 @@ offplaninternational/
 │   ├── request.ts                     # Carga de mensajes por locale
 │   └── navigation.ts                  # Helpers Link, redirect, usePathname, useRouter
 ├── messages/                          # Traducciones por locale (7 archivos)
-│   ├── ae.json (default, incluye namespace `auth`)
+│   ├── en.json (default, incluye namespace `auth`)
 │   ├── ar.json
 │   ├── br.json
 │   ├── es.json
@@ -818,9 +819,9 @@ offplaninternational/
 
 | Fecha | Decisión | Razón |
 |---|---|---|
-| 2026-05-21 | next-intl v4 con `localePrefix: "as-needed"` | El locale default (ae) no aparece en URL, evitando redirects innecesarios para EAU |
-| 2026-05-21 | `proxy.ts` en lugar de `middleware.ts` | Next.js 16 cambió el API de middleware; proxy combina locale routing + geo + auth |
-| 2026-05-21 | Geo-detección por headers CDN (Vercel/Cloudflare/AWS) | Sin costo adicional, sin dependencias externas; en local se usa default locale |
+| 2026-05-21 | next-intl v4 con `localePrefix: "as-needed"` ⚠️ OBSOLETO (02-sep-2026: ahora `"never"`) | Se sirve siempre en inglés; ningún prefijo de locale en URLs |
+| 2026-05-21 | `proxy.ts` en lugar de `middleware.ts` | Next.js 16 cambió el API de middleware; proxy combina locale routing + auth |
+| 2026-05-21 | Geo-detección por headers CDN (Vercel/Cloudflare/AWS) ⚠️ ELIMINADO (02-sep-2026) | El sitio se sirve siempre en inglés; ya no se detecta país para elegir locale |
 | 2026-05-21 | `getUser()` en vez de `getClaims()` para verificar sesión | El JWT puede estar expirado aunque los claims se decodifiquen |
 | 2026-05-21 | Navegación i18n: `Link` y `redirect` desde `@/i18n/navigation` | next-intl requiere estos wrappers para resolver paths con/sin prefijo de locale |
 | 2026-05-21 | Confirm route usa `redirect` de `next/navigation` (no de i18n) | Callback de Supabase sin locale prefix; el middleware lo resuelve automáticamente |
@@ -856,13 +857,13 @@ offplaninternational/
 | 2026-07-27 | Template cleanup: 13 archivos eliminados + `(auth)/` route group + `ui/sidebar.tsx` | Elimina código muerto del starter kit de Supabase; reduce confusión |
 | 2026-07-27 | shadcn defaults restaurados: Button (`h-9`/`h-10`), Input (`h-9`), custom spacing eliminado | Base sólida para UI consistente; evita overrides innecesarios que dificultan Upgrades |
 | 2026-07-27 | Auth i18n: namespace `auth` traducido a 7 locales + auth components con `useTranslations` | Formularios de auth completamente traducidos; elimina texto hardcodeado en inglés |
-| 2026-07-27 | `emailRedirectTo` y `forgot-password` redirectTo incluyen locale via `useLocale()` | Los links de email mantienen el locale del usuario; evitan perder contexto al confirmar |
-| 2026-07-27 | `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware | El usuario mantiene su locale al ser redirigido tras confirmar email o completar onboarding |
+| 2026-07-27 | `emailRedirectTo` y `forgot-password` redirectTo incluyen locale via `useLocale()` ⚠️ OBSOLETO (02-sep-2026) | Los links de email mantenían el locale del usuario al confirmar. Con el sitio siempre en inglés (`localePrefix: never`) el `useLocale()` devuelve `en` y los redirects van sin prefijo; el middleware los resuelve |
+| 2026-07-27 | `confirm/route.ts` lee cookie `NEXT_LOCALE` para redirects locale-aware ⚠️ OBSOLETO (02-sep-2026) | El usuario mantiene su locale al ser redirigido tras confirmar email o completar onboarding. Ahora el sitio es siempre inglés y `NEXT_LOCALE` se eliminó; los redirects van sin prefijo |
 | 2026-07-27 | UI primitives creados: `textarea.tsx` (shadcn pattern), `dialog.tsx` (Radix UI) | Completan el set de componentes base para formularios y modales |
 | 2026-07-31 | Migración 008: tablas `communities` y `community_translations` con patrón idéntico a 007 | Consistencia: RLS select público, triggers updated_at con `DROP TRIGGER IF EXISTS` (idempotentes), FK developer_id → developers ON DELETE SET NULL, UNIQUE(community_id, locale) |
 | 2026-07-31 | Comunidades como contenido curado en DB (no mock ni user-generated) | 42 comunidades de Dubai importadas de CSV de Webflow; el tipo `Community` vive en `lib/communities.ts` (eliminado `CommunityData` de `lib/types.ts`) |
 | 2026-07-31 | `webflow-databases/` ignorado en git | El CSV exportado de Webflow es origen de datos, no se versiona; el seed SQL es el artefacto versionado |
-| 2026-07-31 | Traducciones por fila en `community_translations` con fallback locale → 'ae' → primera disponible | El contenido base (42 filas 'ae') se muestra en inglés en todos los locales; las traducciones se agregan por fila sin tocar código |
+| 2026-07-31 | Traducciones por fila en `community_translations` con fallback locale → 'en' → primera disponible (⚠️ antes 'ae', default cambiado a 'en' el 02-sep-2026) | El contenido base (42 filas 'ae') se muestra en inglés en todos los locales; las traducciones se agregan por fila sin tocar código |
 | 2026-07-31 | Sanitizador HTML allowlist custom (`lib/sanitize-html.ts`) en vez de librería (sanitize-html/DOMPurify) | Sin dependencias nuevas; el HTML proviene de contenido curado por el equipo; allowlist de tags y bloqueo de tags peligrosos + neutralización de entidades (`&#x3c;` → `&amp;lt;`) |
 | 2026-07-31 | Descripción de comunidad con `dangerouslySetInnerHTML` sobre `sanitizeHtml()` | El contenido es HTML rico (h4/p/strong/ul/blockquote) del CSV; se sanitiza en render para eliminar scripts/iframes/entidades peligrosas |
 | 2026-07-31 | Validación de `google_map_url` en runtime: solo hosts google.com/maps y path `/maps/` | Un iframe malicioso es un vector de XSS; solo se renderiza si la URL es de Google Maps, devolviendo null si no |
@@ -906,21 +907,25 @@ offplaninternational/
 | 2026-09-02 | `PageHeader` (ui) con botón back fijo "Back" + ArrowLeft en new/edit; NO en broker/developer | Decisión del usuario: el back solo aplica a la creación/edición de propiedades (navegación a `/app/properties`) |
 | 2026-09-02 | `AlertDialog` (ui) basado en `radix-ui` unificado (patrón shadcn como `sheet.tsx`) | Reemplaza el `confirm()` nativo del Delete de propiedades con un diálogo accesible y consistente |
 | 2026-09-02 | Botones full-width apilados en visibility-section / broker-form / developer-form; Cancel solo en modo create | UX consistente en todos los forms; broker/developer no tienen Delete (no existe server action de delete para esos perfiles) |
+| 2026-09-02 | Sitio forzado en inglés: `defaultLocale: "en"`, `localePrefix: "never"` | Decisión de producto: siempre inglés por ahora. Se mantiene next-intl y los 7 archivos de mensajes (dormidos); `messages/ae.json` renombrado a `messages/en.json` |
+| 2026-09-02 | Eliminada geo-detección y cookie `NEXT_LOCALE` del proxy; `stripLocalePrefix()` redirige (301) cualquier `/<locale>/...` a `/...` | Sin locale en URLs; cualquier prefijo legacy (incl. `/en/` y `/ae/`) se normaliza a la versión limpia antes del `intlMiddleware` |
+| 2026-09-02 | Auth callbacks/redirects sin prefijo de locale (`/app`, `/auth/*`); `auth-callback-client` y `confirm/route` ya no leen `NEXT_LOCALE` | Como el sitio es siempre `en` y no hay prefijo, los redirects van directo sin locale; el middleware de next-intl y `stripLocalePrefix` resuelven cualquier prefijo legacy |
+| 2026-09-02 | `DEFAULT_LOCALE = "en"` en `lib/properties.ts` y `lib/communities.ts`; condiciones `locale === "ae" || "en" || "gb" ? "en" : ...` en privacy/terms/confirm-email | Sincroniza los defaults de data access con el nuevo default `en`; `ae`/`gb` se mantienen mapeados a inglés para compatibilidad |
+| 2026-09-02 | `locale = "en"` (constante) en `/app/properties/new` y `/app/properties/[id]/edit` | Las páginas del dashboard son standalone (sin i18n); se reemplazó la lectura de `cookies()`/`NEXT_LOCALE` por la constante `"en"` |
 
 ## 7. FLUJOS PRINCIPALES
 
-### 7.1 Deteccion de locale + geo-redirect
+### 7.1 Routing de locale (siempre inglés, sin prefijo)
 
-1. Usuario llega a `/` sin locale prefix
-2. `proxy.ts` revisa cookie `NEXT_LOCALE`
-3. Si existe cookie y no es default -> redirige a `/{locale}`
-4. Si no existe cookie -> lee headers CDN (`x-vercel-ip-country`, etc.)
-5. Si pais detectado tiene locale mapeado y no es default -> redirige a `/{locale}` y setea cookie por 30 dias
-6. Sino -> next-intl middleware sirve default locale (ae)
+1. Usuario llega a `/` o a cualquier ruta pública sin prefijo de locale
+2. `proxy.ts` evalúa si es ruta standalone (`/app`, `/login`, `/signup`) → `updateSession` (auth), o ruta auth/protected/pública
+3. Para rutas públicas y auth: `stripLocalePrefix(pathname)` elimina el prefijo de locale si existe (`/<locale>/...` → `/...`) y redirige (301)
+4. `intlMiddleware` (next-intl) sirve todo con `defaultLocale: "en"` y `localePrefix: "never"` (no agrega prefijo a ningún Link)
+5. ⚠️ Ya no hay geo-detección ni cookie `NEXT_LOCALE` (eliminadas 02-sep-2026)
 
 ### 7.2 Registro de usuario (nuevo sistema con roles)
 
-1. Usuario navega a `/[locale]/auth/sign-up/developer` (o /broker o /private_seller)
+1. Usuario navega a `/auth/sign-up/developer` (o /broker o /private_seller) — sin prefijo de locale (siempre inglés)
 2. `sign-up-form.tsx` muestra tabs para seleccionar rol (URL-driven)
 3. Al cambiar tab, se navega a `/auth/sign-up/{role}` y se resetea el form
 4. Usuario completa: full name, email, password, repeat password
@@ -930,12 +935,11 @@ offplaninternational/
 
 ### 7.3 Confirmacion de email + onboarding
 
-1. Usuario hace click en link de confirmacion de email (con locale en URL)
+1. Usuario hace click en link de confirmacion de email (sin locale en URL)
 2. `/auth/confirm` route handler verifica OTP con Supabase
-3. Lee cookie `NEXT_LOCALE` (fallback: `ae`)
-4. Lee `role` y `profile_completed` de `user_profiles`
-5. Si `profile_completed = false` -> redirige a `/{locale}/auth/onboarding/{role}`
-6. Si `profile_completed = true` -> redirige a `/{locale}/app`
+3. Lee `role` y `profile_completed` de `user_profiles` (ya no lee cookie `NEXT_LOCALE`)
+4. Si `profile_completed = false` -> redirige a `/auth/onboarding/{role}`
+5. Si `profile_completed = true` -> redirige a `/app`
 
 ### 7.4 Onboarding post-confirmacion
 
@@ -947,7 +951,7 @@ offplaninternational/
    - **Private Seller:** country of residence
    - **Todos:** phone number
 4. Al enviar, actualiza `user_profiles` con `profile_completed = true`
-5. Redirige a `/dashboard`
+5. Redirige a `/app`
 
 ### 7.5 Login
 
@@ -958,12 +962,14 @@ offplaninternational/
 
 ### 7.6 Proteccion de rutas (middleware)
 
-1. `proxy.ts` detecta rutas `/app`, `/login`, `/signup` y las deriva a `updateSession()`
+1. `proxy.ts` detecta rutas `/app`, `/login`, `/signup` (standalone) y las deriva a `updateSession()`
 2. Para rutas `/auth/*` o `/protected/*`, ejecuta `updateSession()` primero y luego `intlMiddleware()`
-3. `updateSession()` en `lib/supabase/middleware.ts`:
+3. Para el resto de rutas públicas: `stripLocalePrefix()` elimina el prefijo de locale (301) y pasa a `intlMiddleware()`
+4. `updateSession()` en `lib/supabase/middleware.ts`:
    - Si no hay usuario y ruta es `/app` -> redirect a `/auth/login`
-   - Si hay usuario y ruta es `/auth/login` o `/auth/sign-up` -> redirect a `/app`
-4. El layout de app tambien verifica sesion server-side con `createClient()` como fallback
+   - Si hay usuario y ruta es `/login` o `/signup` -> redirect a `/app`
+   - Si no hay usuario y ruta es `/auth/*` protegida (onboarding, etc.) o `/protected/*` -> redirect a `/auth/login`
+5. El layout de app tambien verifica sesion server-side con `createClient()` como fallback
 
 ### 7.7 Dashboard
 
@@ -1013,7 +1019,7 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 
 ### 7.12 Detalle de propiedad
 
-1. Usuario navega a `/[locale]/property/[slug]`
+1. Usuario navega a `/property/[slug]` (sin prefijo de locale)
 2. Server component async que busca propiedad en DB via `getPropertyBySlug(slug)` de `lib/properties.ts`
 3. Si no existe o no está activa → `notFound()`
 4. Layout con Navbar, Breadcrumb, dos columnas (gallery + sidebar), y secciones inferiores
@@ -1024,16 +1030,16 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 
 ### 7.13 Listado de comunidades
 
-1. Usuario navega a `/[locale]/communities` (requiere migración 008 + seed ejecutados)
+1. Usuario navega a `/communities` (requiere migración 008 + seed ejecutados)
 2. `communities/page.tsx` (server) llama a `getCommunities(locale)` con el Supabase server client
-3. `getCommunities` hace `select("*, community_translations(*)")` filtrando `is_active = true`; resuelve la traducción con fallback locale → 'ae' → primera; ordena con `localeCompare(locale)`
+3. `getCommunities` hace `select("*, community_translations(*)")` filtrando `is_active = true`; resuelve la traducción con fallback locale → 'en' → primera; ordena con `localeCompare(locale)`
 4. `CommunitiesGrid` (client) renderiza el input de búsqueda y las cards; filtra por nombre, ciudad, location y tags con `useState`/`useMemo`
 5. Sin resultados muestra `t("communities.no_results")`
 6. `CommunityCard` linkea a `/community/{slug}` (via `@/i18n/navigation`)
 
 ### 7.14 Detalle de comunidad
 
-1. Usuario navega a `/[locale]/community/[slug]`
+1. Usuario navega a `/community/[slug]`
 2. `community/[slug]/page.tsx` (server) llama a `getCommunityBySlug(slug, locale)` con `.maybeSingle()`; si no existe o está inactiva → `notFound()`
 3. Descripción HTML se pasa por `sanitizeHtml()` antes de `dangerouslySetInnerHTML` (solo si hay descripción)
 4. `CommunityHeader` muestra imagen destacada (placeholder con nombre si no hay) + iframe del mapa si `google_map_url` pasó la validación de host/path
@@ -1048,11 +1054,11 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 4. Slug autogenerado desde Company Name (read-only) + botón copy de la URL pública
 5. Descripción editada con `RichTextEditor` (TipTap): toolbar Bold/Italic/H3/listas/blockquote/imagen; la imagen se sube a `developer-images/{userId}/description/` y se inserta como `<img>` (botón deshabilitado durante upload)
 6. Save llama a `saveDeveloperProfile` (server action en `lib/actions.ts`): valida server-side (website auto-prefija `https://`, slug regex `^[a-z0-9-]+$`, límites de longitud, on_time_completion 0–100), sanitiza con `sanitizeUserHtml()` y hace INSERT o UPDATE en `developers` (RLS del owner)
-7. `router.refresh()`; la página pública (`/[locale]/developer/[slug]`) solo muestra rows con `is_verified = true`
+7. `router.refresh()`; la página pública (`/developer/[slug]`) solo muestra rows con `is_verified = true`
 
 ### 7.16 Render de la descripción del developer/broker (pública)
 
-1. Detalle `/[locale]/developer/[slug]` o `/[locale]/broker/[slug]` (server): `getDeveloperBySlug`/`getBrokerBySlug` filtra `is_verified = true`; `notFound()` si no existe
+1. Detalle `/developer/[slug]` o `/broker/[slug]` (server): `getDeveloperBySlug`/`getBrokerBySlug` filtra `is_verified = true`; `notFound()` si no existe
 2. `DeveloperDescription`/`BrokerDescription` detecta si el texto es HTML (`isHtmlText`) → sanitiza con `sanitizeUserHtml()` y renderiza con `dangerouslySetInnerHTML` (clase `.rich-description` en globals.css)
 3. Si es texto plano legacy con `**bold**` → `splitBold()` de `lib/rich-text.tsx` split y render con `<strong>` (misma visual)
 4. En el listado de developer (`DeveloperCard`, `DevelopersGrid`) se usa `stripHtmlToText()` para mostrar y filtrar texto sin tags
@@ -1071,7 +1077,7 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 
 ### 7.18 Página pública del broker
 
-1. Usuario navega a `/[locale]/broker/[slug]` (accesible desde el link en PropertySidebar cuando `listed_by_type = 'broker'`)
+1. Usuario navega a `/broker/[slug]` (accesible desde el link en PropertySidebar cuando `listed_by_type = 'broker'`)
 2. `broker/[slug]/page.tsx` (server): `getBrokerBySlug(slug)` filtra `is_verified = true`; `notFound()` si no existe
 3. Query a `properties` contando y listando las últimas 5 propiedades activas del broker (`listed_by_id = broker.userProfileId AND listed_by_type = 'broker'`)
 4. `BrokerHeader` muestra: imagen de perfil (placeholder con inicial si no hay), nombre, link a URL personal (validado con `safeUrl`), stats (active properties, closed transactions), botones Email/WhatsApp
@@ -1138,6 +1144,7 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Estilos:** `cn()` de `lib/utils.ts` para merge de clases Tailwind
 - **Server Components por defecto:** solo usar `"use client"` cuando sea necesario (event handlers, hooks, estado)
 - **Navegación i18n:** usar `Link` y `redirect` desde `@/i18n/navigation`, no de `next/link` ni `next/navigation`
+- **Sitio en inglés forzado:** `defaultLocale: "en"` y `localePrefix: "never"`; ningún locale en la URL. No usar geo-detección ni cookie `NEXT_LOCALE`. Los otros locales quedan dormidos en routing (archivos de mensajes intactos)
 - **Traducciones en Server:** `getTranslations()` de `next-intl/server`
 - **Traducciones en Client:** `useTranslations()` de `next-intl`
 - **Nombres de archivo:** kebab-case (ej: `hero-header.tsx`)
@@ -1154,16 +1161,16 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Interfaces de dominio:** `Developer`, `Development` en `lib/types.ts` — reflejan tablas de BD 1:1. ⚠️ `PaymentPlanMilestone` eliminada (migración 017)
 - **PropertyData:** interfaz flat con campos joined (`developer_name`, `developer_logo`, `city`, `community`, `developer`, `development`, `development_area`, `development_name`, `development_total_area`, etc.) — no usar objetos anidados
 - **user_profiles:** tabla unica para todos los roles; campos condicionales se llenan en onboarding
-- **Auth forms:** login-form, sign-up-form, forgot-password-form, update-password-form usan `useTranslations("auth.*")` para i18n; emailRedirectTo y redirectTo incluyen locale via `useLocale()`
+- **Auth forms:** login-form, sign-up-form, forgot-password-form, update-password-form usan `useTranslations("auth.*")` para i18n; emailRedirectTo y redirectTo apuntan sin prefijo de locale (el `useLocale()` devuelve `en` y el middleware/tipos resuelven el resto)
 - **Component organization:** componentes en directorios por dominio (`site/`, `properties/`, `auth/`, `shared/`, `platform/`, `communities/`, `developers/`, `developments/`); `ui/` solo primitivas shadcn
 - **Auth namespace:** `auth` en `messages/{locale}.json` con secciones: login, sign_up, forgot_password, update_password, back_to_home
-- **Comunidades:** tipo `Community` e interfaz de data access en `lib/communities.ts` (no en `lib/types.ts`); funciones async con Supabase server client y fallback de traducción locale → 'ae' → primera
+- **Comunidades:** tipo `Community` e interfaz de data access en `lib/communities.ts` (no en `lib/types.ts`); funciones async con Supabase server client y fallback de traducción locale → 'en' → primera (DEFAULT_LOCALE = "en" desde 02-sep-2026)
 - **HTML curado:** descripciones de communities se renderizan con `dangerouslySetInnerHTML` SIEMPRE pasando antes por `sanitizeHtml()` de `lib/sanitize-html.ts`
 - **HTML user-generated:** descripciones de developers (TipTap) se sanitizan con `sanitizeUserHtml()` de `lib/sanitize-html.ts` — en el form (cliente) y en la server action (servidor) antes de persistir, y en render con `dangerouslySetInnerHTML`; las imágenes solo apuntan al origin de Supabase Storage
 - **Descripciones de developers:** legacy `**bold**` sigue soportado en render; al editar se convierte a HTML (`toEditorHtml`); resúmenes de card y búsqueda usan `stripHtmlToText()` de `lib/utils.ts`
 - **Server actions:** vivir en `lib/actions.ts` (módulo separado) — no mezclar exports de client con módulos que importan `next/headers` (Next arrastra `lib/supabase/server.ts` al bundle cliente)
 - **URLs de mapas:** validar con el patrón de `lib/communities.ts` (host google.com/maps + path `/maps/`) antes de usarlas en iframes; usar `sandbox` y `referrerPolicy="no-referrer"` en el iframe
-- **Contenido de communities:** se muestra en inglés en todos los locales (traducción base 'ae'); para traducir, insertar fila en `community_translations`, no hardcodear en mensajes
+- **Contenido de communities:** se muestra en inglés en todos los locales (traducción base guardada en locale 'ae'); para traducir, insertar fila en `community_translations`, no hardcodear en mensajes. ⚠️ Inconsistencia potencial: el code default (`DEFAULT_LOCALE = "en"`) no coincide con las filas base (locale 'ae'); como no existen filas 'en', el fallback cae a primera disponible ('ae') y se muestra en inglés. Para alinear, habría que actualizar el seed a locale 'en'
 - **Migraciones Supabase:** numeradas secuencialmente (`014_...`); triggers updated_at con `DROP TRIGGER IF EXISTS` para idempotencia; seed en `supabase/seed/` con upserts (`ON CONFLICT`)
 - **Forms de profile:** importar `slugify` y `toEditorHtml` de `lib/utils.ts`; usar `RichTextEditor` con prop `bucket` para dirigir uploads al bucket correcto
 - **Descripciones rich-text:** importar `splitBold` de `lib/rich-text.tsx` (necesita JSX); usar clase CSS `.rich-description` para renders de HTML de usuarios
