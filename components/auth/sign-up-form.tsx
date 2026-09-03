@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useLocale } from "next-intl";
+
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ export function SignUpForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const t = useTranslations("auth.sign_up");
   const params = useParams();
-  const locale = useLocale();
   const initialRole = (params.role as UserRole) || "developer";
   const [activeTab, setActiveTab] = useState<UserRole>(initialRole);
   const [fullName, setFullName] = useState("");
@@ -63,7 +62,7 @@ export function SignUpForm({
             role: activeTab,
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/${locale}/auth/confirm`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });
 
