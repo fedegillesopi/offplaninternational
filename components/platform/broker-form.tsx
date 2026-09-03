@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Check, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { NativeSelect } from "@/components/ui/native-select"
 import { useRouter } from "next/navigation"
 import { ImageUpload } from "@/components/platform/image-upload"
@@ -50,6 +52,12 @@ export function BrokerForm({
   const [closedTransactions, setClosedTransactions] = useState(
     broker?.closed_transactions?.toString() ?? "0",
   )
+  const [reraCardUrl, setReraCardUrl] = useState(broker?.rera_card_url ?? "")
+  const [qrCodeUrl, setQrCodeUrl] = useState(broker?.qr_code_url ?? "")
+  const [agencyOrn, setAgencyOrn] = useState(broker?.agency_orn ?? "")
+  const [detailsConfirmed, setDetailsConfirmed] = useState(
+    broker?.details_confirmed ?? false,
+  )
 
   const country = countryCode
   const slug = slugify(name)
@@ -67,7 +75,11 @@ export function BrokerForm({
           emailPublic !== (broker.email_public ?? "") ||
           phone !== (broker.phone ?? "") ||
           whatsapp !== (broker.whatsapp ?? "") ||
-          closedTransactions !== (broker.closed_transactions?.toString() ?? "0"),
+          closedTransactions !== (broker.closed_transactions?.toString() ?? "0") ||
+          reraCardUrl !== (broker.rera_card_url ?? "") ||
+          qrCodeUrl !== (broker.qr_code_url ?? "") ||
+          agencyOrn !== (broker.agency_orn ?? "") ||
+          detailsConfirmed !== (broker.details_confirmed ?? false),
       )
 
   const handleCopy = async () => {
@@ -98,6 +110,10 @@ export function BrokerForm({
         closed_transactions: closedTransactions
           ? Number(closedTransactions)
           : null,
+        rera_card_url: reraCardUrl || null,
+        qr_code_url: qrCodeUrl || null,
+        agency_orn: agencyOrn || null,
+        details_confirmed: detailsConfirmed,
       })
 
       if (saveError) {
@@ -232,6 +248,70 @@ export function BrokerForm({
               value={closedTransactions}
               onChange={(e) => setClosedTransactions(e.target.value)}
             />
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="mb-2 text-sm font-semibold">Credentials</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <ImageUpload
+                label="RERA Broker Card / ID"
+                value={reraCardUrl}
+                onChange={setReraCardUrl}
+                userId={profile.id}
+                folder="rera"
+                bucket="broker-images"
+              />
+            </div>
+            <div className="space-y-2">
+              <ImageUpload
+                label="QR Code"
+                value={qrCodeUrl}
+                onChange={setQrCodeUrl}
+                userId={profile.id}
+                folder="qr"
+                bucket="broker-images"
+              />
+            </div>
+          </div>
+
+          {qrCodeUrl && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-medium">QR Code Preview</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrCodeUrl}
+                alt="Broker QR code"
+                className="h-40 w-40 rounded-md border object-contain"
+              />
+            </div>
+          )}
+
+          <div className="mt-4 space-y-2">
+            <label className="text-sm font-medium">
+              Agency ORN (Office Registration Number)
+            </label>
+            <Input
+              value={agencyOrn}
+              onChange={(e) => setAgencyOrn(e.target.value)}
+              placeholder="e.g. ORN-12345"
+            />
+            <p className="text-xs text-muted-foreground">
+              The enterprise that employs you must provide its Office Registration
+              Number.
+            </p>
+          </div>
+
+          <div className="mt-4 flex items-start gap-2">
+            <Checkbox
+              id="details-confirmed"
+              checked={detailsConfirmed}
+              onCheckedChange={(v) => setDetailsConfirmed(v === true)}
+            />
+            <Label htmlFor="details-confirmed" className="text-sm">
+              I confirm these details are up to date
+            </Label>
           </div>
         </div>
       </div>

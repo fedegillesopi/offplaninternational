@@ -59,7 +59,10 @@
 - [x] Onboarding post-confirmación con campos condicionales por rol (`/auth/onboarding/[role]`)
 - [x] Confirm route que lee role de user_profiles y redirige a onboarding o app
 - [x] Dashboard unificado en `/app` con sidebar basado en role
-- [x] Pricing plans por role × país en `lib/pricing-plans.ts`
+- [x] Pricing plans por role × país en `lib/pricing-plans.ts` ⚠️ SIN USO EN CÓDIGO — reemplazado por el mock de tiers por perfil en `lib/plans.ts` (ver debajo)
+- [x] Mock UI de planes por perfil (sin Stripe): `lib/plans.ts` con `getPlansForRole`, `getPlan`, `getMaxProperties`, `PLANS`, tipos `PlanTier`/`Plan`. Cada perfil (developer/broker/private_seller) tiene plan Free (sin Stripe, 10 propiedades) + 3 tiers de pago (developer/broker = Free/Starter/Pro/Enterprise; private_seller = Free/Single/Starter/Pro). Los planes NO varían por país
+- [x] `components/auth/payment-page.tsx` (client) muestra los tiers con la cantidad disponible; `app/[locale]/auth/payment/page.tsx` (server) resuelve el role y delega. Elegir cualquier tier navega a `/app` (sin Stripe ni persistencia)
+- [x] `docs/STRIPE-PLANS.md` documenta el paso a paso de implementación futura de Stripe (migración propuesta `023_plans_and_subscriptions.sql`)
 - [x] Legacy routes: `/login` y `/signup` redirigen al nuevo sistema
 - [x] Navbar actualizada con links a `/auth/login` y `/auth/sign-up`
 - [x] Sidebar reestructurada: NAV_BY_ROLE con Dashboard + Properties para todos, Settings al fondo, dropdown de usuario con logout
@@ -131,6 +134,11 @@
 - [x] `slugify()` y `toEditorHtml()` extraídas a `lib/utils.ts` (compartidas entre `broker-form.tsx` y `developer-form.tsx`)
 - [x] `.rich-description` en `globals.css` renombrada desde `.developer-description` (compartida entre developer y broker)
 - [x] Namespace `broker_detail` traducido a los 7 locales
+- [x] Migración 022: credenciales del broker en `broker_profiles` (`rera_card_url`, `qr_code_url`, `agency_orn`, `details_confirmed`)
+- [x] Onboarding broker (`app/[locale]/auth/onboarding/[role]/page.tsx`): RERA Broker Card / ID (imagen obligatoria, bucket `broker-images/rera`), QR Code (imagen opcional, bucket `broker-images/qr`), Agency ORN (texto), checkbox "I confirm these details are up to date". El campo texto `license_number` fue reemplazado por la imagen RERA. Onboarding hace upsert en `broker_profiles` (crea el row con name/slug desde company_name/full_name si no existe)
+- [x] Broker-profile form (`components/platform/broker-form.tsx`): sección "Credentials" con los mismos 4 campos + preview destacada del QR
+- [x] `saveBrokerProfile` (lib/actions.ts) recibe y valida los 4 campos (ORN máx 64 chars). `BrokerProfile` en `lib/types.ts` incluye los 4 campos
+- [x] Bucket `broker-images` con carpetas `rera/` y `qr/` (reutilizado, decisión de mantenerlo así por ahora)
 
 ### Property Upload & Management (plataforma)
 - [x] Server actions `saveProperty`, `deleteProperty` en `lib/actions.ts` con validaciones server-side y ownership checks
@@ -166,6 +174,7 @@
 - [ ] Dashboard de favoritos y consultas del usuario
 - [ ] `app/app/settings` page: existe como placeholder (solo heading), sin contenido implementado
 - [ ] Market news: páginas de listado y detalle con mock data — falta conectar a DB
+- [ ] Pagos reales con Stripe pendientes: `auth/payment` es mock visual (sin Stripe ni persistencia de plan); `lib/pricing-plans.ts` quedó sin uso. Implementación documentada en `docs/STRIPE-PLANS.md` (migración propuesta `023_plans_and_subscriptions.sql`)
 
 ## 3. STACK TECNOLÓGICO
 
@@ -495,7 +504,7 @@ Creada por migración `supabase/migrations/013_cities.sql`. Ciudades curadas por
 
 ### broker_profiles
 
-Creada por migración `supabase/migrations/014_broker_profile.sql`. Perfil público del broker (accesible solo desde property detail pages, no hay listing page).
+Creada por migración `supabase/migrations/014_broker_profile.sql` y ampliada por `022_broker_credentials.sql`. Perfil público del broker (accesible solo desde property detail pages, no hay listing page).
 
 | Columna | Tipo | Constraints | Descripcion |
 |---|---|---|---|
@@ -512,6 +521,10 @@ Creada por migración `supabase/migrations/014_broker_profile.sql`. Perfil públ
 | phone | text | nullable | Telefono |
 | whatsapp | text | nullable | Numero de WhatsApp |
 | closed_transactions | integer | DEFAULT 0 | Transacciones cerradas (auto-declarado, no calculado) |
+| rera_card_url | text | nullable (migración 022) | URL de la imagen de la RERA Broker Card / ID (bucket broker-images/rera) |
+| qr_code_url | text | nullable (migración 022) | URL de la imagen del QR Code (bucket broker-images/qr) |
+| agency_orn | text | nullable (migración 022) | Agency ORN (Office Registration Number), máx 64 chars validado en server action |
+| details_confirmed | boolean | NOT NULL DEFAULT false (migración 022) | Checkbox "I confirm these details are up to date" |
 | is_verified | boolean | NOT NULL DEFAULT false | Broker verificado (controla visibilidad publica) |
 | created_at | timestamptz | DEFAULT now() | Fecha de creacion |
 | updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
@@ -554,7 +567,7 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`. Imág
 - **Público:** true
 - **Tamaño máximo:** 5MB
 - **MIME types:** image/jpeg, image/png, image/webp
-- **Estructura:** `broker-images/{user_id}/{folder}/{timestamp}-{rand}.{ext}` con carpetas `profile/` y `description/`
+- **Estructura:** `broker-images/{user_id}/{folder}/{timestamp}-{rand}.{ext}` con carpetas `profile/`, `description/`, `rera/` y `qr/` (las dos últimas añadidas por la migración 022, para las credenciales del broker)
 - **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
 - **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder, "broker-images")` (via prop `bucket` en `ImageUpload` y `RichTextEditor`)
 
@@ -604,7 +617,7 @@ offplaninternational/
 │       │   │   └── [role]/page.tsx    # Onboarding post-confirmacion con campos condicionales
 │       │   ├── confirm-email/page.tsx # "Revisa tu email" + resend
 │       │   ├── confirm-client/page.tsx
-│       │   ├── payment/page.tsx       # Seleccion de plan post-signup
+│       │   ├── payment/page.tsx       # Seleccion de plan post-onboarding (server: resuelve role y delega en PaymentPage)
 │       │   ├── forgot-password/page.tsx
 │       │   ├── update-password/page.tsx
 │       │   ├── confirm/route.ts       # Callback de confirmacion (redirige sin prefijo de locale)
@@ -670,6 +683,7 @@ offplaninternational/
 │   │   ├── sign-up-form.tsx           # Formulario registro con tabs de rol (useTranslations)
 │   │   ├── forgot-password-form.tsx   # Formulario reset password (useTranslations)
 │   │   ├── update-password-form.tsx   # Formulario actualizar password (useTranslations)
+│   │   ├── payment-page.tsx           # Mock UI de planes por perfil (client, usa lib/plans.ts, sin Stripe)
 │   │   ├── auth-button.tsx            # Boton auth contextual (server)
 │   │   └── logout-button.tsx          # Cerrar sesion (client)
 │   ├── shared/                        # Componentes compartidos
@@ -763,7 +777,8 @@ offplaninternational/
 │   │   ├── 017_drop_payment_plan_milestones.sql  # Elimina tabla payment_plan_milestones + columna payment_plan_months
 │   │   ├── 018_drop_balcony_garden.sql # Elimina columnas has_balcony y has_garden (capturadas via amenities)
 │   │   ├── 019_properties_development_fields.sql # Campos development, development_area, developer en properties (EJECUTADA)
-│   │   └── 020_enforce_developer_id_rls.sql  # Refuerza RLS INSERT/UPDATE de properties para coherencia de developer_id (EJECUTADA)
+│   │   ├── 020_enforce_developer_id_rls.sql  # Refuerza RLS INSERT/UPDATE de properties para coherencia de developer_id (EJECUTADA)
+│   │   └── 022_broker_credentials.sql    # Credenciales del broker (rera_card_url, qr_code_url, agency_orn, details_confirmed en broker_profiles)
 │   └── seed/
 │       ├── communities.sql             # 42 comunidades + 42 traducciones 'ae' (upserts)
 │       ├── community_tags.sql          # Tags de comunidad curados
@@ -775,6 +790,7 @@ offplaninternational/
 │   ├── PRD.md                         # Product Requirements Document (agente analista)
 │   ├── DEVELOPER-PAGE-FORM.md         # Plan del form de pagina de developer (migraciones 011-013 + TipTap)
 │   ├── ONBOARDING-FLOW.md             # Plan del flujo de onboarding por rol
+│   ├── STRIPE-PLANS.md                # Paso a paso de implementacion futura de Stripe (migracion propuesta 023_plans_and_subscriptions.sql)
 │   └── TIPTAP-PLAN.md                 # Plan de integracion del editor TipTap
 ├── lib/
 │   ├── actions.ts                     # Server actions: saveDeveloperProfile, saveBrokerProfile, saveProperty, deleteProperty (validacion + sanitizacion)
@@ -797,8 +813,9 @@ offplaninternational/
 │   ├── filter-options.ts              # Opciones de filtros centralizadas
 │   ├── mock-developments.ts           # Mock data de developments
 │   ├── mock-market-news.ts            # Mock data de market news
-│   ├── pricing-plans.ts               # Pricing matrix por role x pais
-│   ├── types.ts                       # UserRole, UserProfile, PropertyData, Developer, etc.
+│   ├── plans.ts                       # Catálogo de planes por perfil (mock UI sin Stripe): getPlansForRole, getPlan, getMaxProperties, PLANS, tipos PlanTier/Plan
+│   ├── pricing-plans.ts               # Pricing matrix por role x pais ⚠️ SIN USO EN CODIGO (reemplazado por lib/plans.ts)
+│   ├── types.ts                       # UserRole, UserProfile, PropertyData, Developer, BrokerProfile, etc.
 │   ├── utils.ts                       # cn(), hasEnvVars, isHtmlText, stripHtmlToText, slugify, toEditorHtml
 │   └── supabase/
 │       ├── client.ts                  # Cliente Supabase browser
@@ -912,6 +929,9 @@ offplaninternational/
 | 2026-09-02 | Auth callbacks/redirects sin prefijo de locale (`/app`, `/auth/*`); `auth-callback-client` y `confirm/route` ya no leen `NEXT_LOCALE` | Como el sitio es siempre `en` y no hay prefijo, los redirects van directo sin locale; el middleware de next-intl y `stripLocalePrefix` resuelven cualquier prefijo legacy |
 | 2026-09-02 | `DEFAULT_LOCALE = "en"` en `lib/properties.ts` y `lib/communities.ts`; condiciones `locale === "ae" || "en" || "gb" ? "en" : ...` en privacy/terms/confirm-email | Sincroniza los defaults de data access con el nuevo default `en`; `ae`/`gb` se mantienen mapeados a inglés para compatibilidad |
 | 2026-09-02 | `locale = "en"` (constante) en `/app/properties/new` y `/app/properties/[id]/edit` | Las páginas del dashboard son standalone (sin i18n); se reemplazó la lectura de `cookies()`/`NEXT_LOCALE` por la constante `"en"` |
+| 2026-09-03 | Planes por perfil en tiers (mock UI sin Stripe): `lib/plans.ts` + `components/auth/payment-page.tsx`; `lib/pricing-plans.ts` (role × país) queda SIN uso | Decisión de producto: los planes son por perfil, no por país. Cada perfil (developer/broker/private_seller) tiene plan Free (sin Stripe, 10 propiedades) + 3 tiers de pago; se muestra un mock visual de los tiers con la cantidad disponible sin persistencia ni pago real. Stripe se implementará luego (paso a paso en `docs/STRIPE-PLANS.md`, migración propuesta `023_plans_and_subscriptions.sql`) |
+| 2026-09-03 | Credenciales de broker en `broker_profiles` (migración 022: `rera_card_url`, `qr_code_url`, `agency_orn`, `details_confirmed`) | El onboarding del broker y el broker-form capturan credenciales (RERA card + QR + ORN + confirmación). RERA card y QR como imágenes (buckets `broker-images/rera` y `/qr`); `license_number` (campo texto) fue reemplazado por la imagen RERA |
+| 2026-09-03 | Reutilizar el bucket `broker-images` para las carpetas `rera/` y `qr/` (en vez de crear buckets nuevos) | Se mantuvo el bucket existente (público, 5MB, jpeg/png/webp) ya configurado con RLS por carpeta del usuario; se agregaron las carpetas dentro del mismo bucket |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -947,11 +967,19 @@ offplaninternational/
 2. Page carga config segun role (titulo, icono, descripcion)
 3. Campos condicionales:
    - **Developer/Broker:** company name, company website, operating country
-   - **Broker:** license number (adicional)
+   - **Broker (adicional):** RERA Broker Card / ID (imagen obligatoria, bucket `broker-images/rera`), QR Code (imagen opcional, bucket `broker-images/qr`), Agency ORN (texto, máx 64 chars), checkbox "I confirm these details are up to date". ⚠️ El campo texto `license_number` fue reemplazado por la imagen RERA
    - **Private Seller:** country of residence
    - **Todos:** phone number
 4. Al enviar, actualiza `user_profiles` con `profile_completed = true`
-5. Redirige a `/app`
+5. Si el rol es broker, hace upsert en `broker_profiles`: si el row no existe lo crea (name/slug desde company_name o full_name) y persiste las 4 credenciales; si existe, las actualiza
+6. Redirige a `/auth/payment` (selección de plan)
+
+### 7.4a Selección de plan (payment, mock sin Stripe)
+
+1. Usuario llega a `/auth/payment` post-onboarding (requiere auth)
+2. `payment/page.tsx` (server) lee `user_profiles.role` del usuario autenticado y delega en `PaymentPage`
+3. `PaymentPage` (client) usa `getPlansForRole(role)` de `lib/plans.ts` y muestra los tiers del perfil (Free + 3 de pago) con la cantidad de propiedades disponible
+4. Al elegir un tier y pulsar "Continue with {plan}", navega a `/app` (sin Stripe ni persistencia; TODO pendiente)
 
 ### 7.5 Login
 
@@ -1071,9 +1099,10 @@ Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta nin
 4. Slug autogenerado desde Name (read-only) + botón copy de la URL pública (`/broker/{slug}`)
 5. Descripción editada con `RichTextEditor` (TipTap, bucket `broker-images`): toolbar Bold/Italic/H3/listas/blockquote/imagen
 6. Profile image subida a `broker-images/{userId}/profile/` via `ImageUpload`
-7. Save llama a `saveBrokerProfile` (server action en `lib/actions.ts`): valida server-side (slug regex, límites, personal_url auto-prefija `https://`, closed_transactions 0–100000), sanitiza con `sanitizeUserHtml()` y hace INSERT o UPDATE en `broker_profiles` (RLS del owner)
-8. `router.refresh()`; la página pública solo muestra rows con `is_verified = true`
-9. Si `is_verified = false` se muestra banner amarillo "Pending verification" en el form
+7. Save llama a `saveBrokerProfile` (server action en `lib/actions.ts`): valida server-side (slug regex, límites, personal_url auto-prefija `https://`, closed_transactions 0–100000, ORN máx 64 chars), sanitiza con `sanitizeUserHtml()` y hace INSERT o UPDATE en `broker_profiles` (RLS del owner)
+8. Sección "Credentials" del form: RERA Broker Card / ID (bucket `broker-images/rera`), QR Code (bucket `broker-images/qr`, con preview destacada de la imagen del QR), Agency ORN (texto) y checkbox "I confirm these details are up to date"; los 4 campos se incluyen en el payload y en el `hasChanges`
+9. `router.refresh()`; la página pública solo muestra rows con `is_verified = true`
+10. Si `is_verified = false` se muestra banner amarillo "Pending verification" en el form
 
 ### 7.18 Página pública del broker
 
@@ -1186,3 +1215,5 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Botones de actions:** full-width apilados (`w-full space-y-3`); Cancel solo en modo create (redirige a `/app` o `/app/properties`); Delete solo en properties (usa `AlertDialog` de `ui/alert-dialog.tsx`); broker y developer NO tienen Delete
 - **PageHeader:** `ui/page-header.tsx` con `backHref` opcional; solo usado en `/app/properties/new` y `/app/properties/[id]/edit`; broker/developer no lo usan (decisión del usuario)
 - **AlertDialog para Delete:** en vez de `confirm()` nativo, se usa `AlertDialog` de `radix-ui` (patrón shadcn como `sheet.tsx`) en `visibility-section.tsx`
+- **Planes/pricing:** usar `lib/plans.ts` (catálogo de tiers por perfil, mock sin Stripe) para `getPlansForRole`/`getPlan`/`getMaxProperties`; NO usar `lib/pricing-plans.ts` (role × país, sin uso en código). El mock de `/auth/payment` (payment-page.tsx) muestra los tiers; la implementación real con Stripe sigue `docs/STRIPE-PLANS.md`
+- **Credenciales de broker:** viven en `broker_profiles` (migración 022): `rera_card_url`, `qr_code_url` (imágenes en el bucket `broker-images` carpetas `rera/` y `qr/`), `agency_orn` (texto, máx 64 chars validado en `saveBrokerProfile`) y `details_confirmed` (booleano). Tanto el onboarding como el broker-form los capturan; incluir estos campos en cualquier payload/actualización de broker

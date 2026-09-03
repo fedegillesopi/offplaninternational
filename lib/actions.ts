@@ -117,6 +117,10 @@ export interface SaveBrokerPayload {
   phone: string;
   whatsapp: string;
   closed_transactions: number | null;
+  rera_card_url: string | null;
+  qr_code_url: string | null;
+  agency_orn: string | null;
+  details_confirmed: boolean;
 }
 
 const MAX_CLOSED_TRANSACTIONS = 100_000;
@@ -163,6 +167,9 @@ export async function saveBrokerProfile(
       error: `Closed transactions must be between 0 and ${MAX_CLOSED_TRANSACTIONS}.`,
     };
   }
+  if (payload.agency_orn && payload.agency_orn.trim().length > 64) {
+    return { error: "Agency ORN is too long." };
+  }
 
   const fields = {
     name,
@@ -176,6 +183,10 @@ export async function saveBrokerProfile(
     phone: payload.phone,
     whatsapp: payload.whatsapp,
     closed_transactions: payload.closed_transactions ?? 0,
+    rera_card_url: payload.rera_card_url,
+    qr_code_url: payload.qr_code_url,
+    agency_orn: payload.agency_orn?.trim() || null,
+    details_confirmed: payload.details_confirmed,
   };
 
   let dbError: { message: string } | null;

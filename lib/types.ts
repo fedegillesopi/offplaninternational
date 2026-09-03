@@ -53,6 +53,10 @@ export interface BrokerProfile {
   phone: string | null;
   whatsapp: string | null;
   closed_transactions: number;
+  rera_card_url: string | null;
+  qr_code_url: string | null;
+  agency_orn: string | null;
+  details_confirmed: boolean;
   is_verified: boolean;
   created_at: string;
   updated_at: string;
