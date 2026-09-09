@@ -26,7 +26,8 @@
   "developments": {
     "back_to_home": "Volver al inicio",
     "all_developments": "Todos los Desarrollos",
-    "search_placeholder": "Buscar desarrollos..."
+    "search_placeholder": "Buscar desarrollos...",
+    "no_results": "No se encontraron desarrollos"
   },
   "communities": {
     "back_to_home": "Volver al inicio",
@@ -215,7 +216,32 @@
     "total_development_area": "Área Total del Desarrollo",
     "developer_label": "Desarrollador",
     "see_properties": "Ver propiedades del desarrollo",
-    "gallery": "Galería"
+    "gallery": "Galería",
+    "community": "Comunidad",
+    "handover_date": "Fecha de entrega"
+  },
+  "development_form": {
+    "name": "Nombre",
+    "slug": "Slug",
+    "description": "Descripción",
+    "country": "País",
+    "city": "Ciudad",
+    "community": "Comunidad",
+    "cover_image": "Imagen de portada",
+    "gallery_images": "Imágenes de la galería",
+    "amenities": "Servicios",
+    "property_types": "Tipos de propiedad",
+    "starting_price": "Precio de salida",
+    "starting_price_currency": "Moneda",
+    "total_area": "Área Total (sqm)",
+    "handover_date": "Fecha de entrega",
+    "is_active": "Activo (visible en listados públicos)",
+    "create": "Crear Desarrollo",
+    "edit": "Editar Desarrollo",
+    "delete": "Eliminar",
+    "save": "Guardar Cambios",
+    "cancel": "Cancelar",
+    "confirm_delete": "Esto eliminará permanentemente este desarrollo. Las propiedades asignadas perderán el vínculo al desarrollo."
   },
   "developer_detail": {
     "back_to_list": "Volver a la lista",

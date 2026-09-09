@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   BriefcaseBusiness,
   Building,
+  Building2,
   Settings,
   LogOut,
   Menu,
@@ -31,6 +32,7 @@ const NAV_BY_ROLE: Record<UserRole, { href: string; label: string; icon: typeof 
   developer: [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
     { href: "/app/developer", label: "Developer Profile", icon: BriefcaseBusiness },
+    { href: "/app/developments", label: "Developments", icon: Building2 },
     { href: "/app/properties", label: "Properties", icon: Building },
   ],
   broker: [

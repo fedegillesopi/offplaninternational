@@ -10,7 +10,7 @@ export async function uploadImage(
 ): Promise<string> {
   const supabase = createClient();
   const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${userId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const path = `${userId}/${folder}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from(bucket)

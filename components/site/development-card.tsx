@@ -18,22 +18,32 @@ export function DevelopmentCard({ name, description, image, logo, location, slug
       className="group block rounded-2 bg-white p-4 no-underline transition-shadow shadow-md hover:shadow-lg"
     >
       <div className="relative mb-3 overflow-hidden rounded-xl">
-        <Image
-          src={image}
-          alt={name}
-          width={600}
-          height={400}
-          className="h-[200px] w-full object-cover"
-        />
-        <div className="absolute bottom-3 right-3 flex size-16 items-center justify-center rounded-lg bg-white shadow-md">
+        {image ? (
           <Image
-            src={logo}
-            alt={`${name} logo`}
-            width={48}
-            height={48}
-            className="size-10 object-contain"
+            src={image}
+            alt={name}
+            width={600}
+            height={400}
+            className="h-[200px] w-full object-cover"
           />
-        </div>
+        ) : (
+          <div className="flex h-[200px] w-full items-center justify-center bg-[--grey-50]">
+            <span className="font-heading text-h4 font-bold text-[--grey-200]">
+              {name}
+            </span>
+          </div>
+        )}
+        {logo && (
+          <div className="absolute bottom-3 right-3 flex size-16 items-center justify-center rounded-lg bg-white shadow-md">
+            <Image
+              src={logo}
+              alt={`${name} logo`}
+              width={48}
+              height={48}
+              className="size-10 object-contain"
+            />
+          </div>
+        )}
       </div>
       <div className="px-1 pb-2">
         <p className="mb-1 flex items-center gap-1 font-body text-md font-light text-[--grey-200] tracking-wide">
