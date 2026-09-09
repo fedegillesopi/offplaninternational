@@ -11,6 +11,18 @@ interface DevelopmentInfoCardProps {
   developerName: string;
   developerSlug: string;
   developmentSlug: string;
+  community?: string;
+  handoverDate?: string | null;
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export async function DevelopmentInfoCard({
@@ -21,6 +33,8 @@ export async function DevelopmentInfoCard({
   developerName,
   developerSlug,
   developmentSlug,
+  community,
+  handoverDate,
 }: DevelopmentInfoCardProps) {
   const t = await getTranslations("development_detail");
 
@@ -66,6 +80,34 @@ export async function DevelopmentInfoCard({
         </span>
       </div>
 
+      {community && (
+        <>
+          <div className="h-px w-full bg-[--grey-50]" />
+          <div className="flex flex-col gap-1">
+            <span className="font-body text-sm font-light text-[--grey-300]">
+              {t("community")}
+            </span>
+            <span className="font-body text-base font-medium text-[--text-primary]">
+              {community}
+            </span>
+          </div>
+        </>
+      )}
+
+      {handoverDate && (
+        <>
+          <div className="h-px w-full bg-[--grey-50]" />
+          <div className="flex flex-col gap-1">
+            <span className="font-body text-sm font-light text-[--grey-300]">
+              {t("handover_date")}
+            </span>
+            <span className="font-body text-base font-medium text-[--text-primary]">
+              {formatDate(handoverDate)}
+            </span>
+          </div>
+        </>
+      )}
+
       <div className="h-px w-full bg-[--grey-50]" />
 
       <div className="flex flex-col gap-1">
@@ -82,7 +124,7 @@ export async function DevelopmentInfoCard({
 
       <div className="h-px w-full bg-[--grey-50]" />
 
-      <PrimaryCtaLink href={`/properties-list?development=${developmentSlug}`}>
+      <PrimaryCtaLink href={`/properties?development=${developmentSlug}`}>
         {t("see_properties")}
       </PrimaryCtaLink>
     </div>

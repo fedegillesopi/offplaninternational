@@ -62,7 +62,7 @@
 - [x] Pricing plans por role × país en `lib/pricing-plans.ts` ⚠️ SIN USO EN CÓDIGO — reemplazado por el mock de tiers por perfil en `lib/plans.ts` (ver debajo)
 - [x] Mock UI de planes por perfil (sin Stripe): `lib/plans.ts` con `getPlansForRole`, `getPlan`, `getMaxProperties`, `PLANS`, tipos `PlanTier`/`Plan`. Cada perfil (developer/broker/private_seller) tiene plan Free (sin Stripe, 10 propiedades) + 3 tiers de pago (developer/broker = Free/Starter/Pro/Enterprise; private_seller = Free/Single/Starter/Pro). Los planes NO varían por país
 - [x] `components/auth/payment-page.tsx` (client) muestra los tiers con la cantidad disponible; `app/[locale]/auth/payment/page.tsx` (server) resuelve el role y delega. Elegir cualquier tier navega a `/app` (sin Stripe ni persistencia)
-- [x] `docs/STRIPE-PLANS.md` documenta el paso a paso de implementación futura de Stripe (migración propuesta `023_plans_and_subscriptions.sql`)
+- [x] `docs/STRIPE-PLANS.md` documenta el paso a paso de implementación futura de Stripe (migración propuesta, pendiente de renumerar tras 023)
 - [x] Legacy routes: `/login` y `/signup` redirigen al nuevo sistema
 - [x] Navbar actualizada con links a `/auth/login` y `/auth/sign-up`
 - [x] Sidebar reestructurada: NAV_BY_ROLE con Dashboard + Properties para todos, Settings al fondo, dropdown de usuario con logout
@@ -162,19 +162,45 @@
 - [x] `AlertDialog` (ui, basado en `radix-ui` unificado, patrón shadcn como `sheet.tsx`)
 - [x] `broker-form` y `developer-form`: botones full-width + botón Cancel en modo create (a `/app`); NO tienen botón Delete (no hay server action de delete para broker/developer)
 
+### Development Pages (plataforma + pública) — completado 09-Sep-2026
+- [x] Migración 023: bucket `development-images` (público, 5MB, jpeg/png/webp) con RLS por carpeta del usuario; columnas nuevas en `developments` (`starting_price`, `starting_price_currency` CHECK AED/USD/EUR/GBP, `property_types` text[], `total_area` numeric); índice `(developer_id, is_active)`; RLS owner: SELECT own (activos + inactivos), INSERT own, UPDATE own, DELETE own (via `developers.user_profile_id = auth.uid()`)
+- [x] ⚠️ Policy `developments_delete_own` agregada al archivo 023 DESPUÉS de que la migración ya corrió. El usuario debe ejecutar el SQL de esa policy manualmente en el SQL Editor de Supabase (se le dio el SQL suelto)
+- [x] Data access `lib/developments.ts`: `getDevelopments()`, `getDevelopmentBySlug()`, `getMyDevelopments()`, `getMyDevelopment()` + tipos `DevelopmentCardData` y `DevelopmentDetailData`
+- [x] `lib/mock-developments.ts` ELIMINADO
+- [x] `Development` en `lib/types.ts` actualizado con columnas nuevas (`starting_price`, `starting_price_currency`, `property_types`, `total_area`)
+- [x] Server actions `saveDevelopment` + `deleteDevelopment` en `lib/actions.ts` con validaciones server-side (nombre, slug regex, city/country max 100 chars, currency whitelist, numbers ≥ 0, handover_date regex ISO `^\d{4}-\d{2}-\d{2}$`, límites imágenes/amenities/property_types, sanitización HTML) y ownership vía `developer_id`; update con id ajeno devuelve error "Development not found."
+- [x] Sidebar: item "Developments" (ícono Building2, href `/app/developments`) visible solo para `userRole === "developer"`
+- [x] `development-list.tsx` (client): tabla con detalles, toggle active, link editar
+- [x] `development-form.tsx` (~540 líneas, client): cover image + galería con upload a `development-images`, editor de descripción (RichTextEditor), amenities, property_types, dynamic fields
+- [x] Dashboard pages: listado `/app/developments`, crear `/app/developments/new`, editar `/app/developments/[id]/edit`
+- [x] Página pública `/[locale]/developments` conectada a DB (`getDevelopments()` + `DevelopmentsGrid`)
+- [x] Página pública `/[locale]/development/[slug]` conectada a DB con `getDevelopmentBySlug`, `DevelopmentDescription`, `DevelopmentHeader` (con logo overlay), `resolveAmenityNames` desde `lib/properties.ts`, galería y amenities condicionales
+- [x] `DevelopmentDescription` (HTML sanitizado + fallback legacy `**bold**`, patrón `DeveloperDescription`)
+- [x] `DevelopmentHeader` con prop `logo` + guard para cover vacío (placeholder)
+- [x] `DevelopmentInfoCard` con props `community` + `handoverDate` con render condicional; CTA corregido a `/properties?development={slug}`
+- [x] `DevelopmentsGrid` (client, patrón `DevelopersGrid`, búsqueda + grid)
+- [x] Traducciones en los 7 locales: `developments.no_results`, `development_detail.community`, `development_detail.handover_date`, namespace `development_form` completo. Dashboard hardcoded en inglés (misma convención que `property_form`)
+- [x] Auditorías reviewer/security: guard `{logo && ...}` + placeholder cover vacío en `development-card.tsx` (evita `src=""`), validaciones reforzadas en `saveDevelopment`, `crypto.randomUUID()` en `lib/storage.ts`
+
+### Auto-fill en PropertyForm (implementado 09-Sep-2026)
+- [x] Cuando developer elige un development del dropdown, `development` se autocompleta con el nombre y `development_area` con `total_area`; ambos campos quedan read-only (`bg-muted`). Sin selección, siguen editables
+- [x] Pages new/edit cargan `total_area` en el query del dropdown (antes solo `id, name`)
+- [x] `PropertyForm` prop `developments` ahora `{ id: string; name: string; total_area: number | null }[]`; handler `handleDevelopmentIdChange` que autocompleta/limpia
+- [x] `DevelopmentDetailsSection`: `developmentLocked = isDeveloper && Boolean(developmentId)`; inputs read-only con fondo muted cuando aplica
+- [x] Broker/private_seller intactos (texto libre)
+
 ### Pendiente
 - [ ] Traducir comunidades a otros locales (hoy solo existe fila en locale 'ae'; el contenido se muestra en inglés en todos los locales)
 - [ ] Asignar `developer_id` a cada comunidad (hoy NULL; el bloque "Main Developer" del info-card se reimplementará cuando haya datos)
 - [ ] ⚠️ CTA "See properties" de `community-info-card.tsx` apunta a `/properties-list?community={slug}` — ruta inexistente (la lista real es `/properties` y no lee query params)
 - [ ] ⚠️ CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?developer={slug}` — ruta inexistente (mismo problema que el de communities; documentado en `docs/DEVELOPER-PAGE-FORM.md`)
-- [ ] Página de listado de desarrollos: existe con mock data hardcodeado, búsqueda deshabilitada — falta conectar a DB
 - [ ] Panel de administración para promotoras
 - [ ] Mapa global con unidades geolocalizadas
 - [ ] Reemplazar componentes de tutorial de Supabase starter kit
 - [ ] Dashboard de favoritos y consultas del usuario
 - [ ] `app/app/settings` page: existe como placeholder (solo heading), sin contenido implementado
 - [ ] Market news: páginas de listado y detalle con mock data — falta conectar a DB
-- [ ] Pagos reales con Stripe pendientes: `auth/payment` es mock visual (sin Stripe ni persistencia de plan); `lib/pricing-plans.ts` quedó sin uso. Implementación documentada en `docs/STRIPE-PLANS.md` (migración propuesta `023_plans_and_subscriptions.sql`)
+- [ ] Pagos reales con Stripe pendientes: `auth/payment` es mock visual (sin Stripe ni persistencia de plan); `lib/pricing-plans.ts` quedó sin uso. Implementación documentada en `docs/STRIPE-PLANS.md` (migración propuesta, pendiente de renumerar tras 023)
 
 ## 3. STACK TECNOLÓGICO
 
@@ -292,7 +318,7 @@ Creada por migración `supabase/migrations/007_developers_developments_propertie
 
 ### developments
 
-Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql`.
+Creada por migración `supabase/migrations/007_developers_developments_properties_rebuild.sql` y ampliada por `023_development_pages.sql`.
 
 | Columna | Tipo | Constraints | Descripcion |
 |---|---|---|---|
@@ -300,7 +326,7 @@ Creada por migración `supabase/migrations/007_developers_developments_propertie
 | name | text | NOT NULL | Nombre del desarrollo |
 | slug | text | NOT NULL, UNIQUE | Slug unico |
 | developer_id | uuid | FK → developers(id) ON DELETE SET NULL | Developer asociado |
-| description | text | nullable | Descripcion |
+| description | text | nullable | Descripcion (HTML sanitizado via TipTap) |
 | country | text | nullable | Pais |
 | city | text | nullable | Ciudad |
 | community | text | nullable | Zona o barrio |
@@ -308,16 +334,24 @@ Creada por migración `supabase/migrations/007_developers_developments_propertie
 | images | text[] | nullable | Lista de imagenes |
 | amenities | text[] | nullable | Amenities del desarrollo |
 | handover_date | date | nullable | Fecha estimada de entrega |
+| starting_price | numeric | nullable (migración 023) | Precio de inicio |
+| starting_price_currency | text | nullable, CHECK IN ('AED', 'USD', 'EUR', 'GBP') (migración 023) | Moneda del precio de inicio |
+| property_types | text[] | nullable (migración 023) | Tipos de propiedad del desarrollo |
+| total_area | numeric | nullable (migración 023) | Área total del desarrollo |
 | is_active | boolean | NOT NULL DEFAULT true | Desarrollo activo |
 | created_at | timestamptz | DEFAULT now() | Fecha de creacion |
 | updated_at | timestamptz | DEFAULT now() | Fecha de actualizacion |
 
-**Índices:** `slug`, `developer_id`, `country`, `city`
+**Índices:** `slug`, `developer_id`, `country`, `city`, `(developer_id, is_active)` (migración 023)
 
 **Trigger:** `trigger_set_updated_at_developments`
 
 **Políticas RLS:**
 - SELECT público: developments activos (`is_active = true`)
+- SELECT propio: developer ve todos sus developments (activos e inactivos) via `developers.user_profile_id = auth.uid()` (migración 023)
+- INSERT: developer dueño via `developers.user_profile_id = auth.uid()` (migración 023)
+- UPDATE: developer dueño via `developers.user_profile_id = auth.uid()` (migración 023)
+- DELETE: developer dueño via `developers.user_profile_id = auth.uid()` (migración 023; ⚠️ policy `developments_delete_own` agregada post-migración, el usuario debe ejecutarla manualmente en SQL Editor)
 
 ### properties
 
@@ -571,6 +605,17 @@ Bucket creado por migración `supabase/migrations/014_broker_profile.sql`. Imág
 - **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
 - **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder, "broker-images")` (via prop `bucket` en `ImageUpload` y `RichTextEditor`)
 
+### Storage: development-images
+
+Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Imágenes de las páginas de developments (cover + gallery + description).
+
+- **Público:** true
+- **Tamaño máximo:** 5MB
+- **MIME types:** image/jpeg, image/png, image/webp
+- **Estructura:** `development-images/{user_id}/{folder}/{timestamp}-{uuid}.{ext}` (carpetas según uso: covers, gallery, description)
+- **Políticas:** SELECT público, INSERT/DELETE solo en carpeta del usuario autenticado (`(storage.foldername(name))[1] = auth.uid()::text`)
+- **Upload:** `lib/storage.ts` → `uploadImage(file, userId, folder, "development-images")` (via prop `bucket` en `ImageUpload` y `RichTextEditor`)
+
 ### Tablas de Supabase (gestionadas por Supabase)
 - `auth.users`, `auth.sessions`, `auth.mfa_factors`, etc. — auth estandar de Supabase
 
@@ -601,6 +646,10 @@ offplaninternational/
 │   │   │   ├── page.tsx               # Listado de propiedades del usuario (PropertyList table)
 │   │   │   ├── new/page.tsx           # Crear propiedad (PropertyForm + datos de referencia)
 │   │   │   └── [id]/edit/page.tsx     # Editar propiedad (PropertyForm + PageHeader back)
+│   │   ├── developments/
+│   │   │   ├── page.tsx               # Listado de developments del developer (DevelopmentList table)
+│   │   │   ├── new/page.tsx           # Crear development (DevelopmentForm)
+│   │   │   └── [id]/edit/page.tsx     # Editar development (DevelopmentForm)
 │   │   ├── developer/page.tsx         # Developer Profile (form con editor TipTap, solo rol developer)
 │   │   ├── broker/page.tsx            # Broker Profile (form con editor TipTap, solo rol broker)
 │   │   ├── profile/page.tsx           # Perfil del usuario
@@ -665,9 +714,11 @@ offplaninternational/
 │   │   ├── developer-header.tsx
 │   │   ├── developer-info-card.tsx    # Info + CTA "See properties" (safeWebsite en href)
 │   │   └── developers-grid.tsx        # Grid + busqueda client-side (stripHtmlToText)
-│   ├── developments/                  # Componentes de developments
-│   │   ├── development-header.tsx
-│   │   └── development-info-card.tsx
+│   ├── developments/                  # Componentes de developments (página pública)
+│   │   ├── development-description.tsx # Render HTML sanitizado + fallback legacy **bold**
+│   │   ├── development-header.tsx      # Cover image + logo overlay (guard para cover vacío)
+│   │   ├── development-info-card.tsx   # Precio, tipos, área, community, handover date, developer link, CTA
+│   │   └── developments-grid.tsx      # Grid + busqueda client-side (client)
 │   ├── properties/                    # Componentes de propiedades
 │   │   ├── property-card.tsx          # Card de propiedad horizontal (server, async)
 │   │   ├── property-gallery.tsx       # Galeria de imagenes (client)
@@ -692,9 +743,11 @@ offplaninternational/
 │   │   ├── currency-price.tsx         # Precio con conversion en vivo (client)
 │   │   └── primary-cta-link.tsx       # Link CTA primario con flecha (client)
 │   ├── platform/                      # Componentes de la plataforma vendedores
-│   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE (incl. Developer Profile, Broker Profile)
+│   │   ├── app-sidebar.tsx            # Sidebar del dashboard con NAV_BY_ROLE (incl. Developer Profile, Broker Profile, Developments)
 │   │   ├── developer-form.tsx         # Form de la pagina de developer (client, TipTap + ImageUpload)
 │   │   ├── broker-form.tsx            # Form de la pagina de broker (client, TipTap + ImageUpload, bucket broker-images)
+│   │   ├── development-form.tsx       # Form de creacion/edicion de developments (client, ~540 lineas, TipTap + ImageUpload + amenities + property_types)
+│   │   ├── development-list.tsx       # Tabla de developments del developer (toggle active, link edit)
 │   │   ├── property-form.tsx          # Form de creacion/edicion de propiedades (client, orquestador de estado, ~482 lineas)
 │   │   ├── property-form/             # Sub-componentes de PropertyForm (patrón controlado value/onChange)
 │   │   │   ├── form-section.tsx            # FormSection con heading
@@ -778,7 +831,8 @@ offplaninternational/
 │   │   ├── 018_drop_balcony_garden.sql # Elimina columnas has_balcony y has_garden (capturadas via amenities)
 │   │   ├── 019_properties_development_fields.sql # Campos development, development_area, developer en properties (EJECUTADA)
 │   │   ├── 020_enforce_developer_id_rls.sql  # Refuerza RLS INSERT/UPDATE de properties para coherencia de developer_id (EJECUTADA)
-│   │   └── 022_broker_credentials.sql    # Credenciales del broker (rera_card_url, qr_code_url, agency_orn, details_confirmed en broker_profiles)
+│   │   ├── 022_broker_credentials.sql    # Credenciales del broker (rera_card_url, qr_code_url, agency_orn, details_confirmed en broker_profiles)
+│   │   └── 023_development_pages.sql    # Bucket development-images, columnas nuevas en developments (starting_price, starting_price_currency, property_types, total_area), RLS owner (SELECT/INSERT/UPDATE/DELETE)
 │   └── seed/
 │       ├── communities.sql             # 42 comunidades + 42 traducciones 'ae' (upserts)
 │       ├── community_tags.sql          # Tags de comunidad curados
@@ -789,11 +843,12 @@ offplaninternational/
 │   ├── CONTEXT.md                     # Este archivo
 │   ├── PRD.md                         # Product Requirements Document (agente analista)
 │   ├── DEVELOPER-PAGE-FORM.md         # Plan del form de pagina de developer (migraciones 011-013 + TipTap)
+│   ├── DEVELOPMENT-PAGES.md           # Plan de las paginas de development (plataforma + publica, migracion 023)
 │   ├── ONBOARDING-FLOW.md             # Plan del flujo de onboarding por rol
-│   ├── STRIPE-PLANS.md                # Paso a paso de implementacion futura de Stripe (migracion propuesta 023_plans_and_subscriptions.sql)
+│   ├── STRIPE-PLANS.md                # Paso a paso de implementacion futura de Stripe (migracion propuesta, pendiente de renumerar)
 │   └── TIPTAP-PLAN.md                 # Plan de integracion del editor TipTap
 ├── lib/
-│   ├── actions.ts                     # Server actions: saveDeveloperProfile, saveBrokerProfile, saveProperty, deleteProperty (validacion + sanitizacion)
+│   ├── actions.ts                     # Server actions: saveDeveloperProfile, saveBrokerProfile, saveProperty, deleteProperty, saveDevelopment, deleteDevelopment (validacion + sanitizacion)
 │   ├── brokers.ts                     # Data access de brokers (getBrokerBySlug, getMyBroker) + tipo BrokerDetailData
 │   ├── cities.ts                      # getCitiesByCountry (dropdown del form)
 │   ├── communities.ts                 # Data access + tipo Community (getCommunities, getCommunityBySlug)
@@ -801,17 +856,17 @@ offplaninternational/
 │   ├── content/                       # Contenido estatico de paginas legales (privacy, terms)
 │   ├── countries.ts                   # getCountryCode/getCountryLabel
 │   ├── developers.ts                  # Data access de developers (getDevelopers, getDeveloperBySlug, getMyDeveloper)
-│   ├── properties.ts                  # Data access de propiedades (getPropertyBySlug, getRelatedProperties, getProperties, getMyProperties, getMyProperty); JOINs a developers, broker_profiles, user_profiles, developments; toPropertyData resuelve campos flat (development/developer/area)
+│   ├── developments.ts                # Data access de developments (getDevelopments, getDevelopmentBySlug, getMyDevelopments, getMyDevelopment) + tipos DevelopmentCardData/DevelopmentDetailData
+│   ├── properties.ts                  # Data access de propiedades (getPropertyBySlug, getRelatedProperties, getProperties, getMyProperties, getMyProperty); JOINs a developers, broker_profiles, user_profiles, developments; toPropertyData resuelve campos flat (development/developer/area); resolveAmenityNames exportada
 │   ├── property-amenities.ts          # Data access de property_amenities
 │   ├── property-subcategories.ts      # Data access de property_subcategories
 │   ├── rich-text.tsx                  # splitBold() — render de **bold** legacy (JSX, compartida con developers/brokers)
 │   ├── sanitize-html.ts               # Sanitizador HTML allowlist (sanitizeHtml curado + sanitizeUserHtml user-generated)
-│   ├── storage.ts                     # uploadImage(file, userId, folder, bucket?) — bucket configurable (default developer-images)
+│   ├── storage.ts                     # uploadImage(file, userId, folder, bucket?) — bucket configurable (default developer-images); crypto.randomUUID() para paths
 │   ├── currency.ts                    # Tipos, monedas, formatPrice, mapa locale->moneda
 │   ├── currency-server.ts             # Lectura de cookie de moneda server-side
 │   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
 │   ├── filter-options.ts              # Opciones de filtros centralizadas
-│   ├── mock-developments.ts           # Mock data de developments
 │   ├── mock-market-news.ts            # Mock data de market news
 │   ├── plans.ts                       # Catálogo de planes por perfil (mock UI sin Stripe): getPlansForRole, getPlan, getMaxProperties, PLANS, tipos PlanTier/Plan
 │   ├── pricing-plans.ts               # Pricing matrix por role x pais ⚠️ SIN USO EN CODIGO (reemplazado por lib/plans.ts)
@@ -929,9 +984,16 @@ offplaninternational/
 | 2026-09-02 | Auth callbacks/redirects sin prefijo de locale (`/app`, `/auth/*`); `auth-callback-client` y `confirm/route` ya no leen `NEXT_LOCALE` | Como el sitio es siempre `en` y no hay prefijo, los redirects van directo sin locale; el middleware de next-intl y `stripLocalePrefix` resuelven cualquier prefijo legacy |
 | 2026-09-02 | `DEFAULT_LOCALE = "en"` en `lib/properties.ts` y `lib/communities.ts`; condiciones `locale === "ae" || "en" || "gb" ? "en" : ...` en privacy/terms/confirm-email | Sincroniza los defaults de data access con el nuevo default `en`; `ae`/`gb` se mantienen mapeados a inglés para compatibilidad |
 | 2026-09-02 | `locale = "en"` (constante) en `/app/properties/new` y `/app/properties/[id]/edit` | Las páginas del dashboard son standalone (sin i18n); se reemplazó la lectura de `cookies()`/`NEXT_LOCALE` por la constante `"en"` |
-| 2026-09-03 | Planes por perfil en tiers (mock UI sin Stripe): `lib/plans.ts` + `components/auth/payment-page.tsx`; `lib/pricing-plans.ts` (role × país) queda SIN uso | Decisión de producto: los planes son por perfil, no por país. Cada perfil (developer/broker/private_seller) tiene plan Free (sin Stripe, 10 propiedades) + 3 tiers de pago; se muestra un mock visual de los tiers con la cantidad disponible sin persistencia ni pago real. Stripe se implementará luego (paso a paso en `docs/STRIPE-PLANS.md`, migración propuesta `023_plans_and_subscriptions.sql`) |
+| 2026-09-03 | Planes por perfil en tiers (mock UI sin Stripe): `lib/plans.ts` + `components/auth/payment-page.tsx`; `lib/pricing-plans.ts` (role × país) queda SIN uso | Decisión de producto: los planes son por perfil, no por país. Cada perfil (developer/broker/private_seller) tiene plan Free (sin Stripe, 10 propiedades) + 3 tiers de pago; se muestra un mock visual de los tiers con la cantidad disponible sin persistencia ni pago real. Stripe se implementará luego (paso a paso en `docs/STRIPE-PLANS.md`, migración propuesta pendiente de renumerar tras 023) |
 | 2026-09-03 | Credenciales de broker en `broker_profiles` (migración 022: `rera_card_url`, `qr_code_url`, `agency_orn`, `details_confirmed`) | El onboarding del broker y el broker-form capturan credenciales (RERA card + QR + ORN + confirmación). RERA card y QR como imágenes (buckets `broker-images/rera` y `/qr`); `license_number` (campo texto) fue reemplazado por la imagen RERA |
 | 2026-09-03 | Reutilizar el bucket `broker-images` para las carpetas `rera/` y `qr/` (en vez de crear buckets nuevos) | Se mantuvo el bucket existente (público, 5MB, jpeg/png/webp) ya configurado con RLS por carpeta del usuario; se agregaron las carpetas dentro del mismo bucket |
+| 2026-09-09 | Migración 023: bucket `development-images` + columnas nuevas en `developments` + RLS owner (SELECT/INSERT/UPDATE/DELETE via `developers.user_profile_id`) | Páginas de developments: plataforma CRUD para developer + páginas públicas conectadas a DB. Policy DELETE (`developments_delete_own`) agregada post-migración; el usuario debe ejecutarla manualmente en SQL Editor |
+| 2026-09-09 | `lib/developments.ts` como módulo de data access (tipos `DevelopmentCardData`/`DevelopmentDetailData` + funciones CRUD) | Patrón consistente con `lib/developers.ts` y `lib/brokers.ts`; `DevelopmentDetailData` vive en el módulo de data access (no en `lib/types.ts`) |
+| 2026-09-09 | `lib/mock-developments.ts` eliminado | La data de developments ahora viene de Supabase; el mock ya no era necesario |
+| 2026-09-09 | `saveDevelopment` con validaciones reforzadas: slug regex, city/country max 100 chars, currency whitelist, numbers ≥ 0, `handover_date` regex ISO `^\d{4}-\d{2}-\d{2}$` (no `Date.parse`), límites imágenes/amenities/property_types, sanitización HTML | Seguridad y consistencia: misma rigurosidad que `saveProperty` y `saveDeveloperProfile`; update con id ajeno retorna error "Development not found." (antes éxito silencioso) |
+| 2026-09-09 | `crypto.randomUUID()` en `lib/storage.ts` en vez de `Math.random().toString(36)` | Hallazgo de auditoría security: genera paths de upload más seguros y colision-resistant |
+| 2026-09-09 | Auto-fill en PropertyForm: developer elige development del dropdown → `development` y `development_area` se autocompletan y quedan read-only | UX: evita edición manual redundante cuando el developer vincula una propiedad a un development existente; broker/private_seller siguen editando texto libre |
+| 2026-09-09 | No reemplazar query inline del dropdown en new/edit por `getMyDevelopments` | Ese filtro incluiría developments inactivos y cambiaría el comportamiento; se mantiene el query inline que no filtra por `is_active` (el dropdown muestra todos los del developer) |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -1158,6 +1220,57 @@ El archivo principal `property-form.tsx` es un **orquestador de estado** (~482 l
 
 **Delete flow**: `AlertDialog` de confirmación → `deleteProperty(property.id)` → redirect a listado. (Reemplazó el `confirm()` nativo.)
 
+### 7.23 Listado de developments del usuario (dashboard, solo developer)
+
+1. Usuario con rol `developer` autenticado accede a `/app/developments`
+2. `developments/page.tsx` (server): verifica sesión, llama a `getMyDevelopments(user.id)` (todos los developments del developer, incluyendo inactivos)
+3. `DevelopmentList` (client) renderiza tabla con columnas: Name, Location, Status (toggle active), Actions (link Edit)
+4. Si no hay developments: empty state con CTA "Create your first development"
+5. Botón "Create Development" en el header enlaza a `/app/developments/new`
+
+### 7.24 Creación de development (dashboard, solo developer)
+
+1. Usuario accede a `/app/developments/new`
+2. `new/page.tsx` (server): verifica sesión + rol developer, carga `getMyDeveloper(user.id)` para obtener `developer_id`, renderiza `DevelopmentForm`
+3. `DevelopmentForm` (client): cover image + gallery (upload a `development-images`), nombre (auto-genera slug), descripción (RichTextEditor TipTap), country, city, community, starting price + currency, property types (chips), total area, handover date, amenities (toggle chips desde `property_amenities`), is_active
+4. Save llama a `saveDevelopment` (server action): validación server-side completa, ownership vía `developer_id`
+5. Redirige a `/app/developments` (listado)
+
+### 7.25 Edición de development (dashboard, solo developer)
+
+1. Usuario accede a `/app/developments/[id]/edit`
+2. `[id]/edit/page.tsx` (server): verifica sesión + rol developer, carga `getMyDevelopment(user.id, id)` (ownership check), renderiza `DevelopmentForm` en modo edición
+3. Si el development no existe o no pertenece al usuario: redirect a `/app/developments`
+4. `DevelopmentForm` en modo edición: pre-carga todos los campos
+5. Botones: Save (deshabilitado hasta `hasChanges`) + Cancel (a `/app/developments`) + Delete (AlertDialog → `deleteDevelopment` → redirect)
+
+### 7.26 Listado público de developments
+
+1. Usuario navega a `/developments` (sin locale prefix)
+2. `developments/page.tsx` (server) llama a `getDevelopments()` (solo `is_active = true`)
+3. `DevelopmentsGrid` (client) renderiza input de búsqueda y grid de `DevelopmentCard`; filtra por nombre, descripción, location, slug con `useState`/`useMemo`
+4. `DevelopmentCard` muestra cover image (placeholder si vacío), logo (guard `{logo && ...}`), nombre, location, descripción (stripped)
+5. Sin resultados muestra `t("developments.no_results")`
+
+### 7.27 Detalle público de development
+
+1. Usuario navega a `/development/[slug]`
+2. `development/[slug]/page.tsx` (server) llama a `getDevelopmentBySlug(slug)`; si no existe o inactivo → `notFound()`
+3. `DevelopmentHeader` muestra cover image (placeholder si vacío) + logo overlay (si existe)
+4. Ubicación con ícono MapPin, nombre, sección "About Development" con `DevelopmentDescription` (HTML sanitizado + fallback `**bold**`)
+5. Amenities condicionales: `PropertyAmenitiesGrid` con `resolveAmenityNames()` desde `lib/properties.ts`
+6. Gallery condicional: `CommunityGallery` solo si hay imágenes
+7. Sidebar sticky: `DevelopmentInfoCard` con precio de inicio (CurrencyPrice), tipos de propiedad (chips), área total, community (condicional), handover date (condicional), developer link, CTA "See Properties" a `/properties?development={slug}`
+
+### 7.28 Auto-fill en PropertyForm (development details, rol developer)
+
+1. Developer crea/edita propiedad en `/app/properties/new` o `/app/properties/[id]/edit`
+2. En la sección "Development Details", dropdown `development_id` lista los developments del developer (query: `id, name, total_area`)
+3. Al seleccionar un development: `development` (texto) se autocompleta con el nombre, `development_area` con `total_area`; ambos campos quedan read-only (`bg-muted`)
+4. Al seleccionar "None": `development_id` se limpia, `development` y `development_area` vuelven a ser editables (texto libre)
+5. En modo edición: si la propiedad ya tiene `development_id` vinculado, los valores iniciales se derivan del development (con fallback a los flat fields si el development no está en la lista, p.ej. inactivo)
+6. Broker/private_seller: sin dropdown, editan `development` y `development_area` como texto libre
+
 ## 8. VARIABLES DE ENTORNO
 
 | Variable | Ámbito | Descripción |
@@ -1217,3 +1330,7 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **AlertDialog para Delete:** en vez de `confirm()` nativo, se usa `AlertDialog` de `radix-ui` (patrón shadcn como `sheet.tsx`) en `visibility-section.tsx`
 - **Planes/pricing:** usar `lib/plans.ts` (catálogo de tiers por perfil, mock sin Stripe) para `getPlansForRole`/`getPlan`/`getMaxProperties`; NO usar `lib/pricing-plans.ts` (role × país, sin uso en código). El mock de `/auth/payment` (payment-page.tsx) muestra los tiers; la implementación real con Stripe sigue `docs/STRIPE-PLANS.md`
 - **Credenciales de broker:** viven en `broker_profiles` (migración 022): `rera_card_url`, `qr_code_url` (imágenes en el bucket `broker-images` carpetas `rera/` y `qr/`), `agency_orn` (texto, máx 64 chars validado en `saveBrokerProfile`) y `details_confirmed` (booleano). Tanto el onboarding como el broker-form los capturan; incluir estos campos en cualquier payload/actualización de broker
+- **Development pages:** desarrollo completo CRUD para rol developer (plataforma `/app/developments/*`) + páginas públicas (`/[locale]/developments` y `/[locale]/development/[slug]`). `lib/developments.ts` es el módulo de data access (tipos `DevelopmentCardData`/`DevelopmentDetailData`); `Development` ( interfaz de tabla) vive en `lib/types.ts` con columnas de la migración 023. Server actions `saveDevelopment`/`deleteDevelopment` en `lib/actions.ts` con ownership vía `developer_id`; validaciones: slug regex, city/country max 100, currency whitelist, numbers ≥ 0, handover_date regex ISO, límites arrays, sanitización HTML
+- **Auto-fill en PropertyForm:** cuando developer selecciona un development del dropdown, `development` y `development_area` se autocompletan y quedan read-only; el query del dropdown en new/edit selecciona `id, name, total_area` (no usa `getMyDevelopments` para evitar mostrar inactivos)
+- **Bucket development-images:** público, 5MB, jpeg/png/webp; estructura `{userId}/{folder}/{timestamp}-{uuid}.{ext}`; RLS por carpeta del usuario; upload via `lib/storage.ts` con prop `bucket`
+- **Policy DELETE de developments:** `developments_delete_own` fue agregada al archivo de migración 023 DESPUÉS de que ya corrió; el usuario debe ejecutar el SQL suelto en el SQL Editor de Supabase

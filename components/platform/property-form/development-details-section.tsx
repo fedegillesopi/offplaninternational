@@ -6,7 +6,7 @@ import type { UserRole } from "@/lib/types";
 
 interface DevelopmentDetailsSectionProps {
   userRole: UserRole;
-  developments: { id: string; name: string }[];
+  developments: { id: string; name: string; total_area: number | null }[];
   developmentId: string;
   development: string;
   developmentArea: string;
@@ -30,6 +30,7 @@ export function DevelopmentDetailsSection({
   onDeveloperNameChange,
 }: DevelopmentDetailsSectionProps) {
   const isDeveloper = userRole === "developer";
+  const developmentLocked = isDeveloper && Boolean(developmentId);
 
   return (
     <FormSection title="Development Details">
@@ -55,7 +56,13 @@ export function DevelopmentDetailsSection({
           <Label>Development</Label>
           <Input
             value={development}
-            onChange={(e) => onDevelopmentChange(e.target.value)}
+            onChange={
+              developmentLocked
+                ? undefined
+                : (e) => onDevelopmentChange(e.target.value)
+            }
+            readOnly={developmentLocked}
+            className={developmentLocked ? "bg-muted" : undefined}
             placeholder="e.g. One Zabeel"
           />
         </div>
@@ -65,7 +72,13 @@ export function DevelopmentDetailsSection({
             type="number"
             min={0}
             value={developmentArea}
-            onChange={(e) => onDevelopmentAreaChange(e.target.value)}
+            onChange={
+              developmentLocked
+                ? undefined
+                : (e) => onDevelopmentAreaChange(e.target.value)
+            }
+            readOnly={developmentLocked}
+            className={developmentLocked ? "bg-muted" : undefined}
             placeholder="0"
           />
         </div>

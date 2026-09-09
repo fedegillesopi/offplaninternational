@@ -29,7 +29,7 @@ interface PropertyFormProps {
   country: string;
   amenities: PropertyAmenity[];
   subcategories: PropertySubcategory[];
-  developments: { id: string; name: string }[];
+  developments: { id: string; name: string; total_area: number | null }[];
   ownDeveloperName?: string;
 }
 
@@ -112,9 +112,16 @@ export function PropertyForm({
 
   // Links + Development Details
   const [developmentId, setDevelopmentId] = useState(property?.development_id ?? "");
-  const [development, setDevelopment] = useState(property?.development ?? "");
+  const linkedDevelopment = property?.development_id
+    ? developments.find((d) => d.id === property.development_id)
+    : undefined;
+  const [development, setDevelopment] = useState(
+    linkedDevelopment?.name ?? property?.development ?? "",
+  );
   const [developmentArea, setDevelopmentArea] = useState(
-    property?.development_area?.toString() ?? "",
+    linkedDevelopment?.total_area?.toString() ??
+      property?.development_area?.toString() ??
+      "",
   );
   const [developerName, setDeveloperName] = useState(
     userRole === "developer" ? ownDeveloperName : (property?.developer ?? ""),
@@ -218,6 +225,21 @@ export function PropertyForm({
       setCommunity("");
       setCommunityCustom("");
       setCommunityIsCustom(false);
+    }
+  };
+
+  // Development dropdown also auto-fills name + area for developer role
+  const handleDevelopmentIdChange = (value: string) => {
+    setDevelopmentId(value);
+    if (value) {
+      const selected = developments.find((d) => d.id === value);
+      if (selected) {
+        setDevelopment(selected.name);
+        setDevelopmentArea(selected.total_area?.toString() ?? "");
+      }
+    } else {
+      setDevelopment("");
+      setDevelopmentArea("");
     }
   };
 
@@ -434,7 +456,7 @@ export function PropertyForm({
         development={development}
         developmentArea={developmentArea}
         developerName={developerName}
-        onDevelopmentIdChange={setDevelopmentId}
+        onDevelopmentIdChange={handleDevelopmentIdChange}
         onDevelopmentChange={setDevelopment}
         onDevelopmentAreaChange={setDevelopmentArea}
         onDeveloperNameChange={setDeveloperName}

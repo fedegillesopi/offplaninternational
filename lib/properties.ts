@@ -132,7 +132,7 @@ async function resolveCountriesFromCities(
   return map;
 }
 
-async function resolveAmenityNames(
+export async function resolveAmenityNames(
   supabase: Awaited<ReturnType<typeof createClient>>,
   slugs: string[],
 ): Promise<Record<string, string>> {
