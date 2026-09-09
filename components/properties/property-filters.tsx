@@ -2,42 +2,33 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown, MapPin } from "lucide-react";
-import { Link } from "@/i18n/navigation";
-import { cn } from "@/lib/utils";
+import { ChevronDown, X } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import { useClickOutside } from "@/hooks/use-click-outside";
 import {
-  locationOptions,
-  developerOptions,
-  categoryOptionDefs,
-  priceOptionDefs,
-  statusOptionDefs,
-  amenityOptionDefs,
-  getBedOptions,
-  getBathOptions,
-  resolveOptions,
-  type FilterOption,
+  EMPTY_FILTERS,
+  buildQueryString,
+  type FilterOptions,
+  type PropertyFilters,
 } from "@/lib/filter-options";
 
 function FilterDropdown({
   label,
   selected,
   children,
-  className,
 }: {
   label: string;
   selected?: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setIsOpen(false));
 
   return (
-    <div ref={ref} className={cn("relative", className)}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded border border-[--grey-100] bg-white px-1 py-1 font-body text-sm font-regular text-[--text-primary] transition-colors hover:border-[--primary-main]"
+        className="flex h-9 items-center gap-2 rounded-md border border-[--grey-100] bg-white px-3 font-body text-sm font-regular text-[--text-primary] transition-colors hover:border-[--primary-main]"
       >
         <span>{selected || label}</span>
         <ChevronDown
@@ -45,7 +36,7 @@ function FilterDropdown({
         />
       </button>
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-1 border border-[--grey-100] bg-white p-1 shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-[280px] min-w-[220px] overflow-y-auto rounded-md border border-[--grey-100] bg-white p-1 shadow-lg">
           {children}
         </div>
       )}
@@ -58,7 +49,7 @@ function FilterCheckboxGroup({
   selected,
   onChange,
 }: {
-  options: FilterOption[];
+  options: { value: string; label: string }[];
   selected: string[];
   onChange: (value: string[]) => void;
 }) {
@@ -96,7 +87,7 @@ function FilterRadioGroup({
   selected,
   onChange,
 }: {
-  options: FilterOption[];
+  options: { value: string; label: string }[];
   selected: string;
   onChange: (value: string) => void;
 }) {
@@ -118,138 +109,212 @@ function FilterRadioGroup({
   );
 }
 
-export function PropertyFilters() {
+interface PropertyFiltersProps {
+  options: FilterOptions;
+  filters: PropertyFilters;
+}
+
+type SingleKey = "location" | "price" | "status" | "beds" | "baths" | "developer";
+
+export function PropertyFilters({ options, filters }: PropertyFiltersProps) {
   const t = useTranslations("properties");
-  const [showMore, setShowMore] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const [location, setLocation] = useState("");
-  const [categories, setCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState("");
-  const [status, setStatus] = useState("");
-  const [beds, setBeds] = useState("");
-  const [baths, setBaths] = useState("");
-  const [developer, setDeveloper] = useState("");
-  const [amenities, setAmenities] = useState<string[]>([]);
+  const update = (patch: Partial<PropertyFilters>) => {
+    router.replace(`${pathname}?${buildQueryString({ ...filters, ...patch }, 1)}`);
+  };
 
-  const categoryOptions = resolveOptions(categoryOptionDefs, t);
-  const priceOptions = resolveOptions(priceOptionDefs, t);
-  const statusOptions = resolveOptions(statusOptionDefs, t);
-  const amenityOptions = resolveOptions(amenityOptionDefs, t);
-  const bedOptions = getBedOptions();
-  const bathOptions = getBathOptions();
+  const setSingle = (key: SingleKey, value: string) => {
+    update({ [key]: filters[key] === value ? "" : value });
+  };
+
+  const label = (value: string, opts: { value: string; label: string }[]) =>
+    opts.find((o) => o.value === value)?.label ?? value;
+
+  const selectedCount = (count: number) => `${count} ${t("selected")}`;
+
+  const chips: { key: string; label: string; onRemove: () => void }[] = [];
+
+  if (filters.location) {
+    chips.push({
+      key: "location",
+      label: label(filters.location, options.locations),
+      onRemove: () => update({ location: "" }),
+    });
+  }
+  for (const c of filters.categories) {
+    chips.push({
+      key: `category-${c}`,
+      label: label(c, options.categories),
+      onRemove: () =>
+        update({ categories: filters.categories.filter((v) => v !== c) }),
+    });
+  }
+  if (filters.price) {
+    chips.push({
+      key: "price",
+      label: label(filters.price, options.prices),
+      onRemove: () => update({ price: "" }),
+    });
+  }
+  if (filters.status) {
+    chips.push({
+      key: "status",
+      label: label(filters.status, options.statuses),
+      onRemove: () => update({ status: "" }),
+    });
+  }
+  if (filters.beds) {
+    chips.push({
+      key: "beds",
+      label: `${t("beds")}: ${filters.beds}`,
+      onRemove: () => update({ beds: "" }),
+    });
+  }
+  if (filters.baths) {
+    chips.push({
+      key: "baths",
+      label: `${t("baths")}: ${filters.baths}`,
+      onRemove: () => update({ baths: "" }),
+    });
+  }
+  if (filters.developer) {
+    chips.push({
+      key: "developer",
+      label: label(filters.developer, options.developers),
+      onRemove: () => update({ developer: "" }),
+    });
+  }
+  for (const a of filters.amenities) {
+    chips.push({
+      key: `amenity-${a}`,
+      label: label(a, options.amenities),
+      onRemove: () =>
+        update({ amenities: filters.amenities.filter((v) => v !== a) }),
+    });
+  }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <FilterDropdown
-          className=""
-          label={t("location")}
-          selected={location ? locationOptions.find((o) => o.value === location)?.label : undefined}
-        >
-          <FilterRadioGroup
-            options={locationOptions}
-            selected={location}
-            onChange={setLocation}
-          />
-        </FilterDropdown>
-
-        <FilterDropdown
-          label={t("category")}
-          selected={categories.length > 0 ? `${categories.length} ${t("selected")}` : undefined}
-        >
-          <FilterCheckboxGroup
-            options={categoryOptions}
-            selected={categories}
-            onChange={setCategories}
-          />
-        </FilterDropdown>
-
-        <FilterDropdown
-          label={t("price_range")}
-          selected={priceRange ? priceOptions.find((o) => o.value === priceRange)?.label : undefined}
-        >
-          <FilterRadioGroup
-            options={priceOptions}
-            selected={priceRange}
-            onChange={setPriceRange}
-          />
-        </FilterDropdown>
-
-        <FilterDropdown
-          label={t("status")}
-          selected={status ? statusOptions.find((o) => o.value === status)?.label : undefined}
-        >
-          <FilterRadioGroup
-            options={statusOptions}
-            selected={status}
-            onChange={setStatus}
-          />
-        </FilterDropdown>
-
-        <button
-          onClick={() => setShowMore(!showMore)}
-          className="font-body text-sm font-regular text-[--primary-main] transition-colors hover:underline"
-        >
-          {showMore ? t("less_filters") : t("more_filters")}
-        </button>
-
-        {/* 
-        <div className="ml-auto">
-          <Link
-            href="/properties/properties-list-map-view"
-            className="inline-flex items-center gap-1 rounded bg-white px-2 py-1 font-body text-base font-medium text-[--primary-main] transition-colors hover:bg-[--primary-main] hover:text-white"
-          >
-            <MapPin className="h-3 w-3" />
-            {t("map_view")}
-          </Link>
-        </div> */}
-      </div>
-
-      {showMore && (
-        <div className="flex flex-wrap items-center gap-2">
+        {options.locations.length > 0 && (
           <FilterDropdown
-            label={t("beds")}
-            selected={beds ? beds : undefined}
+            label={t("location")}
+            selected={filters.location ? label(filters.location, options.locations) : undefined}
           >
             <FilterRadioGroup
-              options={bedOptions}
-              selected={beds}
-              onChange={setBeds}
+              options={options.locations}
+              selected={filters.location}
+              onChange={(v) => setSingle("location", v)}
             />
           </FilterDropdown>
+        )}
 
+        {options.categories.length > 0 && (
           <FilterDropdown
-            label={t("baths")}
-            selected={baths ? baths : undefined}
-          >
-            <FilterRadioGroup
-              options={bathOptions}
-              selected={baths}
-              onChange={setBaths}
-            />
-          </FilterDropdown>
-
-          <FilterDropdown
-            label={t("developer")}
-            selected={developer ? developerOptions.find((o) => o.value === developer)?.label : undefined}
-          >
-            <FilterRadioGroup
-              options={developerOptions}
-              selected={developer}
-              onChange={setDeveloper}
-            />
-          </FilterDropdown>
-
-          <FilterDropdown
-            label={t("amenities")}
-            selected={amenities.length > 0 ? `${amenities.length} ${t("selected")}` : undefined}
+            label={t("category")}
+            selected={
+              filters.categories.length > 0 ? selectedCount(filters.categories.length) : undefined
+            }
           >
             <FilterCheckboxGroup
-              options={amenityOptions}
-              selected={amenities}
-              onChange={setAmenities}
+              options={options.categories}
+              selected={filters.categories}
+              onChange={(v) => update({ categories: v })}
             />
           </FilterDropdown>
+        )}
+
+        {options.prices.length > 0 && (
+          <FilterDropdown
+            label={t("price_range")}
+            selected={filters.price ? label(filters.price, options.prices) : undefined}
+          >
+            <FilterRadioGroup
+              options={options.prices}
+              selected={filters.price}
+              onChange={(v) => setSingle("price", v)}
+            />
+          </FilterDropdown>
+        )}
+
+        {options.statuses.length > 0 && (
+          <FilterDropdown
+            label={t("status")}
+            selected={filters.status ? label(filters.status, options.statuses) : undefined}
+          >
+            <FilterRadioGroup
+              options={options.statuses}
+              selected={filters.status}
+              onChange={(v) => setSingle("status", v)}
+            />
+          </FilterDropdown>
+        )}
+
+        <FilterDropdown label={t("beds")} selected={filters.beds ?? undefined}>
+          <FilterRadioGroup
+            options={options.beds}
+            selected={filters.beds}
+            onChange={(v) => setSingle("beds", v)}
+          />
+        </FilterDropdown>
+
+        <FilterDropdown label={t("baths")} selected={filters.baths ?? undefined}>
+          <FilterRadioGroup
+            options={options.baths}
+            selected={filters.baths}
+            onChange={(v) => setSingle("baths", v)}
+          />
+        </FilterDropdown>
+
+        {options.developers.length > 0 && (
+          <FilterDropdown
+            label={t("developer")}
+            selected={filters.developer ? label(filters.developer, options.developers) : undefined}
+          >
+            <FilterRadioGroup
+              options={options.developers}
+              selected={filters.developer}
+              onChange={(v) => setSingle("developer", v)}
+            />
+          </FilterDropdown>
+        )}
+
+        {options.amenities.length > 0 && (
+          <FilterDropdown
+            label={t("amenities")}
+            selected={
+              filters.amenities.length > 0 ? selectedCount(filters.amenities.length) : undefined
+            }
+          >
+            <FilterCheckboxGroup
+              options={options.amenities}
+              selected={filters.amenities}
+              onChange={(v) => update({ amenities: v })}
+            />
+          </FilterDropdown>
+        )}
+      </div>
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((chip) => (
+            <button
+              key={chip.key}
+              onClick={chip.onRemove}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[--primary-main] bg-[--primary-light] px-2 py-1 font-body text-sm font-medium text-[--primary-dark] transition-colors hover:bg-[--primary-main] hover:text-white"
+            >
+              {chip.label}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          <button
+            onClick={() => update(EMPTY_FILTERS)}
+            className="font-body text-sm font-regular text-[--grey-300] underline transition-colors hover:text-[--primary-main]"
+          >
+            {t("clear_filters")}
+          </button>
         </div>
       )}
     </div>

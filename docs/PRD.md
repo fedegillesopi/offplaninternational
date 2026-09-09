@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.12 — 09-Sep-2026
-**Estado:** MVP en desarrollo — i18n inactiva (sitio siempre en inglés, locale default `en`, `localePrefix: never`), Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms), credenciales de broker RERA/QR/ORN/checkbox (migración 022), selección de plan por perfil en `/auth/payment` (mock de tiers, sin Stripe; `lib/plans.ts`; plan Free de 10 propiedades), desarrollos CRUD (migración 023), páginas públicas de developments conectadas a DB, autocomplete development↔property form
+**Versión:** 1.13 — 09-Sep-2026
+**Estado:** MVP en desarrollo — i18n inactiva (sitio siempre en inglés, locale default `en`, `localePrefix: never`), Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms), credenciales de broker RERA/QR/ORN/checkbox (migración 022), selección de plan por perfil en `/auth/payment` (mock de tiers, sin Stripe; `lib/plans.ts`; plan Free de 10 propiedades), desarrollos CRUD (migración 023), páginas públicas de developments conectadas a DB, autocomplete development↔property form, filtros de propiedades funcionales (8 filtros DB-driven, URL state, chips activos, price bands dinámicas), paginación server-side (15/página, prev/next + números con elipsis)
 
 ---
 
@@ -61,7 +61,7 @@
 | Navbar responsive con menú mobile y CurrencySwitcher | Público | ✅ Implementado |
 | HeroHeader con búsqueda y filtros (categoría, precio, estado) | Público | ✅ Implementado |
 | CurrencySwitcher con persistencia en cookie (NEXT_CURRENCY) | Público | ✅ Implementado |
-| Listado de propiedades con cards y filtros avanzados | Público | ✅ Implementado |
+| Listado de propiedades con cards, filtros DB-driven (8 filtros, URL state, chips activos) y paginación server-side | Público | ✅ Implementado |
 | Conversión de moneda en vivo (CurrencyPrice + CurrencyProvider) | Público | ✅ Implementado |
 | Página de detalle de propiedad (gallery, sidebar, details-table, amenities, payment-plan, tags, breadcrumb, related-properties) | Público | ✅ Completado |
 | Auth unificado con 3 roles (login, signup, forgot/reset password, update password, confirm email) | Todos | ✅ Implementado |
@@ -304,20 +304,32 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - `CurrencyPrice` component para renderizar precios con reactividad
 
 #### 6.1.5 Listado de propiedades
-- Ruta: `/properties-list` (sin locale prefix; el middleware resuelve)
-- Grid de PropertyCards con datos de cada unidad
-- Barra de filtros completa: Location, Category, Price Range, Status
-- "+ More Filters" expande: Beds, Baths, Developer, Amenities
-- "Map View" botón (placeholder)
+- Ruta: `/properties` (sin locale prefix; el middleware resuelve)
+- **Filtros funcionales con estado en URL:** `PropertyFilters` (client) escribe los filtros como query params (`?location=&category=&price=&status=&beds=&baths=&developer=&amenities=&page=`). La página server lee `searchParams`, parsea los filtros con `parseSearchParams()` y los pasa a `getProperties(filters, page, perPage)`. URLs compartibles, soporte de back/forward del browser.
+- **Opciones de filtros 100% DB-driven** (nada hardcodeado):
+  - **Location:** ciudades únicas de propiedades activas (`getPropertyCities()`)
+  - **Category:** subcategorías de la tabla `property_subcategories` (`getPropertySubcategories()`)
+  - **Price Range:** bandas dinámicas calculadas del min/max real de los datos (`priceBands()` en `lib/filter-options.ts`)
+  - **Status:** valores derivados de las propiedades existentes (`getPropertyStatuses()`)
+  - **Beds / Baths:** opciones 1–8 (fijas)
+  - **Developer:** developers verificados (`getDeveloperFilterOptions()` en `lib/developers.ts`)
+  - **Amenities:** amenities de la tabla `property_amenities` (`getPropertyAmenities()`)
+- **8 filtros siempre visibles** (sin toggle "More Filters"): Location (radio), Category (checkboxes), Price Range (radio), Status (radio), Beds (radio), Baths (radio), Developer (radio), Amenities (checkboxes)
+- **Comportamiento de radios:** re-seleccionar el mismo valor lo limpia (toggle off)
+- **Comportamiento de amenities:** OR entre seleccionadas (usa `overlaps` de Supabase)
+- **Chips de filtros activos:** cada filtro seleccionado se muestra como chip con "X" para quitarlo individualmente; botón "Clear filters" para limpiar todo
+- **Dropdowns con scroll:** panel de max 280px (`max-h-[280px] overflow-y-auto`) para no expandir la página
+- **Altura uniforme de botones de filtro:** `h-9` (misma altura que los inputs del sitio)
+- **Paginación server-side:** 15 propiedades por página (`PROPERTIES_PER_PAGE = 15`). Paginador con prev/next + números de página (con elipsis para > 7 páginas). Los filtros se preservan al navegar entre páginas. Conteo total de resultados visible.
+- **Empty states diferenciados:** "No properties match your filters" cuando hay filtros activos vs. "No properties" cuando no hay datos
 - Cada PropertyCard muestra: imagen, categoría (badge), camas/baños/área, precio via CurrencyPrice, ubicación con MapPin (city + community), logo y nombre del developer, descripción, botones Contact y WhatsApp
-- Datos mockeados en `lib/mock-properties.ts` (3 unidades)
-- Conversión de moneda en vivo al cambiar moneda global
 - **Campos planos:** PropertyCard accede a campos planos del objeto (`developer_name`, `developer_logo`, `city`, `community`) en lugar de joins anidados
+- Conversión de moneda en vivo al cambiar moneda global
 
 #### 6.1.6 Búsqueda
-- Campo de búsqueda por texto en homepage
-- Filtros dropdown en homepage (categoría, precio, estado)
-- ⚠️ **Estado actual:** La UI de búsqueda existe pero no ejecuta acciones reales (navegación ni API call). Pendiente conectar a resultados reales.
+- **Filtros en listado de propiedades (`/properties`):** funcionales con estado en URL, 8 filtros DB-driven, chips activos y paginación (ver 6.1.5)
+- **Búsqueda en homepage:** Campo de búsqueda por texto y dropdowns de filtro (categoría, precio, estado) en `HeroHeader`
+- ⚠️ **Estado actual:** La UI de búsqueda en homepage tiene filtros visuales pero no ejecuta acciones reales (no navega a `/properties` ni pasa query params). Pendiente conectar a resultados reales.
 
 #### 6.1.7 Detalle de propiedad
 - Ruta: `/property/[slug]` (con slug SEO-friendly)
@@ -1318,7 +1330,7 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 | Ruta | Acceso | Descripción |
 |---|---|---|
 | `/` | Público | Homepage (locale default `en`, sin prefijo) |
-| `/properties-list` | Público | Listado de propiedades con filtros |
+| `/properties` | Público | Listado de propiedades con 8 filtros DB-driven, URL state, chips activos y paginación (15/página) |
 | `/property/[slug]` | Público | Detalle de propiedad |
 | `/communities` | Público | Listado de comunidades (DB + búsqueda client) |
 | `/community/[slug]` | Público | Detalle de comunidad (descripción sanitizada, mapa, galería) |
@@ -1399,19 +1411,24 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 
 ```
 1. Inversor llega a la homepage (siempre en inglés, sin detección de idioma)
-2. Usa campo de búsqueda o dropdowns de filtro (categoría, precio, estado)
-3. Navega a /properties-list
-4. Usa filtros avanzados (location, category, price range, status, + more)
-5. Explora PropertyCards con precios en su moneda
-6. Puede cambiar moneda con CurrencySwitcher — todas las cards se actualizan en vivo
-7. Hace clic en una card → navega a /property/[slug] (detalle de propiedad)
-8. Ve gallery, details, amenities, payment plan, tags, related properties
-9. Hace clic en "Contact" o WhatsApp en el detalle o sidebar
+2. (Opcional) Usa campo de búsqueda o dropdowns de filtro en homepage — ⚠️ aún sin navegación real
+3. Navega a /properties (por link del navbar, o directamente)
+4. PropertyFilters carga opciones desde DB: ciudades, subcategorías, bandas de precio dinámicas,
+   statuses reales, beds/baths 1–8, developers verificados, amenities
+5. Selecciona filtros → se escriben en URL como query params (?location=Dubai&category=apartment&page=1)
+6. La página server lee searchParams, parsea con parseSearchParams() y ejecuta getProperties(filters, page, 15)
+7. Aparecen chips de filtros activos con "X" para quitar individualmente; "Clear filters" para limpiar todo
+8. Navega entre páginas con el paginador (prev/next + números) — filtros se preservan en la URL
+9. Explora PropertyCards con precios en su moneda (CurrencyPrice + CurrencyContext)
+10. Puede cambiar moneda con CurrencySwitcher — todas las cards se actualizan en vivo
+11. Hace clic en una card → navega a /property/[slug] (detalle de propiedad)
+12. Ve gallery, details, amenities, payment plan, tags, related properties
+13. Hace clic en "Contact" o WhatsApp en el detalle o sidebar
 ```
 
-⚠️ El paso 2 (búsqueda en homepage) tiene UI pero no dispara navegación. El paso 9 tiene botones pero sin acción de contacto real. Los links a `/developer/[slug]`, `/broker/[slug]` y `/development/[slug]` del sidebar de propiedad ahora resuelven según `listed_by_type` y el `development_slug` (ver Flujos I y K).
+⚠️ El paso 2 (búsqueda en homepage) tiene UI pero no dispara navegación. El paso 13 tiene botones pero sin acción de contacto real. Los links a `/developer/[slug]`, `/broker/[slug]` y `/development/[slug]` del sidebar de propiedad ahora resuelven según `listed_by_type` y el `development_slug`.
 
-**Servicios consumidos:** CurrencyContext, Intl.NumberFormat, filter-options.ts
+**Servicios consumidos:** CurrencyContext, Intl.NumberFormat, filter-options.ts, lib/properties.ts (getProperties, getPropertyCities, getPropertyStatuses, getPropertyPriceBounds), lib/property-subcategories.ts, lib/property-amenities.ts, lib/developers.ts (getDeveloperFilterOptions)
 
 ### Flujo B: Usuario se registra con un role
 
@@ -1585,8 +1602,8 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 
 1. **La moneda por defecto es USD** (global, no por locale). El usuario puede cambiarla y persiste 30 días.
 2. **Las tasas de cambio son fijas en MVP.** No se consultan APIs externas. Se actualizan manualmente en `lib/exchange-rates.ts`.
-3. **Los datos de propiedades del sitio público (listado y detalle) están conectados a Supabase.** La tabla `properties` se lee directamente. El dashboard de vendedores también lee de DB (`getMyProperties`). `lib/mock-properties.ts` fue eliminado.
-4. **La búsqueda en homepage tiene UI pero no funcionalidad real.** Es placeholder visual.
+3. **Los datos de propiedades del sitio público (listado y detalle) están conectados a Supabase.** La tabla `properties` se lee directamente. El dashboard de vendedores también lee de DB (`getMyProperties`). `lib/mock-properties.ts` fue eliminado. **Los filtros del listado (`/properties`) son DB-driven**: ciudades, subcategorías, statuses, price bounds y developers se cargan de tablas reales en cada request server-side.
+4. **La búsqueda en homepage tiene UI pero no funcionalidad real.** Es placeholder visual. Los filtros en `/properties` SÍ son funcionales (8 filtros con estado en URL, chips activos, paginación).
 5. **Los botones Contact y WhatsApp en PropertyCards y detalle de propiedad son placeholder.** No ejecutan consulta real (no hay endpoint ni conexión a DB).
 6. **Las rutas de promotoras y desarrollos existen y leen de DB.** `/developers` y `/developer/[slug]` consultan Supabase (solo `is_verified = true`) desde el 05-Ago-2026. `/developments` y `/development/[slug]` ahora también leen de DB (desarrollos activos de developers verified) desde el 09-Sep-2026 (migración 023). `lib/mock-developments.ts` fue eliminado.
 7. **El sitio se sirve siempre en inglés (locale `en`).** `defaultLocale = "en"` y `localePrefix = "never"`: las URLs no tienen prefijo de locale (`/`, `/properties`, `/property/[slug]`, etc.). Cualquier URL con prefijo de locale (`/es/...`, `/ar/...`) redirige (301) a la versión limpia en inglés. No hay selector de idioma visible para el usuario final; i18n (next-intl) está preservada pero inactiva.
@@ -1633,6 +1650,15 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 48. **El CRUD de developments está implementado solo para developers.** `/app/developments` (listado), `/app/developments/new` (crear), `/app/developments/[id]/edit` (editar/delete). Ownership vía `developers.user_profile_id`. Broker y private seller no tienen acceso a esta sección.
 49. **Autocomplete en PropertyForm: al elegir un development del dropdown, se autocompletan automáticamente "Development" (name) y "Development Area" (total_area)** desde el development seleccionado; ambos campos pasan a read-only. Si el developer deselecciona el development (vuelve a "None"), los campos vuelven a editables. Este comportamiento es exclusivo del rol developer.
 50. **La policy RLS `developments_delete_own` de la migración 023 está en el archivo de migración pero fue detectada como pendiente de ejecutar** en auditoría. El DELETE desde el form de development fallará con error RLS hasta que se ejecute manualmente en el SQL Editor de Supabase.
+51. **Los filtros del listado de propiedades (`/properties`) tienen estado en la URL** (`?location=&category=&price=&page=`). Las URLs son compartibles, soportan back/forward del browser, y los filtros se ejecutan server-side contra Supabase via `getProperties(filters, page, perPage)`.
+52. **Las opciones de los filtros son 100% DB-driven.** Las ciudades vienen de `getPropertyCities()` (ciudades únicas de propiedades activas), las subcategorías de `getPropertySubcategories()`, los statuses de `getPropertyStatuses()`, las amenities de `getPropertyAmenities()`, los developers de `getDeveloperFilterOptions()` (solo verified), y las bandas de precio se calculan dinámicamente del min/max real de los datos via `priceBands()`.
+53. **Los radios (Location, Price Range, Status, Beds, Baths, Developer) funcionan como toggle:** re-seleccionar el mismo valor lo limpia. Los checkboxes (Category, Amenities) son acumulativos.
+54. **Las amenities se filtran con OR:** si el usuario selecciona "pool" y "gym", busca propiedades que tengan cualquiera de las dos (Supabase `overlaps`).
+55. **Paginación server-side:** 15 propiedades por página (`PROPERTIES_PER_PAGE`). El paginador muestra prev/next + números de página con elipsis para listas > 7 páginas. Los filtros se preservan al navegar entre páginas.
+56. **Los filtros se muestran todos sin toggle "More Filters":** los 8 filtros (Location, Category, Price Range, Status, Beds, Baths, Developer, Amenities) están siempre visibles en la barra de filtros.
+57. **Active filter chips:** cada filtro seleccionado aparece como chip con icono "X" para quitarlo individualmente. Un botón "Clear filters" elimina todos los filtros de una vez.
+58. **Dropdowns de filtros con scroll propio:** panel de max 280px (`max-h-[280px]`) para no expandir la página; botones de filtro con misma altura que los inputs (`h-9`).
+59. **Empty states diferenciados:** cuando hay filtros activos y sin resultados muestra "No properties match your filters"; cuando no hay propiedades en la DB muestra "No properties".
 
 ---
 
@@ -1766,6 +1792,12 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 - Autocomplete en PropertyForm: al elegir development del dropdown se autocompletan name y total_area (read-only para developer)
 - `lib/mock-developments.ts` eliminado (desarrollos ahora leen de Supabase)
 - Namespace `developments` y `development_detail` traducidos en los 7 locales
+- Filtros funcionales en `/properties`: 8 filtros DB-driven con estado en URL (location, category, price range, status, beds, baths, developer, amenities), chips activos con "X" individual + "Clear filters", radios toggle, checkboxes acumulativos, amenities con OR (Supabase overlaps), dropdowns con scroll propio (max-h 280px, h-9 uniforme), sin toggle "More Filters"
+- Opciones de filtros 100% DB-driven: ciudades únicas (`getPropertyCities`), subcategorías (`getPropertySubcategories`), statuses reales (`getPropertyStatuses`), price bounds dinámicos (`getPropertyPriceBounds` + `priceBands()`), developers verified (`getDeveloperFilterOptions`), amenities (`getPropertyAmenities`)
+- Paginación server-side en `/properties`: 15 propiedades por página, prev/next + números con elipsis (>7 páginas), filtros preservados en URL al navegar páginas
+- `lib/filter-options.ts`: tipos `PropertyFilters`, `FilterOptions`, helpers `parseSearchParams`, `buildQueryString`, `priceBands`, `getBedOptions`, `getBathOptions`, `cleanStatusLabel`
+- Empty states diferenciados: "No properties match your filters" vs. "No properties"
+- Route `/properties` corregida en la tabla de rutas (antes decía `/properties-list`)
 
 ### 🔜 Siguientes pasos
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)

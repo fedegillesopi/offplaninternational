@@ -31,11 +31,12 @@
 - [x] Sitio forzado en inglés (`defaultLocale: "en"`, `localePrefix: "never"`); otros locales dormidos, sin prefijo de URL ni geo-detección; cualquier URL con prefijo de locale se redirige (301)
 - [x] CurrencySwitcher en navbar con persistencia en cookie (NEXT_CURRENCY)
 - [x] Sistema de moneda: formato por locale + mapa locale→moneda por defecto
-- [x] Página de listado de propiedades (estructura + cards + filtros + cambio de moneda en vivo)
+- [x] Página de listado de propiedades (estructura + cards + cambio de moneda en vivo)
+- [x] Property filters funcionales con server-side filtering (filtros en URL searchParams, ejecución en Supabase, paginación server-side con count exacto)
 - [x] Sistema de conversión de moneda (exchange-rates fijas para MVP)
 - [x] Hook compartido useClickOutside para dropdowns
 - [x] PropertyCard server component con traducciones y CurrencyPrice integrado
-- [x] Barra de filtros completa (Location, Category, Price Range, Status, + More Filters, Map View)
+- [x] Barra de filtros funcional (8 filtros siempre visibles: Location, Category, Price, Status, Developer, Amenities, Beds, Baths) con chips de activos + paginación; filtrado server-side via URL searchParams (antes mockup sin acción con "+ More Filters" y "Map View")
 - [x] BackToHome botón reutilizable
 - [x] Interfaz `PropertyData` extraída a `lib/types.ts` con campos expandidos
 - [x] Mock data actualizado con 3 propiedades completas en `lib/mock-properties.ts` ⚠️ ELIMINADO — reemplazado por queries a DB via `lib/properties.ts`
@@ -192,8 +193,8 @@
 ### Pendiente
 - [ ] Traducir comunidades a otros locales (hoy solo existe fila en locale 'ae'; el contenido se muestra en inglés en todos los locales)
 - [ ] Asignar `developer_id` a cada comunidad (hoy NULL; el bloque "Main Developer" del info-card se reimplementará cuando haya datos)
-- [ ] ⚠️ CTA "See properties" de `community-info-card.tsx` apunta a `/properties-list?community={slug}` — ruta inexistente (la lista real es `/properties` y no lee query params)
-- [ ] ⚠️ CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?developer={slug}` — ruta inexistente (mismo problema que el de communities; documentado en `docs/DEVELOPER-PAGE-FORM.md`)
+- [ ] ⚠️ CTA "See properties" de `community-info-card.tsx` apunta a `/properties-list?community={slug}` — ruta inexistente (la lista real es `/properties`; además `parseSearchParams` no soporta key `community`; habría que agregar el filtro por community y apuntar el CTA a `/properties`)
+- [ ] ⚠️ CTA "See properties" de `developer-info-card.tsx` apunta a `/properties-list?developer={slug}` — ruta inexistente y semántica incorrecta: el filtro `developer` de `/properties` espera un **id** de developer (eq sobre `developer_id`), no un slug; documentado en `docs/DEVELOPER-PAGE-FORM.md`
 - [ ] Panel de administración para promotoras
 - [ ] Mapa global con unidades geolocalizadas
 - [ ] Reemplazar componentes de tutorial de Supabase starter kit
@@ -201,6 +202,7 @@
 - [ ] `app/app/settings` page: existe como placeholder (solo heading), sin contenido implementado
 - [ ] Market news: páginas de listado y detalle con mock data — falta conectar a DB
 - [ ] Pagos reales con Stripe pendientes: `auth/payment` es mock visual (sin Stripe ni persistencia de plan); `lib/pricing-plans.ts` quedó sin uso. Implementación documentada en `docs/STRIPE-PLANS.md` (migración propuesta, pendiente de renumerar tras 023)
+- [ ] (Opcional) Limpiar las keys `filter_options` de los 7 `messages/{locale}.json`: quedaron SIN USO tras el rewrite de `lib/filter-options.ts` (opciones de filtro ahora 100% desde DB)
 
 ## 3. STACK TECNOLÓGICO
 
@@ -671,7 +673,7 @@ offplaninternational/
 │       │   ├── update-password/page.tsx
 │       │   ├── confirm/route.ts       # Callback de confirmacion (redirige sin prefijo de locale)
 │       │   └── error/page.tsx
-│       ├── properties/page.tsx        # Listado de propiedades con filtros + cards (DB via getProperties)
+│       ├── properties/page.tsx        # Listado de propiedades con filtros server-side (URL searchParams) + paginación + cards (DB via getProperties)
 │       ├── property/[slug]/page.tsx   # Detalle de propiedad
 │       ├── communities/page.tsx       # Listado de comunidades (DB + busqueda client)
 │       ├── community/[slug]/page.tsx  # Detalle de comunidad (descripcion HTML sanitizada)
@@ -727,7 +729,8 @@ offplaninternational/
 │   │   ├── property-details-table.tsx # Tabla de detalles (server)
 │   │   ├── property-amenities-grid.tsx # Grid de amenities con modal (client)
 │   │   ├── property-tags.tsx          # Tags de propiedad (server)
-│   │   ├── property-filters.tsx       # Barra de filtros completa (client)
+│   │   ├── property-filters.tsx       # Barra de filtros completa con chips de filtros activos (client, URL searchParams)
+│   │   ├── pagination.tsx            # Paginación server con prev/next + números, preserva filtros (Link de i18n)
 │   │   └── related-properties.tsx     # Seccion de propiedades relacionadas (server)
 │   ├── auth/                          # Componentes de autenticacion
 │   │   ├── login-form.tsx             # Formulario login (useTranslations)
@@ -855,9 +858,9 @@ offplaninternational/
 │   ├── community-tags.ts              # Data access de community_tags
 │   ├── content/                       # Contenido estatico de paginas legales (privacy, terms)
 │   ├── countries.ts                   # getCountryCode/getCountryLabel
-│   ├── developers.ts                  # Data access de developers (getDevelopers, getDeveloperBySlug, getMyDeveloper)
+│   ├── developers.ts                  # Data access de developers (getDevelopers, getDeveloperBySlug, getMyDeveloper, getDeveloperFilterOptions)
 │   ├── developments.ts                # Data access de developments (getDevelopments, getDevelopmentBySlug, getMyDevelopments, getMyDevelopment) + tipos DevelopmentCardData/DevelopmentDetailData
-│   ├── properties.ts                  # Data access de propiedades (getPropertyBySlug, getRelatedProperties, getProperties, getMyProperties, getMyProperty); JOINs a developers, broker_profiles, user_profiles, developments; toPropertyData resuelve campos flat (development/developer/area); resolveAmenityNames exportada
+│   ├── properties.ts                  # Data access de propiedades (getPropertyBySlug, getRelatedProperties, getProperties(filters, page), getMyProperties, getMyProperty, getPropertyCities, getPropertyStatuses, getPropertyPriceBounds, countProperties); JOINs a developers, broker_profiles, user_profiles, developments; toPropertyData resuelve campos flat (development/developer/area); resolveAmenityNames exportada; applyPropertyFilters (eq/in/gte/lte/overlaps) compartido entre query de datos y conteo; PROPERTIES_PER_PAGE = 15
 │   ├── property-amenities.ts          # Data access de property_amenities
 │   ├── property-subcategories.ts      # Data access de property_subcategories
 │   ├── rich-text.tsx                  # splitBold() — render de **bold** legacy (JSX, compartida con developers/brokers)
@@ -866,7 +869,7 @@ offplaninternational/
 │   ├── currency.ts                    # Tipos, monedas, formatPrice, mapa locale->moneda
 │   ├── currency-server.ts             # Lectura de cookie de moneda server-side
 │   ├── exchange-rates.ts              # Tasas fijas + convertPrice() para MVP
-│   ├── filter-options.ts              # Opciones de filtros centralizadas
+│   ├── filter-options.ts              # Filtros de propiedades: interfaz PropertyFilters, EMPTY_FILTERS, parseSearchParams, buildQueryString, priceBands, cleanStatusLabel, getBedOptions/getBathOptions (sin hardcodeos — opciones desde DB)
 │   ├── mock-market-news.ts            # Mock data de market news
 │   ├── plans.ts                       # Catálogo de planes por perfil (mock UI sin Stripe): getPlansForRole, getPlan, getMaxProperties, PLANS, tipos PlanTier/Plan
 │   ├── pricing-plans.ts               # Pricing matrix por role x pais ⚠️ SIN USO EN CODIGO (reemplazado por lib/plans.ts)
@@ -994,6 +997,11 @@ offplaninternational/
 | 2026-09-09 | `crypto.randomUUID()` en `lib/storage.ts` en vez de `Math.random().toString(36)` | Hallazgo de auditoría security: genera paths de upload más seguros y colision-resistant |
 | 2026-09-09 | Auto-fill en PropertyForm: developer elige development del dropdown → `development` y `development_area` se autocompletan y quedan read-only | UX: evita edición manual redundante cuando el developer vincula una propiedad a un development existente; broker/private_seller siguen editando texto libre |
 | 2026-09-09 | No reemplazar query inline del dropdown en new/edit por `getMyDevelopments` | Ese filtro incluiría developments inactivos y cambiaría el comportamiento; se mantiene el query inline que no filtra por `is_active` (el dropdown muestra todos los del developer) |
+| 2026-09-09 | Property filters con estado en URL searchParams (`/properties?location=...&category=...&price=...&page=2`) y filtrado server-side | Fuente de verdad en la URL: URLs compartibles, back/forward funcionan, y el filtrado usa índices de Supabase (no se trae toda la tabla al cliente). `PropertyFilters` es presentacional: recibe `options` + `filters` como props y hace `router.replace` con `buildQueryString` |
+| 2026-09-09 | Opciones de filtros 100% desde la DB, sin arrays hardcodeados | `getPropertyCities()`, `getPropertySubcategories()`, `getPropertyStatuses()` (con `cleanStatusLabel()`), `getDeveloperFilterOptions()` (verificados), `getPropertyAmenities()`, `getPropertyPriceBounds()` + `priceBands()` (5 bandas dinámicas), beds/baths 1-8. Se eliminaron `locationOptions`, `developerOptions`, `categoryOptionDefs`, `priceOptionDefs`, `statusOptionDefs`, `amenityOptionDefs` y `resolveOptions()` de `lib/filter-options.ts`. Las keys `filter_options` en messages quedaron SIN USO (pendiente opcional de limpieza) |
+| 2026-09-09 | Paginación server-side de 15 props/página (`PROPERTIES_PER_PAGE = 15`) con count exacto (`count: "exact", head: true`) | `getProperties(filters, page, perPage)` retorna `{ properties, total }`; el helper genérico `applyPropertyFilters<T>(query, filters)` se comparte entre el query de datos y el conteo (cast interno `as unknown as Chain<T>`); `page` se clamp en el server; `Pagination` no se renderiza si `totalPages <= 1` |
+| 2026-09-09 | Amenities se filtran con `overlaps` (OR) | Semántica correcta: una propiedad que tiene cualquiera de las amenities seleccionadas coincide con el filtro (no se exigen todas) |
+| 2026-09-09 | UX de filtros: dropdowns con scroll (`max-h-[280px] overflow-y-auto`), botones `h-9 px-3 rounded-md` (match de `ui/input.tsx`), 8 filtros siempre visibles (sin toggle more/less), chips de filtros activos con X individual + "Clear filters" | Alineación con los inputs del sitio, usabilidad en pantallas chicas y feedback visual inmediato de qué filtros están activos. Los chips se ocultan si no hay filtros activos; beds/baths muestran "Beds: 3" / "Baths: 2" |
 
 ## 7. FLUJOS PRINCIPALES
 
@@ -1098,14 +1106,17 @@ offplaninternational/
 
 Inconsistencia: La busqueda en hero-header tiene UI completa pero no ejecuta ninguna accion al buscar o seleccionar filtros.
 
-### 7.11 Listado de propiedades
+### 7.11 Listado de propiedades (filtros + paginación server-side)
 
 1. Usuario navega a `/properties` (sin locale prefix; el middleware resuelve el locale)
-2. Layout con Navbar, BackToHome, heading "All Properties", PropertyFilters, grid de PropertyCards y Footer
-3. PropertyFilters es client component con dropdowns individuales + "+ More Filters" + "Map View"
-4. PropertyCard es server component async con traducciones y CurrencyPrice integrado
-5. CurrencyPrice usa `useCurrency()` del context y llama a `convertPrice()` + `formatPrice()`
-6. Data: `getProperties()` de `lib/properties.ts` conecta a Supabase (propiedades activas, con JOINs)
+2. `properties/page.tsx` (server): lee `searchParams` (Promise en Next 16), lo parsea con `parseSearchParams(raw)`, y carga en paralelo (`Promise.all`) las opciones de filtros: cities, subcategories, statuses, developers verificados, amenities, price bounds y beds/baths
+3. Filtros activos viven en la URL (`/properties?location=...&category=...&price=...&page=2`); `PropertyFilters` (client) recibe `options` + `filters` como props y, al cambiar un filtro, hace `router.replace` con `buildQueryString(filters, page)` — URLs compartibles + back/forward
+4. Opciones de filtros 100% desde DB: `getPropertyCities()`, `getPropertySubcategories()`, `getPropertyStatuses()` (`cleanStatusLabel()` para labels tipo "Off Market"), `getDeveloperFilterOptions()`, `getPropertyAmenities()`, `getPropertyPriceBounds()` + `priceBands()` (5 bandas dinámicas), beds/baths 1-8
+5. `getProperties(filters, page, 15)` aplica los filtros con `applyPropertyFilters` (eq/in/gte/lte/overlaps para amenities) al query de datos y al conteo (exact), y retorna `{ properties, total }`; `page` se clampa al rango válido
+6. Grid de `PropertyCard`s (server, async, con CurrencyPrice integrado); count de resultados con `t("results", { count })`
+7. `Pagination` (server): prev/next + números con elipsis (`pageList`), preserva los filtros en el query string, usa `Link` de `@/i18n/navigation`, aria-labels; no se renderiza si `totalPages <= 1`
+8. Data: `getProperties()` de `lib/properties.ts` conecta a Supabase (propiedades activas, con JOINs)
+9. Empty states diferenciados: `no_matching_properties` si hay filtros activos sin resultados; `no_properties` si no hay propiedades en absoluto (con CTA "Clear filters" en el primer caso)
 
 ### 7.12 Detalle de propiedad
 
@@ -1334,3 +1345,6 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Auto-fill en PropertyForm:** cuando developer selecciona un development del dropdown, `development` y `development_area` se autocompletan y quedan read-only; el query del dropdown en new/edit selecciona `id, name, total_area` (no usa `getMyDevelopments` para evitar mostrar inactivos)
 - **Bucket development-images:** público, 5MB, jpeg/png/webp; estructura `{userId}/{folder}/{timestamp}-{uuid}.{ext}`; RLS por carpeta del usuario; upload via `lib/storage.ts` con prop `bucket`
 - **Policy DELETE de developments:** `developments_delete_own` fue agregada al archivo de migración 023 DESPUÉS de que ya corrió; el usuario debe ejecutar el SQL suelto en el SQL Editor de Supabase
+- **Property filters:** el estado de los filtros vive en URL searchParams (`/properties?location=...&category=...&price=...&page=2`); el filtrado es server-side en Supabase. `PropertyFilters` (client) es presentacional (recibe `options` + `filters` por props, navega con `router.replace` + `buildQueryString`); las opciones se cargan 100% desde DB (nunca hardcodear arrays en `lib/filter-options.ts`); `parseSearchParams` normaliza el raw de la URL; `priceBands()` genera 5 bandas dinámicas; `cleanStatusLabel()` sanear labels de status
+- **Paginación de properties:** `getProperties(filters, page, perPage)` retorna `{ properties, total }` (perPage default 15 = `PROPERTIES_PER_PAGE`); usar `applyPropertyFilters(query, filters)` para aplicar constraints (eq/in/gte/lte/overlaps) tanto al query de datos como al de conteo; contar con `select("*", { count: "exact", head: true })`; clampa `page` en el server; `Pagination` (server) con `Link` de `@/i18n/navigation` preservando filtros, sin renderizar si `totalPages <= 1`
+- **Filtro de amenities:** usar `overlaps` (OR — basta con que coincida una amenity seleccionada)

@@ -148,6 +148,11 @@
     "amenities": "Comodidades",
     "area_label": "Área:",
     "no_properties": "Nenhuma propriedade disponível ainda",
+    "results": "{count} properties",
+    "no_matching_properties": "No properties match your filters.",
+    "prev": "Previous",
+    "next": "Next",
+    "clear_filters": "Clear filters",
     "contact": "Contacto",
     "selected": "selecionados",
     "filter_options": {
