@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { PropertyCard } from "@/components/properties/property-card";
+import { PropertyCardCompact } from "@/components/properties/property-card-compact";
 import type { PropertyData } from "@/lib/types";
 
 export async function RelatedProperties({
@@ -15,9 +15,9 @@ export async function RelatedProperties({
       <h2 className="font-heading text-h3 font-bold text-[--text-primary]">
         {t("other_related_properties")}
       </h2>
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map((property) => (
-          <PropertyCard key={property.id} property={property} />
+          <PropertyCardCompact key={property.id} property={property} />
         ))}
       </div>
     </section>
