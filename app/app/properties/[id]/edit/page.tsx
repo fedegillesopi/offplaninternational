@@ -43,7 +43,7 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
   const amenities = await getPropertyAmenities();
   const subcategories = await getPropertySubcategories();
 
-  let developments: { id: string; name: string }[] = [];
+  let developments: { id: string; name: string; total_area: number | null }[] = [];
   let ownDeveloperName = "";
   if (profile.role === "developer") {
     const { data: dev } = await supabase
@@ -56,7 +56,7 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
       ownDeveloperName = dev.name;
       const { data: devts } = await supabase
         .from("developments")
-        .select("id, name")
+        .select("id, name, total_area")
         .eq("developer_id", dev.id)
         .eq("is_active", true)
         .order("name");

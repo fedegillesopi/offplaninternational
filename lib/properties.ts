@@ -1,7 +1,38 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PropertyData } from "@/lib/types";
+import { EMPTY_FILTERS, type PropertyFilters } from "@/lib/filter-options";
 
 const DEFAULT_LOCALE = "en";
+export const PROPERTIES_PER_PAGE = 15;
+
+type Chain<T> = {
+  eq: (column: string, value: unknown) => T;
+  in: (column: string, values: string[]) => T;
+  gte: (column: string, value: number) => T;
+  lte: (column: string, value: number) => T;
+  overlaps: (column: string, values: string[]) => T;
+};
+
+function applyPropertyFilters<T>(query: T, filters: PropertyFilters): T {
+  let q = query as unknown as Chain<T>;
+  if (filters.location) q = q.eq("city", filters.location) as unknown as Chain<T>;
+  if (filters.categories.length > 0)
+    q = q.in("subcategory", filters.categories) as unknown as Chain<T>;
+  if (filters.price) {
+    const [minS, maxS] = filters.price.split("-");
+    const min = Number(minS);
+    const max = Number(maxS);
+    if (minS && !Number.isNaN(min)) q = q.gte("price", min) as unknown as Chain<T>;
+    if (maxS && !Number.isNaN(max)) q = q.lte("price", max) as unknown as Chain<T>;
+  }
+  if (filters.status) q = q.eq("status", filters.status) as unknown as Chain<T>;
+  if (filters.beds) q = q.gte("bedrooms", Number(filters.beds)) as unknown as Chain<T>;
+  if (filters.baths) q = q.gte("bathrooms", Number(filters.baths)) as unknown as Chain<T>;
+  if (filters.developer) q = q.eq("developer_id", filters.developer) as unknown as Chain<T>;
+  if (filters.amenities.length > 0)
+    q = q.overlaps("amenities", filters.amenities) as unknown as Chain<T>;
+  return q as unknown as T;
+}
 
 interface PropertyRow {
   id: string;
@@ -132,7 +163,7 @@ async function resolveCountriesFromCities(
   return map;
 }
 
-async function resolveAmenityNames(
+export async function resolveAmenityNames(
   supabase: Awaited<ReturnType<typeof createClient>>,
   slugs: string[],
 ): Promise<Record<string, string>> {
@@ -336,21 +367,152 @@ export async function getRelatedProperties(
   return results;
 }
 
-export async function getProperties(): Promise<PropertyData[]> {
+export interface PropertiesResult {
+  properties: PropertyData[];
+  total: number;
+}
+
+export interface DashboardProperty {
+  id: string;
+  title: string;
+  subcategory: string | null;
+  community: string;
+  city: string;
+  country: string;
+  status: string;
+  cover_image: string | null;
+  price: number;
+  currency: string;
+  beds: number;
+  baths: number;
+  area: number;
+  created_at: string;
+}
+
+export interface SellerDashboardData {
+  total: number;
+  byStatus: Record<string, number>;
+  recent: DashboardProperty[];
+}
+
+export async function getSellerDashboardData(
+  userProfileId: string,
+  limit = 3,
+): Promise<SellerDashboardData> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("properties")
-    .select(`
+    .select(
+      "id, title, subcategory, community, city, country, status, cover_image, price, currency, beds, baths, area, created_at",
+    )
+    .eq("listed_by_id", userProfileId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return {
+      total: 0,
+      byStatus: { available: 0, reserved: 0, sold: 0, off_market: 0 },
+      recent: [],
+    };
+  }
+
+  const rows = data as unknown as DashboardProperty[];
+  const byStatus: Record<string, number> = {
+    available: 0,
+    reserved: 0,
+    sold: 0,
+    off_market: 0,
+  };
+  for (const row of rows) {
+    byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
+  }
+
+  return { total: rows.length, byStatus, recent: rows.slice(0, limit) };
+}
+
+export async function getPropertyCities(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("city")
+    .eq("is_active", true);
+
+  if (error || !data) return [];
+  return Array.from(
+    new Set((data as { city: string }[]).map((r) => r.city).filter(Boolean)),
+  ).sort();
+}
+
+export async function getPropertyStatuses(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("status")
+    .eq("is_active", true);
+
+  if (error || !data) return [];
+  return Array.from(
+    new Set((data as { status: string }[]).map((r) => r.status).filter(Boolean)),
+  ).sort();
+}
+
+export async function getPropertyPriceBounds(): Promise<{ min: number; max: number }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("min_price:min(price), max_price:max(price)")
+    .eq("is_active", true)
+    .single();
+
+  if (error || !data) return { min: 0, max: 0 };
+  const row = data as unknown as {
+    min_price: number | null;
+    max_price: number | null;
+  };
+  return { min: row.min_price ?? 0, max: row.max_price ?? 0 };
+}
+
+async function countProperties(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  filters: PropertyFilters,
+): Promise<number> {
+  const { count, error } = await applyPropertyFilters(
+    supabase.from("properties").select("*", { count: "exact", head: true }),
+    filters,
+  )
+    .eq("is_active", true);
+
+  if (error || count === null) return 0;
+  return count;
+}
+
+export async function getProperties(
+  filters: PropertyFilters = EMPTY_FILTERS,
+  page = 1,
+  perPage = PROPERTIES_PER_PAGE,
+): Promise<PropertiesResult> {
+  const supabase = await createClient();
+
+  const total = await countProperties(supabase, filters);
+
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+
+  const { data, error } = await applyPropertyFilters(
+    supabase.from("properties").select(`
       *,
       developers:developer_id ( name, slug, logo_url ),
       user_profiles:listed_by_id ( full_name ),
       developments:development_id ( name, slug, amenities )
-    `)
+    `),
+    filters,
+  )
     .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-  if (error || !data) return [];
+  if (error || !data) return { properties: [], total };
 
   const rows = data as unknown as PropertyRow[];
   const communityData = await resolveCommunityData(
@@ -366,7 +528,7 @@ export async function getProperties(): Promise<PropertyData[]> {
     supabase,
     rows.flatMap((r) => r.amenities ?? []),
   );
-  const results: PropertyData[] = [];
+  const properties: PropertyData[] = [];
 
   for (const row of rows) {
     let brokerName = "";
@@ -380,10 +542,12 @@ export async function getProperties(): Promise<PropertyData[]> {
       brokerName = broker?.name ?? "";
       brokerSlug = broker?.slug ?? "";
     }
-    results.push(toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames));
+    properties.push(
+      toPropertyData(row, brokerName, brokerSlug, communityData, countryFallback, amenityNames),
+    );
   }
 
-  return results;
+  return { properties, total };
 }
 
 export async function getBrokerActiveProperties(

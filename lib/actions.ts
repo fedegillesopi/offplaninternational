@@ -488,3 +488,185 @@ export async function deleteProperty(
   return { error: null };
 }
 
+// ── Developments ─────────────────────────────────────────────────────────────
+
+export interface SaveDevelopmentPayload {
+  id?: string;
+  name: string;
+  slug: string;
+  description: string;
+  country: string;
+  city: string;
+  community: string;
+  cover_image: string | null;
+  images: string[];
+  amenities: string[];
+  property_types: string[];
+  starting_price: number | null;
+  starting_price_currency: string;
+  total_area: number | null;
+  handover_date: string | null;
+  is_active: boolean;
+}
+
+const MAX_COMMUNITY_DEVELOPMENT = 200;
+const MAX_IMAGES = 10;
+const MAX_AMENITIES = 30;
+const MAX_PROPERTY_TYPES = 10;
+
+export async function saveDevelopment(
+  payload: SaveDevelopmentPayload,
+): Promise<{ id: string | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { id: null, error: "You must be signed in." };
+
+  const { data: dev } = await supabase
+    .from("developers")
+    .select("id")
+    .eq("user_profile_id", user.id)
+    .maybeSingle();
+
+  if (!dev) {
+    return {
+      id: null,
+      error: "Complete your developer profile first.",
+    };
+  }
+
+  const name = payload.name.trim();
+  const description = sanitizeUserHtml(payload.description);
+  const community = toNull(payload.community);
+  const handoverDate = toNull(payload.handover_date);
+  const startingPrice = toNumNull(payload.starting_price);
+  const totalArea = toNumNull(payload.total_area);
+
+  if (!name) return { id: null, error: "Name is required." };
+  if (name.length > MAX_NAME) return { id: null, error: "Name is too long." };
+  if (!/^[a-z0-9-]+$/.test(payload.slug)) {
+    return { id: null, error: "Invalid slug." };
+  }
+  if (description.length > MAX_DESCRIPTION) {
+    return { id: null, error: "Description is too long." };
+  }
+  if (community && community.length > MAX_COMMUNITY_DEVELOPMENT) {
+    return { id: null, error: "Community is too long." };
+  }
+  if (payload.city.trim().length > 100) {
+    return { id: null, error: "City is too long." };
+  }
+  if (payload.country.length > 100) {
+    return { id: null, error: "Country is too long." };
+  }
+  if (!CURRENCIES.includes(payload.starting_price_currency)) {
+    return { id: null, error: "Invalid currency." };
+  }
+  if (startingPrice !== null && startingPrice < 0) {
+    return { id: null, error: "Starting price must be zero or greater." };
+  }
+  if (totalArea !== null && totalArea < 0) {
+    return { id: null, error: "Total area must be zero or greater." };
+  }
+  if (handoverDate && !/^\d{4}-\d{2}-\d{2}$/.test(handoverDate)) {
+    return { id: null, error: "Invalid handover date." };
+  }
+  if (payload.images.length > MAX_IMAGES) {
+    return { id: null, error: `Too many images (max ${MAX_IMAGES}).` };
+  }
+  if (payload.amenities.length > MAX_AMENITIES) {
+    return { id: null, error: `Too many amenities (max ${MAX_AMENITIES}).` };
+  }
+  if (payload.property_types.length > MAX_PROPERTY_TYPES) {
+    return {
+      id: null,
+      error: `Too many property types (max ${MAX_PROPERTY_TYPES}).`,
+    };
+  }
+
+  const fields = {
+    name,
+    slug: payload.slug,
+    description,
+    country: payload.country,
+    city: payload.city.trim(),
+    community,
+    cover_image: payload.cover_image,
+    images: payload.images,
+    amenities: payload.amenities,
+    property_types: payload.property_types,
+    starting_price: startingPrice,
+    starting_price_currency: payload.starting_price_currency,
+    total_area: totalArea,
+    handover_date: handoverDate,
+    is_active: payload.is_active,
+  };
+
+  let dbError: { message: string } | null;
+  let savedId: string | null = payload.id ?? null;
+
+  if (payload.id) {
+    const { data, error } = await supabase
+      .from("developments")
+      .update(fields)
+      .eq("id", payload.id)
+      .eq("developer_id", dev.id)
+      .select("id")
+      .maybeSingle();
+    dbError = error;
+    savedId = data?.id ?? null;
+    if (!dbError && payload.id && !savedId) {
+      return { id: null, error: "Development not found." };
+    }
+  } else {
+    const { data, error } = await supabase
+      .from("developments")
+      .insert({ ...fields, developer_id: dev.id })
+      .select("id")
+      .maybeSingle();
+    dbError = error;
+    savedId = data?.id ?? null;
+  }
+
+  if (dbError) {
+    console.error("saveDevelopment:", dbError.message);
+    return { id: null, error: "Could not save development. Please try again." };
+  }
+
+  return { id: savedId, error: null };
+}
+
+export async function deleteDevelopment(
+  developmentId: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { data: dev } = await supabase
+    .from("developers")
+    .select("id")
+    .eq("user_profile_id", user.id)
+    .maybeSingle();
+
+  if (!dev) return { error: "Complete your developer profile first." };
+
+  const { error } = await supabase
+    .from("developments")
+    .delete()
+    .eq("id", developmentId)
+    .eq("developer_id", dev.id);
+
+  if (error) {
+    console.error("deleteDevelopment:", error.message);
+    return { error: "Could not delete development. Please try again." };
+  }
+
+  return { error: null };
+}
+

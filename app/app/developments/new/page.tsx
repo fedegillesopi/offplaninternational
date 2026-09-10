@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-header";
-import { PropertyForm } from "@/components/platform/property-form";
+import { DevelopmentForm } from "@/components/platform/development-form";
+import { getMyDeveloper } from "@/lib/developers";
 import { getCitiesByCountry } from "@/lib/cities";
 import { getPropertyAmenities } from "@/lib/property-amenities";
 import { getPropertySubcategories } from "@/lib/property-subcategories";
 import { getCountryCode, getCountryLabel } from "@/lib/countries";
 import { getCommunitiesByCountry } from "@/lib/communities";
 
-export default async function NewPropertyPage() {
+export default async function NewDevelopmentPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,6 +24,10 @@ export default async function NewPropertyPage() {
     .single();
 
   if (!profile || !profile.role) redirect("/login");
+  if (profile.role !== "developer") redirect("/app");
+
+  const developer = await getMyDeveloper(user.id);
+  if (!developer) redirect("/app/developer");
 
   const locale = "en";
   const countryCode = getCountryCode(profile.operating_country);
@@ -32,44 +37,19 @@ export default async function NewPropertyPage() {
   const amenities = await getPropertyAmenities();
   const subcategories = await getPropertySubcategories();
 
-  let developments: { id: string; name: string; total_area: number | null }[] = [];
-  let ownDeveloperName = "";
-  if (profile.role === "developer") {
-    const { data: dev } = await supabase
-      .from("developers")
-      .select("id, name")
-      .eq("user_profile_id", user.id)
-      .maybeSingle();
-
-    if (dev) {
-      ownDeveloperName = dev.name;
-      const { data: devts } = await supabase
-        .from("developments")
-        .select("id, name, total_area")
-        .eq("developer_id", dev.id)
-        .eq("is_active", true)
-        .order("name");
-
-      developments = devts ?? [];
-    }
-  }
-
   return (
     <div className="p-4 lg:p-6">
-      <PageHeader title="Create Property" backHref="/app/properties" />
+      <PageHeader title="Create Development" backHref="/app/developments" />
       <div className="mt-6">
-        <PropertyForm
-          property={null}
-          userId={user.id}
-          userRole={profile.role}
+        <DevelopmentForm
+          development={null}
+          profile={profile}
           cities={cities}
-          communities={communities}
+          countryCode={countryCode}
           countryLabel={countryLabel}
-          country={countryCode}
+          communities={communities}
           amenities={amenities}
           subcategories={subcategories}
-          developments={developments}
-          ownDeveloperName={ownDeveloperName}
         />
       </div>
     </div>

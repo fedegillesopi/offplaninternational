@@ -26,7 +26,8 @@
   "developments": {
     "back_to_home": "Back to home",
     "all_developments": "All Developments",
-    "search_placeholder": "Search developments..."
+    "search_placeholder": "Search developments...",
+    "no_results": "No developments found"
   },
   "communities": {
     "back_to_home": "Back to home",
@@ -147,6 +148,11 @@
     "amenities": "Amenities",
     "area_label": "Area:",
     "no_properties": "No properties available yet",
+    "results": "{count} properties",
+    "no_matching_properties": "No properties match your filters.",
+    "prev": "Previous",
+    "next": "Next",
+    "clear_filters": "Clear filters",
     "contact": "Contact",
     "selected": "selected",
     "filter_options": {
@@ -215,7 +221,32 @@
     "total_development_area": "Total Development Area",
     "developer_label": "Developer",
     "see_properties": "See development properties",
-    "gallery": "Gallery"
+    "gallery": "Gallery",
+    "community": "Community",
+    "handover_date": "Handover Date"
+  },
+  "development_form": {
+    "name": "Name",
+    "slug": "Slug",
+    "description": "Description",
+    "country": "Country",
+    "city": "City",
+    "community": "Community",
+    "cover_image": "Cover Image",
+    "gallery_images": "Gallery Images",
+    "amenities": "Amenities",
+    "property_types": "Property Types",
+    "starting_price": "Starting Price",
+    "starting_price_currency": "Currency",
+    "total_area": "Total Area (sqm)",
+    "handover_date": "Handover Date",
+    "is_active": "Active (visible on public listings)",
+    "create": "Create Development",
+    "edit": "Edit Development",
+    "delete": "Delete",
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "confirm_delete": "This will permanently delete this development. Properties assigned to it will lose their development link."
   },
   "developer_detail": {
     "back_to_list": "Back to List",

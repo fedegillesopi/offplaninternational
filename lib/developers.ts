@@ -69,6 +69,25 @@ export async function getDevelopers(): Promise<DeveloperCardData[]> {
     .sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
 
+export async function getDeveloperFilterOptions(): Promise<
+  { id: string; name: string }[]
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("developers")
+    .select("id, name")
+    .eq("is_verified", true)
+    .order("name");
+
+  if (error) {
+    console.error("getDeveloperFilterOptions:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as { id: string; name: string }[];
+}
+
 export async function getDeveloperBySlug(
   slug: string,
 ): Promise<DeveloperDetailData | null> {

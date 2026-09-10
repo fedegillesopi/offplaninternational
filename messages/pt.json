@@ -26,7 +26,8 @@
   "developments": {
     "back_to_home": "Voltar ao início",
     "all_developments": "Todos os Empreendimentos",
-    "search_placeholder": "Pesquisar empreendimentos..."
+    "search_placeholder": "Pesquisar empreendimentos...",
+    "no_results": "Nenhum empreendimento encontrado"
   },
   "communities": {
     "back_to_home": "Voltar ao início",
@@ -147,6 +148,11 @@
     "amenities": "Comodidades",
     "area_label": "Área:",
     "no_properties": "Nenhuma propriedade disponível ainda",
+    "results": "{count} properties",
+    "no_matching_properties": "No properties match your filters.",
+    "prev": "Previous",
+    "next": "Next",
+    "clear_filters": "Clear filters",
     "contact": "Contacto",
     "selected": "selecionados",
     "filter_options": {
@@ -215,7 +221,32 @@
     "total_development_area": "Área Total do Empreendimento",
     "developer_label": "Promotora",
     "see_properties": "Ver propriedades do empreendimento",
-    "gallery": "Galeria"
+    "gallery": "Galeria",
+    "community": "Comunidade",
+    "handover_date": "Data de entrega"
+  },
+  "development_form": {
+    "name": "Nome",
+    "slug": "Slug",
+    "description": "Descrição",
+    "country": "País",
+    "city": "Cidade",
+    "community": "Comunidade",
+    "cover_image": "Imagem de capa",
+    "gallery_images": "Imagens da galeria",
+    "amenities": "Comodidades",
+    "property_types": "Tipos de propriedade",
+    "starting_price": "Preço inicial",
+    "starting_price_currency": "Moeda",
+    "total_area": "Área Total (sqm)",
+    "handover_date": "Data de entrega",
+    "is_active": "Ativo (visível em listagens públicas)",
+    "create": "Criar Empreendimento",
+    "edit": "Editar Empreendimento",
+    "delete": "Excluir",
+    "save": "Salvar Alterações",
+    "cancel": "Cancelar",
+    "confirm_delete": "Isso excluirá permanentemente este empreendimento. As propriedades atribuídas perderão o vínculo com o empreendimento."
   },
   "developer_detail": {
     "back_to_list": "Voltar à lista",

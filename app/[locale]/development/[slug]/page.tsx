@@ -7,14 +7,12 @@ import { BackToHome } from "@/components/site/back-to-home";
 import { Breadcrumb } from "@/components/site/breadcrumb";
 import { DevelopmentHeader } from "@/components/developments/development-header";
 import { DevelopmentInfoCard } from "@/components/developments/development-info-card";
+import { DevelopmentDescription } from "@/components/developments/development-description";
 import { PropertyAmenitiesGrid } from "@/components/properties/property-amenities-grid";
 import { CommunityGallery } from "@/components/communities/community-gallery";
-import { mockDevelopments } from "@/lib/mock-developments";
-import type { DevelopmentDetailData } from "@/lib/types";
-
-function getDevelopmentBySlug(slug: string): DevelopmentDetailData | undefined {
-  return mockDevelopments.find((d) => d.slug === slug);
-}
+import { getDevelopmentBySlug } from "@/lib/developments";
+import { resolveAmenityNames } from "@/lib/properties";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function DevelopmentDetailPage({
   params,
@@ -23,9 +21,12 @@ export default async function DevelopmentDetailPage({
 }) {
   const { slug } = await params;
   const t = await getTranslations("development_detail");
-  const development = getDevelopmentBySlug(slug);
+  const development = await getDevelopmentBySlug(slug);
 
   if (!development) notFound();
+
+  const supabase = await createClient();
+  const amenityNames = await resolveAmenityNames(supabase, development.amenities);
 
   return (
     <div className="body-wrapper mx-auto w-full">
@@ -48,7 +49,11 @@ export default async function DevelopmentDetailPage({
           <div className="h-px w-full bg-[--grey-50]" />
         </div>
 
-        <DevelopmentHeader name={development.name} image={development.image} />
+        <DevelopmentHeader
+          name={development.name}
+          image={development.image}
+          logo={development.developerLogo}
+        />
 
         <div className="flex flex-col gap-8 md:flex-row mt-6">
           <div className="flex w-full flex-col gap-8 md:w-[65%] lg:w-[70%]">
@@ -66,26 +71,30 @@ export default async function DevelopmentDetailPage({
                 {t("about_development")}
               </h2>
 
-              <p className="font-body text-base font-light leading-relaxed text-[--text-primary]">
-                {development.description}
-              </p>
+              <DevelopmentDescription text={development.description} />
             </div>
 
             <div className="h-px w-full bg-[--grey-50]" />
 
-            <PropertyAmenitiesGrid
-              amenities={development.amenities}
-              title={t("development_amenities")}
-            />
+            {development.amenities.length > 0 && (
+              <>
+                <PropertyAmenitiesGrid
+                  amenities={development.amenities}
+                  amenityNames={amenityNames}
+                  title={t("development_amenities")}
+                />
+                <div className="h-px w-full bg-[--grey-50]" />
+              </>
+            )}
 
-            <div className="h-px w-full bg-[--grey-50]" />
-
-            <section className="flex flex-col gap-4">
-              <h2 className="font-heading text-h3 font-bold text-[--text-primary]">
-                {t("gallery")}
-              </h2>
-              <CommunityGallery images={development.images} name={development.name} />
-            </section>
+            {development.images.length > 0 && (
+              <section className="flex flex-col gap-4">
+                <h2 className="font-heading text-h3 font-bold text-[--text-primary]">
+                  {t("gallery")}
+                </h2>
+                <CommunityGallery images={development.images} name={development.name} />
+              </section>
+            )}
           </div>
 
           <aside className="w-full md:w-[35%] lg:w-[30%]">
@@ -97,6 +106,8 @@ export default async function DevelopmentDetailPage({
               developerName={development.developerName}
               developerSlug={development.developerSlug}
               developmentSlug={development.slug}
+              community={development.community}
+              handoverDate={development.handoverDate}
             />
           </aside>
         </div>

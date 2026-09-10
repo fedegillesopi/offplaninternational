@@ -75,6 +75,10 @@ export interface Development {
   images: string[] | null;
   amenities: string[] | null;
   handover_date: string | null;
+  starting_price: number | null;
+  starting_price_currency: PropertyCurrency | null;
+  property_types: string[] | null;
+  total_area: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -146,24 +150,6 @@ export interface PropertyData {
 
   phone: string;
   whatsapp: string;
-}
-
-export interface DevelopmentDetailData {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  image: string;
-  images: string[];
-  amenities: string[];
-  location: string;
-  startingPrice: number;
-  startingPriceCurrency: PropertyCurrency;
-  propertyTypes: string[];
-  totalArea: number;
-  developerName: string;
-  developerSlug: string;
-  developerLogo: string;
 }
 
 export interface MarketNewsArticle {
