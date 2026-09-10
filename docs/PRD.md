@@ -2,8 +2,8 @@
 
 **Cliente:** Off Plan International
 **Proyecto:** Plataforma global de listing de propiedades Off-Plan
-**Versión:** 1.13 — 09-Sep-2026
-**Estado:** MVP en desarrollo — i18n inactiva (sitio siempre en inglés, locale default `en`, `localePrefix: never`), Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms), credenciales de broker RERA/QR/ORN/checkbox (migración 022), selección de plan por perfil en `/auth/payment` (mock de tiers, sin Stripe; `lib/plans.ts`; plan Free de 10 propiedades), desarrollos CRUD (migración 023), páginas públicas de developments conectadas a DB, autocomplete development↔property form, filtros de propiedades funcionales (8 filtros DB-driven, URL state, chips activos, price bands dinámicas), paginación server-side (15/página, prev/next + números con elipsis)
+**Versión:** 1.14 — 09-Sep-2026
+**Estado:** MVP en desarrollo — i18n inactiva (sitio siempre en inglés, locale default `en`, `localePrefix: never`), Auth i18n completo, comunidades en DB (migración 008), ruta /app, developer pages en DB + editor rich text TipTap (migraciones 011–013), broker profile pages + form (migración 014), property upload & management system (form 11 secciones, Development Details fields migración 019, milestones CRUD, CRUD completo, back button + AlertDialog en forms), credenciales de broker RERA/QR/ORN/checkbox (migración 022), selección de plan por perfil en `/auth/payment` (mock de tiers, sin Stripe; `lib/plans.ts`; plan Free de 10 propiedades), desarrollos CRUD (migración 023), páginas públicas de developments conectadas a DB, autocomplete development↔property form, filtros de propiedades funcionales (8 filtros DB-driven, URL state, chips activos, price bands dinámicas), paginación server-side (15/página, prev/next + números con elipsis), dashboards por rol en `/app` (DeveloperDashboard, BrokerDashboard, redirect de Private Seller a `/app/properties`)
 
 ---
 
@@ -71,6 +71,7 @@
 | Auth i18n: namespace `auth` traducido a 7 locales (archivos de mensajes preservados; contenido servido en inglés `en`) | Todos | ✅ Implementado (inactivo) |
 | Auth sin dependencia de locale en URL: redirects a rutas limpias (`/auth/onboarding/{role}`, `/app`) | Todos | ✅ Implementado |
 | Dashboard unificado con sidebar basado en role (Developer/Broker/Private Seller) | Todos | ✅ Implementado |
+| Dashboard por rol en `/app`: `DeveloperDashboard`, `BrokerDashboard`, redirect de Private Seller a `/app/properties` | Vendedor | ✅ Implementado |
 | Componentes reorganizados en directorios por dominio (site/, properties/, auth/, shared/, platform/) | Frontend | ✅ Implementado |
 | Template cleanup: 13 archivos eliminados (tutorial starter kit, section-cards, data-table, sidebar.tsx) | Frontend | ✅ Implementado |
 | shadcn defaults restaurados: Button (h-9/h-10), Input (h-9), custom spacing eliminado | Frontend | ✅ Implementado |
@@ -443,9 +444,36 @@ Vendedor lista unidades → Inversor busca/filtra → Encuentra unidad
 - **Settings** (`/app/settings`) en NavSecondary, común a todos
 - **NavUser:** Dropdown con avatar, nombre, email y botón de logout
 
-#### 6.3.3 Dashboard page
-- Placeholder page en `/app`
-- ⚠️ Las sub-rutas del sidebar (analytics, clients, settings) están definidas en la navegación pero las páginas aún no existen
+#### 6.3.3 Dashboard por rol (`/app`)
+- **Router por rol:** La page de `/app` lee `user_profiles.role` y renderiza el dashboard según el role:
+  - `developer` → `DeveloperDashboard` (`components/platform/dashboard/developer-dashboard.tsx`, server)
+  - `broker` → `BrokerDashboard` (`components/platform/dashboard/broker-dashboard.tsx`, server)
+  - `private_seller` → `redirect("/app/properties")` — dashboard propio pendiente de implementar
+- **Datos compartidos:** ambos dashboards usan `getSellerDashboardData(userId, limit)` de `lib/properties.ts` (total de propiedades, conteo por status, recientes) y `getMyDevelopments(userId)` (solo developer).
+- **DashboardGreeting** (`dashboard-greeting.tsx`): saludo contextual por hora ("Good morning" / "Good afternoon" / "Good evening", en-US) + primer nombre del usuario + fecha con `Intl.DateTimeFormat("en-US")` (weekday / mes / día / año). Recibe los botones de acción como children (quick actions en el header).
+- **ProfileCompletionBanner** (`profile-completion-banner.tsx`): se renderiza solo si `profile_completed === false`; mensaje "Complete your profile to get the most out of OffPlan International" + botón "Complete profile" → `/app/settings`. Se oculta automáticamente si el perfil está completo.
+- **StatCard** (`stat-card.tsx`): card de métrica con label, valor, ícono (lucide-react), link opcional "View all" (con ArrowRight) y props `footnote` + `disabled` (opacidad 60% + `pointer-events-none`).
+
+**DeveloperDashboard:**
+- Quick actions en el header: "New property" (Button primary → `/app/properties/new`) + "New development" (Button outline → `/app/developments/new`)
+- 4 StatCards en grid `sm:grid-cols-2 lg:grid-cols-4`:
+  1. **Total properties** (ícono Building2, link "View all" → `/app/properties`)
+  2. **Total developments** (ícono Landmark, link "View all" → `/app/developments`) — count de `getMyDevelopments(userId)`
+  3. **Properties available** (ícono CheckCircle, valor de `byStatus.available`)
+  4. **Properties reserved** (ícono Clock, valor de `byStatus.reserved`)
+- `RecentDevelopments` (`recent-developments.tsx`): tabla de los 5 developments más recientes (ordenado por `created_at DESC`), 6 columnas — Development, Status (badge Active/Inactive), Starting Price, Location, Property Types, Created — **sin columna de Actions**. Empty state con CTA "Create your first development".
+- `RecentProperties` (`recent-properties.tsx`): tabla de los 5 properties más recientes, 6 columnas — Property, Status (badge coloreado), Price, Location, Specs, Created — **sin columna de Actions**. Empty state con CTA "New property".
+
+**BrokerDashboard:**
+- Quick action en el header: "New property" (Button primary → `/app/properties/new`)
+- 3 StatCards en grid `sm:grid-cols-3` (ancho total):
+  1. **Total properties** (ícono Building2, link "View all" → `/app/properties`)
+  2. **Properties available** (ícono LayoutGrid, valor de `byStatus.available`)
+  3. **Inquiries** (ícono MessageSquare, valor "—", footnote "Coming soon", prop `disabled`) — card deshabilitada estéticamente (upcoming)
+- `RecentProperties` con título **"Recent properties uploaded"**: tabla de los 3 properties más recientes, mismas 6 columnas que el listado de properties pero **sin columna de Actions**
+- El broker lista propiedades de múltiples developers; la tabla de recientes no tiene columna de developer (el texto libre del developer vive en la columna `developer` de `properties`; no existe `developer_name_text`)
+
+**Hardcoded en inglés:** los dashboards por rol están hardcoded en inglés (convención de la plataforma `/app`, sin i18n).
 
 #### 6.3.4 Legacy route redirects
 - `(auth)/login/page.tsx` y `(auth)/signup/page.tsx` eliminadas en cleanup
@@ -1659,6 +1687,10 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 57. **Active filter chips:** cada filtro seleccionado aparece como chip con icono "X" para quitarlo individualmente. Un botón "Clear filters" elimina todos los filtros de una vez.
 58. **Dropdowns de filtros con scroll propio:** panel de max 280px (`max-h-[280px]`) para no expandir la página; botones de filtro con misma altura que los inputs (`h-9`).
 59. **Empty states diferenciados:** cuando hay filtros activos y sin resultados muestra "No properties match your filters"; cuando no hay propiedades en la DB muestra "No properties".
+60. **El dashboard `/app` es un router por rol.** Lee `user_profiles.role` y renderiza `DeveloperDashboard` (developer), `BrokerDashboard` (broker) o redirige a `/app/properties` (private_seller, dashboard propio pendiente).
+61. **Los dashboards por rol están hardcoded en inglés** (misma convención que el resto de la plataforma `/app`; sin i18n). El saludo, la fecha y el texto del banner de perfil incompleto usan formato en-US.
+62. **La card "Inquiries" del BrokerDashboard muestra "—" como valor y "Coming soon" como footnote**, deshabilitada estéticamente (prop `disabled` de StatCard: `pointer-events-none opacity-60`).
+63. **Las quick actions del dashboard se ubican en el header** (dentro de `DashboardGreeting`, junto al saludo y la fecha), no en el body: "New property" (primary, todos los roles con dashboard) y "New development" (outline, solo developer).
 
 ---
 
@@ -1683,10 +1715,9 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 - `/development/[slug]` y `/developments` leen de Supabase (desarrollos activos de developers verified)
 - Sin dashboard de inversor (favoritos, consultas)
 - Los botones de contacto (WhatsApp, Phone) no ejecutan acciones reales
-- La página principal del dashboard (`/app`) sigue con datos mock (SectionCards, DataTable). El listado de propiedades (`/app/properties`) ahora lee de Supabase
+- El dashboard `/app` renderiza dashboards por rol (`DeveloperDashboard`, `BrokerDashboard`, redirect de Private Seller a `/app/properties`) conectados a Supabase vía `getSellerDashboardData()`; el listado de propiedades (`/app/properties`) también lee de DB
 - Las sub-rutas del sidebar del dashboard `analytics` (Developer) y `clients` (Broker) no tienen páginas implementadas. `properties` (todos los roles) SÍ está implementado con CRUD completo
 - Los pricing plans están configurados pero no se cobran ni se aplican
-- La ruta `/app` no tiene page.tsx funcional (solo placeholder)
 - La migración 008 + seed de communities no están ejecutadas en producción (requieren SQL Editor manual)
 - Las traducciones de comunidades solo existen en locale 'ae' (el contenido se muestra en inglés en todos los locales)
 - El CTA "See properties" de comunidades apunta a una ruta inexistente (`/properties-list?community={slug}`)
@@ -1798,8 +1829,10 @@ Bucket creado por migración `supabase/migrations/023_development_pages.sql`. Im
 - `lib/filter-options.ts`: tipos `PropertyFilters`, `FilterOptions`, helpers `parseSearchParams`, `buildQueryString`, `priceBands`, `getBedOptions`, `getBathOptions`, `cleanStatusLabel`
 - Empty states diferenciados: "No properties match your filters" vs. "No properties"
 - Route `/properties` corregida en la tabla de rutas (antes decía `/properties-list`)
+- Dashboards por rol en `/app` (09-Sep-2026): `DeveloperDashboard` (saludo contextual + fecha en-US, banner de perfil incompleto → `/app/settings`, 4 stats con "View all", quick actions New property/New development, tablas `RecentDevelopments` + `RecentProperties` sin columna Actions), `BrokerDashboard` (saludo + fecha, banner de perfil incompleto, 3 stats a ancho total con card Inquiries deshabilitada "Coming soon", quick action New property, tabla "Recent properties uploaded"), Private Seller redirige a `/app/properties` (dashboard propio pendiente)
 
 ### 🔜 Siguientes pasos
+- **Corto plazo:** Dashboard propio para Private Seller (hoy `/app` redirige a `/app/properties`)
 - **Corto plazo:** Implementar páginas del sidebar: `/app/analytics` (Developer), `/app/clients` (Broker), `/app/settings` (todos)
 - **Corto plazo:** Conectar la búsqueda de homepage a resultados reales (navegación a `/properties-list` con query params)
 - **Corto plazo:** Implementar envío real de consultas Contact y WhatsApp (conectar a backend/Supabase)

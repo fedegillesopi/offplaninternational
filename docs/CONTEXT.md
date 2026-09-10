@@ -183,6 +183,18 @@
 - [x] Traducciones en los 7 locales: `developments.no_results`, `development_detail.community`, `development_detail.handover_date`, namespace `development_form` completo. Dashboard hardcoded en inglés (misma convención que `property_form`)
 - [x] Auditorías reviewer/security: guard `{logo && ...}` + placeholder cover vacío en `development-card.tsx` (evita `src=""`), validaciones reforzadas en `saveDevelopment`, `crypto.randomUUID()` en `lib/storage.ts`
 
+### Dashboards por rol (developer + broker) — implementado 09-Sep-2026
+- [x] `app/app/page.tsx` es router por rol: lee `user_profiles` (full_name, role, profile_completed) y renderiza `DeveloperDashboard` (default), `BrokerDashboard` (role broker) o redirect a `/app/properties` (role private_seller)
+- [x] `components/platform/dashboard/developer-dashboard.tsx` (server, extraído de page.tsx): `DashboardGreeting` con children (botón primary "New property" → /app/properties/new + outline "New development" → /app/developments/new), `ProfileCompletionBanner`, 4 `StatCard` (Total properties con href /app/properties, Total developments con href /app/developments, Properties available, Properties reserved), `RecentDevelopments` (últimos 5) + `RecentProperties` (últimos 5)
+- [x] `components/platform/dashboard/broker-dashboard.tsx` (server, nuevo): `DashboardGreeting` con un solo botón "New property" (outline), `ProfileCompletionBanner`, 3 `StatCard` en grid `sm:grid-cols-3` (Total properties con href /app/properties, Properties available, Inquiries con valor "—", footnote "Coming soon" y prop `disabled` para estética upcoming), `RecentProperties` con `title="Recent properties uploaded"` (últimos 3)
+- [x] `components/platform/dashboard/dashboard-greeting.tsx`: saludo por hora del server ("Good morning/afternoon/evening"), primer nombre de full_name, fecha con `Intl.DateTimeFormat` en-US; acepta `children?: React.ReactNode` para botones de acción (antes usaba prop `showDevelopments`)
+- [x] `components/platform/dashboard/stat-card.tsx`: props `{ label, value, icon, href?, footnote?, disabled? }`; `href` renderiza link "View all" con ArrowRight; `footnote` texto pequeño debajo del valor; `disabled` aplica `opacity-60 pointer-events-none`
+- [x] `components/platform/dashboard/recent-properties.tsx`: tabla con columnas Property, Status, Price, Location, Specs, Created (sin Actions/Edit); prop `title` configurable (default "Recent properties")
+- [x] `components/platform/dashboard/recent-developments.tsx`: tabla con columnas Development, Status, Starting Price, Location, Property Types, Created (sin Actions)
+- [x] `lib/properties.ts`: `getSellerDashboardData(userProfileId, limit)` es el único helper del dashboard (retorna `{ total, byStatus, recent }` con `recent: DashboardProperty[]`); tipo `DashboardProperty` e interfaz `SellerDashboardData` exportados
+- [x] Eliminado `broker-recent-listings.tsx` (usaba cover_image/thumbnail y "via {developer}") y la función duplicada `getBrokerDashboardData`
+- [x] Terminología: en el dashboard el texto es "properties" no "listings" (botones, títulos, empty states). Dashboard hardcoded en inglés (misma convención que property_form)
+
 ### Auto-fill en PropertyForm (implementado 09-Sep-2026)
 - [x] Cuando developer elige un development del dropdown, `development` se autocompleta con el nombre y `development_area` con `total_area`; ambos campos quedan read-only (`bg-muted`). Sin selección, siguen editables
 - [x] Pages new/edit cargan `total_area` en el query del dropdown (antes solo `id, name`)
@@ -199,6 +211,7 @@
 - [ ] Mapa global con unidades geolocalizadas
 - [ ] Reemplazar componentes de tutorial de Supabase starter kit
 - [ ] Dashboard de favoritos y consultas del usuario
+- [ ] Dashboard de private_seller: actualmente hace redirect a `/app/properties` (no tiene dashboard propio; el dashboard de Inquiries en el broker también es mock con "Coming soon")
 - [ ] `app/app/settings` page: existe como placeholder (solo heading), sin contenido implementado
 - [ ] Market news: páginas de listado y detalle con mock data — falta conectar a DB
 - [ ] Pagos reales con Stripe pendientes: `auth/payment` es mock visual (sin Stripe ni persistencia de plan); `lib/pricing-plans.ts` quedó sin uso. Implementación documentada en `docs/STRIPE-PLANS.md` (migración propuesta, pendiente de renumerar tras 023)
@@ -643,7 +656,7 @@ offplaninternational/
 │   ├── globals.css                    # CSS variables, Tailwind base (shadcn-compatible)
 │   ├── app/                           # Plataforma de vendedores (sin i18n, requiere auth)
 │   │   ├── layout.tsx                 # Layout con sidebar + header + auth guard
-│   │   ├── page.tsx                   # Pagina principal (placeholder)
+│   │   ├── page.tsx                   # Router por rol: DeveloperDashboard / BrokerDashboard / redirect /app/properties
 │   │   ├── properties/
 │   │   │   ├── page.tsx               # Listado de propiedades del usuario (PropertyList table)
 │   │   │   ├── new/page.tsx           # Crear propiedad (PropertyForm + datos de referencia)
@@ -766,7 +779,15 @@ offplaninternational/
 │   │   ├── image-upload.tsx           # Upload de cover/logo (bucket configurable via prop)
 │   │   ├── profile-form.tsx           # Form de perfil de usuario
 │   │   ├── rich-text-editor.tsx       # Editor rich text TipTap (client, bucket configurable via prop)
-│   │   └── site-header.tsx            # Header del dashboard con sidebar trigger
+│   │   ├── site-header.tsx            # Header del dashboard con sidebar trigger
+│   │   └── dashboard/                 # Componentes del dashboard por rol
+│   │       ├── dashboard-greeting.tsx # Saludo por hora + nombre + fecha (server, children para botones)
+│   │       ├── stat-card.tsx          # Card de estadistica con icono, valor, href, footnote, disabled
+│   │       ├── profile-completion-banner.tsx # Banner de perfil incompleto
+│   │       ├── developer-dashboard.tsx  # Dashboard del developer (server): greeting + 4 stat cards + recent developments + recent properties
+│   │       ├── broker-dashboard.tsx     # Dashboard del broker (server): greeting + 3 stat cards (grid sm:3, Inquiries disabled) + recent properties
+│   │       ├── recent-properties.tsx    # Tabla de propiedades recientes (sin columna Actions)
+│   │       └── recent-developments.tsx  # Tabla de developments recientes (sin columna Actions)
 │   ├── brokers/                       # Componentes especificos de Broker
 │   │   ├── broker-header.tsx          # Header de pagina publica (imagen, nombre, stats, contacto)
 │   │   └── broker-description.tsx     # Render HTML sanitizado + fallback legacy **bold**
@@ -860,7 +881,7 @@ offplaninternational/
 │   ├── countries.ts                   # getCountryCode/getCountryLabel
 │   ├── developers.ts                  # Data access de developers (getDevelopers, getDeveloperBySlug, getMyDeveloper, getDeveloperFilterOptions)
 │   ├── developments.ts                # Data access de developments (getDevelopments, getDevelopmentBySlug, getMyDevelopments, getMyDevelopment) + tipos DevelopmentCardData/DevelopmentDetailData
-│   ├── properties.ts                  # Data access de propiedades (getPropertyBySlug, getRelatedProperties, getProperties(filters, page), getMyProperties, getMyProperty, getPropertyCities, getPropertyStatuses, getPropertyPriceBounds, countProperties); JOINs a developers, broker_profiles, user_profiles, developments; toPropertyData resuelve campos flat (development/developer/area); resolveAmenityNames exportada; applyPropertyFilters (eq/in/gte/lte/overlaps) compartido entre query de datos y conteo; PROPERTIES_PER_PAGE = 15
+│   ├── properties.ts                  # Data access de propiedades (getPropertyBySlug, getRelatedProperties, getProperties(filters, page), getMyProperties, getMyProperty, getPropertyCities, getPropertyStatuses, getPropertyPriceBounds, countProperties, getSellerDashboardData); JOINs a developers, broker_profiles, user_profiles, developments; toPropertyData resuelve campos flat (development/developer/area); resolveAmenityNames exportada; applyPropertyFilters (eq/in/gte/lte/overlaps) compartido entre query de datos y conteo; DashboardProperty + SellerDashboardData (tipos del dashboard); PROPERTIES_PER_PAGE = 15
 │   ├── property-amenities.ts          # Data access de property_amenities
 │   ├── property-subcategories.ts      # Data access de property_subcategories
 │   ├── rich-text.tsx                  # splitBold() — render de **bold** legacy (JSX, compartida con developers/brokers)
@@ -996,6 +1017,13 @@ offplaninternational/
 | 2026-09-09 | `saveDevelopment` con validaciones reforzadas: slug regex, city/country max 100 chars, currency whitelist, numbers ≥ 0, `handover_date` regex ISO `^\d{4}-\d{2}-\d{2}$` (no `Date.parse`), límites imágenes/amenities/property_types, sanitización HTML | Seguridad y consistencia: misma rigurosidad que `saveProperty` y `saveDeveloperProfile`; update con id ajeno retorna error "Development not found." (antes éxito silencioso) |
 | 2026-09-09 | `crypto.randomUUID()` en `lib/storage.ts` en vez de `Math.random().toString(36)` | Hallazgo de auditoría security: genera paths de upload más seguros y colision-resistant |
 | 2026-09-09 | Auto-fill en PropertyForm: developer elige development del dropdown → `development` y `development_area` se autocompletan y quedan read-only | UX: evita edición manual redundante cuando el developer vincula una propiedad a un development existente; broker/private_seller siguen editando texto libre |
+| 2026-09-09 | Dashboard por rol: `app/app/page.tsx` es router que lee role y renderiza `DeveloperDashboard`, `BrokerDashboard` o redirect a `/app/properties` (private_seller) | Un solo punto de entrada `/app` que adapta el contenido según el rol; private_seller redirige directo a su listado de propiedades (no tiene dashboard propio aún) |
+| 2026-09-09 | `DashboardGreeting` acepta `children` para botones de acción (antes prop `showDevelopments`) | Más flexible: cada dashboard decide qué botones renderizar (developer: New property + New development; broker: solo New property) |
+| 2026-09-09 | StatCard con props `href?`, `footnote?`, `disabled?` | Permite link "View all" condicional, texto explicativo (ej: "Coming soon" en Inquiries) y estética de upcoming features |
+| 2026-09-09 | Tabla `RecentProperties` sin columna Actions (diferente de `PropertyList` que sí tiene Edit) | En el dashboard la tabla es solo informativa; la navegación a edición se hace desde el listado completo |
+| 2026-09-09 | Broker dashboard usa grid `sm:grid-cols-3` para StatCards (ancho total) vs developer `sm:grid-cols-2 lg:grid-cols-4` | Broker tiene menos stat cards (3 vs 4); grid de 3 columnas las distribuye mejor |
+| 2026-09-09 | `getSellerDashboardData` es el único helper del dashboard (se eliminó `getBrokerDashboardData` duplicado) | Ambos roles usan la misma función (diferencia solo en el `limit` param); reduce duplicación |
+| 2026-09-09 | Dashboard hardcoded en inglés (no i18n) | Misma convención que property_form: las rutas `/app` no usan next-intl |
 | 2026-09-09 | No reemplazar query inline del dropdown en new/edit por `getMyDevelopments` | Ese filtro incluiría developments inactivos y cambiaría el comportamiento; se mantiene el query inline que no filtra por `is_active` (el dropdown muestra todos los del developer) |
 | 2026-09-09 | Property filters con estado en URL searchParams (`/properties?location=...&category=...&price=...&page=2`) y filtrado server-side | Fuente de verdad en la URL: URLs compartibles, back/forward funcionan, y el filtrado usa índices de Supabase (no se trae toda la tabla al cliente). `PropertyFilters` es presentacional: recibe `options` + `filters` como props y hace `router.replace` con `buildQueryString` |
 | 2026-09-09 | Opciones de filtros 100% desde la DB, sin arrays hardcodeados | `getPropertyCities()`, `getPropertySubcategories()`, `getPropertyStatuses()` (con `cleanStatusLabel()`), `getDeveloperFilterOptions()` (verificados), `getPropertyAmenities()`, `getPropertyPriceBounds()` + `priceBands()` (5 bandas dinámicas), beds/baths 1-8. Se eliminaron `locationOptions`, `developerOptions`, `categoryOptionDefs`, `priceOptionDefs`, `statusOptionDefs`, `amenityOptionDefs` y `resolveOptions()` de `lib/filter-options.ts`. Las keys `filter_options` en messages quedaron SIN USO (pendiente opcional de limpieza) |
@@ -1074,11 +1102,14 @@ offplaninternational/
 1. Usuario autenticado accede a `/app`
 2. `app/app/layout.tsx` verifica sesion, obtiene perfil de `user_profiles` (full_name, email, role), renderiza SidebarProvider + AppSidebar + SiteHeader + children
 3. `app-sidebar.tsx` muestra navegacion condicional segun role:
-   - **Developer:** Dashboard, Properties, Analytics
-   - **Broker:** Dashboard, Listings, Clients
-   - **Private Seller:** Dashboard, My Property
+   - **Developer:** Dashboard, Developer Profile, Developments, Properties
+   - **Broker:** Dashboard, Broker Profile, Properties
+   - **Private Seller:** Dashboard, Properties
 4. Todos ven Settings en NavSecondary
-5. `app/app/page.tsx` muestra placeholder
+5. `app/app/page.tsx` lee `user_profiles` (full_name, role, profile_completed) y actúa como router:
+   - `role === 'broker'` → renderiza `BrokerDashboard` (greeting + botón "New property" + 3 stat cards con Inquiries disabled + RecentProperties)
+   - `role === 'private_seller'` → redirect a `/app/properties` (no tiene dashboard propio)
+   - resto (developer es default) → `DeveloperDashboard` (greeting + 2 botones + 4 stat cards + RecentDevelopments + RecentProperties)
 
 ### 7.8 Navegacion en sidebar
 
@@ -1308,7 +1339,7 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Git:** No hacer commit a menos que se solicite explícitamente
 - **Supabase client:** Crear nueva instancia por funcion en server (no variables globales)
 - **Dashboard/sin i18n:** las rutas `app/app` no usan next-intl; los componentes son hardcodeados en ingles. Auth forms sí usan i18n (namespace `auth`)
-- **Sidebar:** layout flex simple con NAV_BY_ROLE; dropdown de usuario con logout
+- **Sidebar:** layout flex simple con NAV_BY_ROLE: developer (Dashboard, Developer Profile, Developments, Properties), broker (Dashboard, Broker Profile, Properties), private_seller (Dashboard, Properties); dropdown de usuario con logout
 - **Roles:** tipo `UserRole` definido en `lib/types.ts` como `"developer" | "broker" | "private_seller"`
 - **Tipos de propiedad:** `PropertyStatus`, `PropertyCurrency` definidos en `lib/types.ts`, alineados con CHECK constraints de BD (⚠️ `PropertyType` eliminado con la columna `property_type`, migración 016)
 - **Interfaces de dominio:** `Developer`, `Development` en `lib/types.ts` — reflejan tablas de BD 1:1. ⚠️ `PaymentPlanMilestone` eliminada (migración 017)
@@ -1331,7 +1362,8 @@ No hay otras variables de entorno definidas actualmente. El middleware consulta 
 - **Broker profiles:** accesibles solo desde property detail pages (no listing page); `is_verified` controla visibilidad pública; `closed_transactions` auto-declarado
 - **Property management:** forms de creación/edición en `/app/properties/*`; data access en `lib/properties.ts` con JOINs (developers, broker_profiles, user_profiles, developments); server actions con ownership checks (`listed_by_id = user.id`); PropertyForm es orquestador de estado con sub-componentes en `property-form/` (patrón controlado: estado en el padre, value/onChange por props); auto-cálculos de sqft↔sqm y deposit%→amount; `PageHeader` con back en new/edit
 - **Milestones de pago:** ⚠️ ELIMINADO (migración 017): tabla `payment_plan_milestones` y server action `saveMilestones` eliminados; `MilestonesEditor` ya no existe en el código
-- **Dashboard tables:** PropertyList usa HTML table nativa (no @tanstack/react-table); SimpleList es suficiente para listados del usuario sin sorting/pagination/drag-drop
+- **Dashboard tables:** PropertyList usa HTML table nativa (no @tanstack/react-table); SimpleList es suficiente para listados del usuario sin sorting/pagination/drag-drop. `RecentProperties` y `RecentDevelopments` son tablas informativas sin columna Actions
+- **Dashboard por rol:** `app/app/page.tsx` es server component que lee role de `user_profiles` y renderiza el dashboard correspondiente (`DeveloperDashboard`, `BrokerDashboard`) o redirect. `DashboardGreeting` acepta `children` para botones de acción; `StatCard` soporta `href`, `footnote` y `disabled` para features upcoming
 - **Traducciones de forms:** namespace `property_form` en los 7 locales; todos los labels y mensajes del form de propiedades traducidos
 - **Tailwind primary.DEFAULT:** agregado para que clases de utilidad como `bg-primary`, `text-primary`, `border-primary` resuelvan correctamente
 - **PropertyForm componentes:** sub-componentes en `components/platform/property-form/` como `FormSection`, `BasicInformationSection`, `LocationSection`, `PropertyDetailsSection`, `DevelopmentDetailsSection`, `TagsSection`, `AmenitiesSection`, `ImagesSection`, `VisibilitySection`; el padre maneja el estado y pasa value/onChange; ordén de secciones: Basic → Location → Details → Development → Tags → Amenities → Images → Visibility
