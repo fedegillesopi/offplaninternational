@@ -1,12 +1,9 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-
 export function DashboardGreeting({
   fullName,
-  showDevelopments,
+  children,
 }: {
   fullName: string;
-  showDevelopments?: boolean;
+  children?: React.ReactNode;
 }) {
   const now = new Date();
   const hours = now.getHours();
@@ -26,16 +23,7 @@ export function DashboardGreeting({
         <h1 className="text-2xl font-bold">{greeting}, {firstName}</h1>
         <p className="text-sm text-muted-foreground">{date}</p>
       </div>
-      <div className="flex flex-wrap gap-3">
-        <Button asChild>
-          <Link href="/app/properties/new">New property</Link>
-        </Button>
-        {showDevelopments && (
-          <Button asChild variant="outline">
-            <Link href="/app/developments/new">New development</Link>
-          </Button>
-        )}
-      </div>
+      {children && <div className="flex flex-wrap gap-3">{children}</div>}
     </div>
   );
 }

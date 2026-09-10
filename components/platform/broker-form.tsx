@@ -67,20 +67,20 @@ export function BrokerForm({
   const hasChanges = isNew
     ? Boolean(name)
     : Boolean(
-        name !== broker.name ||
-          sanitizeUserHtml(description) !== sanitizeUserHtml(initialDescription) ||
-          profileImage !== broker.profile_image ||
-          personalUrl !== (broker.personal_url ?? "") ||
-          city !== broker.city ||
-          emailPublic !== (broker.email_public ?? "") ||
-          phone !== (broker.phone ?? "") ||
-          whatsapp !== (broker.whatsapp ?? "") ||
-          closedTransactions !== (broker.closed_transactions?.toString() ?? "0") ||
-          reraCardUrl !== (broker.rera_card_url ?? "") ||
-          qrCodeUrl !== (broker.qr_code_url ?? "") ||
-          agencyOrn !== (broker.agency_orn ?? "") ||
-          detailsConfirmed !== (broker.details_confirmed ?? false),
-      )
+      name !== broker.name ||
+      sanitizeUserHtml(description) !== sanitizeUserHtml(initialDescription) ||
+      profileImage !== broker.profile_image ||
+      personalUrl !== (broker.personal_url ?? "") ||
+      city !== broker.city ||
+      emailPublic !== (broker.email_public ?? "") ||
+      phone !== (broker.phone ?? "") ||
+      whatsapp !== (broker.whatsapp ?? "") ||
+      closedTransactions !== (broker.closed_transactions?.toString() ?? "0") ||
+      reraCardUrl !== (broker.rera_card_url ?? "") ||
+      qrCodeUrl !== (broker.qr_code_url ?? "") ||
+      agencyOrn !== (broker.agency_orn ?? "") ||
+      detailsConfirmed !== (broker.details_confirmed ?? false),
+    )
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
@@ -165,7 +165,6 @@ export function BrokerForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Profile Image</label>
           <ImageUpload
             label="Profile Image"
             value={profileImage}

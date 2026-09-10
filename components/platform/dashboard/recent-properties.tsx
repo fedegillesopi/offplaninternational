@@ -16,11 +16,17 @@ function formatDate(iso: string): string {
   });
 }
 
-export function RecentProperties({ properties }: { properties: DashboardProperty[] }) {
+export function RecentProperties({
+  properties,
+  title = "Recent properties",
+}: {
+  properties: DashboardProperty[];
+  title?: string;
+}) {
   if (properties.length === 0) {
     return (
       <div>
-        <h2 className="text-lg font-semibold">Recent properties</h2>
+        <h2 className="text-lg font-semibold">{title}</h2>
         <div className="mt-3 flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground">No properties yet</p>
           <Link href="/app/properties/new" className="mt-4">
@@ -33,7 +39,7 @@ export function RecentProperties({ properties }: { properties: DashboardProperty
 
   return (
     <div>
-      <h2 className="text-lg font-semibold">Recent properties</h2>
+      <h2 className="text-lg font-semibold">{title}</h2>
       <div className="mt-3 overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead>
