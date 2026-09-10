@@ -1,17 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { STATUS_STYLES, statusLabel } from "@/lib/status";
 import type { PropertyData } from "@/lib/types";
 
 interface PropertyListProps {
   properties: PropertyData[];
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  available: "bg-green-100 text-green-800",
-  sold: "bg-red-100 text-red-800",
-  reserved: "bg-yellow-100 text-yellow-800",
-  off_market: "bg-gray-100 text-gray-600",
-};
 
 function formatPrice(price: number, currency: string): string {
   return `${currency} ${price.toLocaleString()}`;
@@ -64,9 +59,12 @@ export function PropertyList({ properties }: PropertyListProps) {
               </td>
               <td className="px-4 py-3">
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[p.status] ?? ""}`}
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                    STATUS_STYLES[p.status] ?? "",
+                  )}
                 >
-                  {p.status}
+                  {statusLabel(p.status)}
                 </span>
               </td>
               <td className="px-4 py-3 font-medium">

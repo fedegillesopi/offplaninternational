@@ -372,6 +372,65 @@ export interface PropertiesResult {
   total: number;
 }
 
+export interface DashboardProperty {
+  id: string;
+  title: string;
+  subcategory: string | null;
+  community: string;
+  city: string;
+  country: string;
+  status: string;
+  cover_image: string | null;
+  price: number;
+  currency: string;
+  beds: number;
+  baths: number;
+  area: number;
+  created_at: string;
+}
+
+export interface SellerDashboardData {
+  total: number;
+  byStatus: Record<string, number>;
+  recent: DashboardProperty[];
+}
+
+export async function getSellerDashboardData(
+  userProfileId: string,
+  limit = 3,
+): Promise<SellerDashboardData> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select(
+      "id, title, subcategory, community, city, country, status, cover_image, price, currency, beds, baths, area, created_at",
+    )
+    .eq("listed_by_id", userProfileId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return {
+      total: 0,
+      byStatus: { available: 0, reserved: 0, sold: 0, off_market: 0 },
+      recent: [],
+    };
+  }
+
+  const rows = data as unknown as DashboardProperty[];
+  const byStatus: Record<string, number> = {
+    available: 0,
+    reserved: 0,
+    sold: 0,
+    off_market: 0,
+  };
+  for (const row of rows) {
+    byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
+  }
+
+  return { total: rows.length, byStatus, recent: rows.slice(0, limit) };
+}
+
 export async function getPropertyCities(): Promise<string[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
