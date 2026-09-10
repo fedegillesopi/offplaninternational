@@ -1,19 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { activateFreePlan, changePlan } from "@/lib/actions";
+import { activateFreePlan, changePlan, createPortal } from "@/lib/actions";
 import type { Plan } from "@/lib/plans";
-import type { Subscription } from "@/lib/subscriptions";
+
+export interface BillingSubscription {
+  plan_name: Plan["tier"];
+  status: "active" | "cancelled" | "past_due" | "trialing" | "incomplete";
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
 
 interface BillingPageProps {
   currentPlan: Plan | null;
-  subscription: Subscription | null;
+  subscription: BillingSubscription | null;
   propertyCount: number;
   allPlans: Plan[];
 }
@@ -25,12 +31,25 @@ export function BillingPage({
   allPlans,
 }: BillingPageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgraded, setUpgraded] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("upgraded") === "true") {
+      setUpgraded(true);
+      router.replace("/app/billing");
+    }
+  }, [searchParams, router]);
 
   const hasSubscription = Boolean(subscription);
   const hasPaidPlan =
     subscription && subscription.plan_name !== "free";
+  const isPastDue = subscription?.status === "past_due";
+  const cancelAtPeriodEnd =
+    subscription?.plan_name !== "free" &&
+    subscription?.cancel_at_period_end === true;
 
   const handleActivateFree = async () => {
     setLoading(true);
@@ -52,7 +71,23 @@ export function BillingPage({
       setError(result.error);
       setLoading(false);
     } else if (result.redirectUrl) {
-      router.push(result.redirectUrl);
+      if (result.redirectUrl.startsWith("http")) {
+        window.location.href = result.redirectUrl;
+      } else {
+        router.push(result.redirectUrl);
+      }
+    }
+  };
+
+  const handlePortal = async () => {
+    setLoading(true);
+    setError(null);
+    const result = await createPortal();
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+    } else if (result.url) {
+      window.location.href = result.url;
     }
   };
 
@@ -78,6 +113,29 @@ export function BillingPage({
       {error && (
         <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
+        </div>
+      )}
+
+      {upgraded && (
+        <div className="rounded-md bg-primary/10 px-4 py-3 text-sm text-primary-dark">
+          Your plan has been upgraded.
+        </div>
+      )}
+
+      {isPastDue && (
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <TriangleAlert className="h-4 w-4" />
+          Your last payment failed. Update your payment method to keep your
+          plan. If payment is not received, your plan will be downgraded to
+          Free and excess listings will be deactivated.
+        </div>
+      )}
+
+      {cancelAtPeriodEnd && (
+        <div className="flex items-center gap-2 rounded-md bg-secondary/70 px-4 py-3 text-sm text-secondary-main">
+          <TriangleAlert className="h-4 w-4" />
+          Your plan will be cancelled at the end of the current billing period.
+          You can renew it anytime from the billing portal.
         </div>
       )}
 
@@ -145,7 +203,10 @@ export function BillingPage({
 
               <div className="flex gap-2">
                 {hasPaidPlan ? (
-                  <Button variant="outline" disabled>
+                  <Button variant="outline" onClick={handlePortal} disabled={loading}>
+                    {loading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     Manage Subscription
                   </Button>
                 ) : (
@@ -168,10 +229,12 @@ export function BillingPage({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            Payment methods are managed through Stripe. Stripe integration is
-            coming soon.
+            Payment methods are managed securely through Stripe.
           </p>
-          <Button variant="outline" disabled>
+          <Button variant="outline" onClick={handlePortal} disabled={loading}>
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
             Manage Payment Method
           </Button>
         </CardContent>

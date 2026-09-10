@@ -3,9 +3,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeUserHtml } from "@/lib/sanitize-html";
 import type { PlanTier } from "@/lib/plans";
-import { getPlansForRole } from "@/lib/plans";
-import { countActiveProperties } from "@/lib/subscriptions";
+import { getPlansForRole, getPlan, getMaxProperties } from "@/lib/plans";
+import { countActiveProperties, getEffectiveLimits } from "@/lib/subscriptions";
 import type { UserRole } from "@/lib/types";
+import {
+  createCheckoutSession,
+  createPortalSession,
+  getOrCreateStripeCustomer,
+  scheduleSubscriptionCancellation,
+} from "@/lib/stripe";
 
 export interface SaveDeveloperPayload {
   id?: string;
@@ -437,6 +443,37 @@ export async function saveProperty(
     is_active: payload.is_active,
   };
 
+  const isNewActive = !payload.id && payload.is_active;
+  let isReactivation = false;
+  if (payload.id && payload.is_active) {
+    const { data: existing, error: existingError } = await supabase
+      .from("properties")
+      .select("is_active")
+      .eq("id", payload.id)
+      .eq("listed_by_id", user.id)
+      .maybeSingle();
+    if (existingError || !existing) {
+      return { id: null, error: "Property not found." };
+    }
+    isReactivation = existing.is_active === false;
+  }
+
+  if (isNewActive || isReactivation) {
+    const limits = await getEffectiveLimits(user.id);
+    const maxProperties = limits
+      ? limits.maxProperties
+      : getMaxProperties(listed_by_type as UserRole, "free");
+    if (maxProperties !== -1) {
+      const used = await countActiveProperties(user.id);
+      if (used >= maxProperties) {
+        return {
+          id: null,
+          error: `You have reached the limit of ${maxProperties} active properties. Upgrade your plan at /app/billing to list more.`,
+        };
+      }
+    }
+  }
+
   let dbError: { message: string } | null;
   let savedId: string | null = payload.id ?? null;
 
@@ -729,7 +766,7 @@ export async function activateFreePlan(): Promise<{ error: string | null }> {
 
 export async function changePlan(
   tier: PlanTier,
-): Promise<{ error: string | null; redirectUrl?: string }> {
+): Promise<{ error: string | null; redirectUrl?: string; message?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -746,7 +783,7 @@ export async function changePlan(
   if (tier === "free") {
     const { data: existing } = await supabase
       .from("subscriptions")
-      .select("id, plan_name")
+      .select("id, plan_name, stripe_subscription_id, cancel_at_period_end")
       .eq("user_id", user.id)
       .eq("status", "active")
       .limit(1)
@@ -756,11 +793,25 @@ export async function changePlan(
       if (existing.plan_name === "free") {
         return { error: "You are already on the Free plan." };
       }
-      const activeCount = await countActiveProperties(user.id);
-      const freePlan = plansForRole.find((p) => p.tier === "free");
-      if (freePlan && freePlan.maxProperties !== -1 && activeCount > freePlan.maxProperties) {
+      if (existing.cancel_at_period_end) {
         return {
-          error: `Cannot downgrade: you have ${activeCount} active properties, which exceeds the Free plan limit of ${freePlan.maxProperties}.`,
+          error:
+            "Your plan is already scheduled to cancel at the end of the billing period.",
+        };
+      }
+      if (existing.stripe_subscription_id) {
+        const { error: cancelError } = await scheduleSubscriptionCancellation(
+          existing.stripe_subscription_id,
+        );
+        if (cancelError) return { error: cancelError };
+        await supabase
+          .from("subscriptions")
+          .update({ cancel_at_period_end: true })
+          .eq("id", existing.id);
+        return {
+          error: null,
+          message:
+            "Your plan will be downgraded to Free at the end of the current billing period.",
         };
       }
       const { error } = await supabase
@@ -777,6 +828,69 @@ export async function changePlan(
     return activateFreePlan();
   }
 
-  return { error: null, redirectUrl: "/auth/payment" };
+  const { url, error } = await checkout(tier);
+  if (error) return { error };
+  return { error: null, redirectUrl: url };
+}
+
+export async function checkout(
+  tier: PlanTier,
+): Promise<{ error: string | null; url?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { role } = await getPlanProfile(user.id);
+  if (!role) return { error: "No role found." };
+
+  const plan = getPlan(role as UserRole, tier);
+  if (!plan || !plan.stripePriceId) {
+    return { error: "This plan is not available for checkout yet." };
+  }
+
+  const { customerId, error: customerError } = await getOrCreateStripeCustomer(
+    user.id,
+    user.email ?? "",
+  );
+  if (customerError) return { error: customerError };
+
+  const { url, error } = await createCheckoutSession({
+    customerId,
+    userId: user.id,
+    role,
+    tier,
+    priceId: plan.stripePriceId,
+  });
+  if (error) return { error };
+
+  return { url: url ?? undefined, error: null };
+}
+
+export async function createPortal(): Promise<{
+  error: string | null;
+  url?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("stripe_customer_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.stripe_customer_id) {
+    return { error: "No billing account found. Please upgrade to a plan first." };
+  }
+
+  const { url, error } = await createPortalSession(profile.stripe_customer_id);
+  if (error) return { error };
+
+  return { url: url ?? undefined, error: null };
 }
 

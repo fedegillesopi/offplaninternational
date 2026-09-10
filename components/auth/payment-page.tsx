@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { activateFreePlan } from "@/lib/actions";
+import { activateFreePlan, checkout } from "@/lib/actions";
 
 const ROLE_TITLE: Record<UserRole, string> = {
   developer: "Developer Plan",
@@ -41,8 +41,15 @@ export function PaymentPage({ role }: { role: UserRole }) {
       return;
     }
 
-    // Stub: paid plans proceed to /app until Stripe checkout is implemented.
-    router.push("/app");
+    const result = await checkout(selectedTier);
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+    if (result.url) {
+      window.location.href = result.url;
+    }
   };
 
   return (
@@ -115,10 +122,12 @@ export function PaymentPage({ role }: { role: UserRole }) {
                   onClick={handleSelect}
                   disabled={loading}
                 >
-                  {loading ? (
+                  {loading && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Continue with {selectedPlan.name}
+                  )}
+                  {loading && selectedTier !== "free"
+                    ? "Redirecting to Stripe..."
+                    : `Continue with ${selectedPlan.name}`}
                 </Button>
               </div>
             </CardContent>

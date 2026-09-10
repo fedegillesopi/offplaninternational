@@ -32,10 +32,19 @@ export default async function BillingPageRoute() {
       allPlans.find((p) => p.tier === subscription.plan_name))
     : null;
 
+  const subscriptionData = subscription
+    ? {
+        plan_name: subscription.plan_name,
+        status: subscription.status,
+        current_period_end: subscription.current_period_end,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+      }
+    : null;
+
   return (
     <BillingPage
       currentPlan={currentPlan ?? null}
-      subscription={subscription}
+      subscription={subscriptionData}
       propertyCount={propertyCount}
       allPlans={allPlans}
     />
