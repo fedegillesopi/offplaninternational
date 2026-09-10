@@ -62,8 +62,9 @@
 - [x] Dashboard unificado en `/app` con sidebar basado en role
 - [x] Pricing plans por role × país en `lib/pricing-plans.ts` ⚠️ SIN USO EN CÓDIGO — reemplazado por el mock de tiers por perfil en `lib/plans.ts` (ver debajo)
 - [x] Mock UI de planes por perfil (sin Stripe): `lib/plans.ts` con `getPlansForRole`, `getPlan`, `getMaxProperties`, `PLANS`, tipos `PlanTier`/`Plan`. Cada perfil (developer/broker/private_seller) tiene plan Free (sin Stripe, 10 propiedades) + 3 tiers de pago (developer/broker = Free/Starter/Pro/Enterprise; private_seller = Free/Single/Starter/Pro). Los planes NO varían por país
-- [x] `components/auth/payment-page.tsx` (client) muestra los tiers con la cantidad disponible; `app/[locale]/auth/payment/page.tsx` (server) resuelve el role y delega. Elegir cualquier tier navega a `/app` (sin Stripe ni persistencia)
-- [x] `docs/STRIPE-PLANS.md` documenta el paso a paso de implementación futura de Stripe (migración propuesta, pendiente de renumerar tras 023)
+- [x] `components/auth/payment-page.tsx` (client) muestra los tiers con la cantidad disponible; `app/[locale]/auth/payment/page.tsx` (server) resuelve el role y delega. Free → `activateFreePlan()`; tiers de pago → stub (navega a `/app`)
+- [x] Billing/persistencia de plan (migraciones 024 y 025 + `/app/billing`): RLS de `subscriptions` para `authenticated` solo free (reserva tiers de pago a service_role), índice único parcial por usuario activo, plan Free por defecto al registrarse (trigger `handle_new_user`) + backfill, `activateFreePlan`/`changePlan` en `lib/actions.ts`, `getActiveSubscription`/`countActiveProperties` en `lib/subscriptions.ts`, página `/app/billing` con plan actual + uso de propiedades + grid de planes + ítem Billing en sidebar. Detalles y plan completo en `docs/BILLING-NEXT-STEPS.md`
+- [x] `docs/STRIPE-PLANS.md` documenta el paso a paso de implementación futura de Stripe (migración propuesta, pendiente de renumerar tras 023) — actualizado por `docs/BILLING-NEXT-STEPS.md`
 - [x] Legacy routes: `/login` y `/signup` redirigen al nuevo sistema
 - [x] Navbar actualizada con links a `/auth/login` y `/auth/sign-up`
 - [x] Sidebar reestructurada: NAV_BY_ROLE con Dashboard + Properties para todos, Settings al fondo, dropdown de usuario con logout
@@ -214,7 +215,7 @@
 - [ ] Dashboard de private_seller: actualmente hace redirect a `/app/properties` (no tiene dashboard propio; el dashboard de Inquiries en el broker también es mock con "Coming soon")
 - [ ] `app/app/settings` page: existe como placeholder (solo heading), sin contenido implementado
 - [ ] Market news: páginas de listado y detalle con mock data — falta conectar a DB
-- [ ] Pagos reales con Stripe pendientes: `auth/payment` es mock visual (sin Stripe ni persistencia de plan); `lib/pricing-plans.ts` quedó sin uso. Implementación documentada en `docs/STRIPE-PLANS.md` (migración propuesta, pendiente de renumerar tras 023)
+- [ ] Pagos reales con Stripe pendientes: hoy el plan Free es default (migraciones 024/025), `/app/billing` existe y `activateFreePlan`/`changePlan` persisten free; pero `changePlan` para tiers de pago es stub (redirige a `/auth/payment`) y `saveProperty` no impone el límite. Implementación completa (local + prod), checklist de credenciales y decisiones de producto pendientes en `docs/BILLING-NEXT-STEPS.md`. `lib/pricing-plans.ts` quedó sin uso (reemplazado por `lib/plans.ts`)
 - [ ] (Opcional) Limpiar las keys `filter_options` de los 7 `messages/{locale}.json`: quedaron SIN USO tras el rewrite de `lib/filter-options.ts` (opciones de filtro ahora 100% desde DB)
 
 ## 3. STACK TECNOLÓGICO

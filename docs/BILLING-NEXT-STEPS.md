@@ -4,6 +4,8 @@
 
 **Fecha:** 09-Sep-2026
 
+**Escenarios cubiertos:** **Local** (modo test, sin dinero real) y **Producción** (modo live, cobros reales). El **mismo código** corre en ambos; cambian únicamente credenciales, origen del `whsec_`, URLs y el catálogo de precios (test y live son objetos separados en Stripe).
+
 ---
 
 ## 1. Estado actual (implementado y verificado)
@@ -68,43 +70,92 @@ Ver sección 4. Sin esto no se puede escribir el webhook ni llamar a la API de S
 
 ---
 
-## 4. Checklist de datos que necesito de vos (para arrancar la Fase B en adelante)
+## 4. Checklist de datos que necesito de vos (por escenario)
 
-### Cuenta Stripe (modo test)
-- [ ] Cuenta en Stripe (puede ser la tuya en test mode).
+> El código es **el mismo** en ambos escenarios. Cambian: tipo de credenciales (`sk_test_`/`pk_test_` vs `sk_live_`/`pk_live_`), el origen del `whsec_`, las URLs de redirect y los productos/precios (Stripe mantiene catálogos separados por modo).
 
-### Variables de entorno
-- [ ] `STRIPE_SECRET_KEY` (test, formato `sk_test_...`)
-- [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (test, `pk_test_...`)
-- [ ] `STRIPE_WEBHOOK_SECRET` (de la CLI `stripe listen` o dashboard, `whsec_...`)
+### Escenario A — Local (modo test, sin dinero real)
 
-### Productos y precios
-- [ ] Crear en el dashboard los **12 precios** (o autorizarme a crearlos por API con la secret key test):
+**Variables de entorno (`.env.local`)**
+- [ ] `STRIPE_SECRET_KEY` = `sk_test_...`
+- [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = `pk_test_...`
+- [ ] `STRIPE_WEBHOOK_SECRET` = `whsec_...` que imprime `stripe listen` (**no** el del dashboard)
+- [ ] `NEXT_PUBLIC_APP_URL=http://localhost:3000` (success/cancel URLs + return del Portal)
+
+**Cuenta y productos**
+- [ ] Cuenta Stripe (la tuya) en **test mode**.
+- [ ] Crear los **12 precios test** (o autorizarme a crearlos por API con la `sk_test_`):
   - Developer: starter 49, pro 99, enterprise 299 (USD/mes)
   - Broker: starter 39, pro 79, enterprise 199 (USD/mes)
   - Private seller: single 29, starter 49, pro 99 (USD/mes)
-- [ ] Copiar los 12 `price_id` (formato `price_...`) y pasármelos (o la decisión de generar precios desde código).
+- [ ] Pasarme los 12 `price_id` test (o decidir que los genere el código).
 
-### Webhook + Customer Portal
-- [ ] Endpoint webhook configurado (producción: `https://{dominio}/api/webhooks/stripe`; local: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`).
-- [ ] Eventos habilitados: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`.
-- [ ] Customer Portal habilitado en el dashboard con las opciones que quieras (cambiar plan, cancelar, gestionar método de pago).
+**Webhook + Portal (local)**
+- [ ] Instalar Stripe CLI (`brew install stripe/stripe-cli/stripe`).
+- [ ] En otra terminal: `stripe listen --forward-to localhost:3000/api/webhooks/stripe` → crea el túnel local y te da el `whsec_` (una vez por terminal).
+- [ ] En el dashboard **test**: habilitar Customer Portal (cambiar plan, cancelar, gestionar método de pago) con return URL `http://localhost:3000/app/billing`.
+- [ ] En local **no** se registra el endpoint del webhook en el dashboard: lo reemplaza el túnel del CLI.
 
-### Respuestas de la sección 3
-- [ ] Items 1–6 resueltos (al menos 1–5 para arrancar; el 6 me lo podés dar a mitad de camino).
+**Pruebas (test)**
+- [ ] Tarjetas de prueba: `4242 4242 4242 4242` (éxito), `4000 0000 0000 0002` (declinada → probar `past_due`).
+- [ ] Eventos que debe entregar `stripe listen`: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`.
+
+### Escenario B — Producción (modo live, cobros reales)
+
+> Se activa **solo** cuando el flujo en local quede aprobado. Sin cambios de código: nuevo entorno + datos.
+
+**Variables de entorno (prod)**
+- [ ] `STRIPE_SECRET_KEY` = `sk_live_...`
+- [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = `pk_live_...`
+- [ ] `STRIPE_WEBHOOK_SECRET` = `whsec_...` del **endpoint live registrado en el dashboard** (webhooks reales de Stripe a tu dominio)
+- [ ] `NEXT_PUBLIC_APP_URL=https://{dominio}` (origin de producción)
+
+**Cuenta y productos**
+- [ ] Activar la cuenta Stripe en **live mode** (requiere completar datos de la empresa).
+- [ ] Crear los **12 precios live** (objetos distintos de los test) con los mismos nombres/límites, o crearlos por API con la `sk_live_`.
+- [ ] Pasarme los 12 `price_id` live.
+
+**Webhook + Portal (prod)**
+- [ ] Registrar el endpoint real: `https://{dominio}/api/webhooks/stripe` con los 5 eventos habilitados.
+- [ ] Customer Portal **live** habilitado con return URL real.
+- [ ] Verificar que los precios se cobran en la moneda correcta (USD) y el nombre de producto es el esperado.
+
+**Pruebas (live)**
+- [ ] Smoke test con una transacción real pequeña y reembolso, o Stripe Test Clock para simular renovación/fallo de pago.
+- [ ] Verificar que la tarjeta que se cobra es la gestionada desde el Customer Portal.
+
+### Común a ambos escenarios
+- [ ] Respuestas de la sección 3 (items 1–6).
 
 ---
 
-## 5. Orden sugerido de trabajo (una vez tenga los datos)
+## 5. Orden de trabajo
+
+### Fase 0 — Local (baseline)
 
 ```
-[0] Vos:    datos de la sección 4 + respuestas de la sección 3
-[1] Yo:     Fase B (lib/stripe.ts + actions + env) + crear precios si me autorizás
-[2] Yo:     Fase C (webhook) — probablemente necesites correr `stripe listen` en local
-[3] Yo:     Fase D (frontend conectado: payment + billing + resultado)
-[4] Yo:     Fase E (enforcement en saveProperty)
-[5] Ambos:  QA en modo test (cards de prueba de Stripe: 4242...)
-[6] Limpieza: pasar a modo live solo cuando estés conforme (nuevos keys live + webhook live)
+[0]  Vos:    datos del Escenario A + respuestas de la sección 3
+[1]  Yo:     Fase B (lib/stripe.ts + actions + env) + crear precios test si me autorizás
+[2]  Vos:    correr `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+[3]  Yo:     Fase C (webhook verificado contra el túnel local)
+[4]  Yo:     Fase D (frontend conectado: payment + billing + resultado)
+[5]  Yo:     Fase E (enforcement en saveProperty)
+[6]  Ambos:  QA en localhost con tarjetas test → aprobación
 ```
 
-Nota: las migraciones 024 y 025 ya están aplicadas en Supabase; nada de esto requiere migraciones nuevas salvo que elijas la opción B de la sección 3 (tabla `plans`) o `user_profiles.stripe_customer_id`.
+### Fase 1 — Producción (switchover)
+
+```
+[7]  Vos:    activar cuenta live + crear/linkear productos y precios LIVE + Portal live (datos del Escenario B)
+[8]  Yo:     sin cambios de código — todo lee las mismas variables de entorno
+[9]  Ambos:  deploy con env live + registrar endpoint de webhook live en el dashboard
+[10] Ambos:  smoke test live (transacción real pequeña + reembolso, o Test Clock)
+[11] Yo:     limpieza post-live + auditoría final (reviewer/security)
+```
+
+**Reglas de oro:**
+- **Nunca mezclar** precios test con claves live (un `price_id` de test no cobra en live), ni al revés.
+- El webhook secreto **no es el mismo** en local y prod: `stripe listen` (local) vs endpoint del dashboard (prod).
+- Los `price_id` de test y de live son **objetos distintos**: al switchear hay que actualizar la fuente de verdad (opción A: constantes en código / opción B: tabla `plans`) con los live.
+
+Las migraciones 024 y 025 ya están aplicadas en Supabase; no se requieren migraciones nuevas salvo que elijas la opción B de la sección 3 (tabla `plans`) o `user_profiles.stripe_customer_id`.
