@@ -6,8 +6,9 @@ import { getPlansForRole, type PlanTier } from "@/lib/plans";
 import type { UserRole } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { activateFreePlan } from "@/lib/actions";
 
 const ROLE_TITLE: Record<UserRole, string> = {
   developer: "Developer Plan",
@@ -18,14 +19,29 @@ const ROLE_TITLE: Record<UserRole, string> = {
 export function PaymentPage({ role }: { role: UserRole }) {
   const router = useRouter();
   const [selectedTier, setSelectedTier] = useState<PlanTier>("free");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const plans = useMemo(() => getPlansForRole(role), [role]);
 
   const selectedPlan = plans.find((p) => p.tier === selectedTier);
 
-  const handleSelect = () => {
-    // TODO: wire up to Stripe once implemented.
-    // For now, choosing a paid plan proceeds to the app with the selected tier.
+  const handleSelect = async () => {
+    setLoading(true);
+    setError(null);
+
+    if (selectedTier === "free") {
+      const result = await activateFreePlan();
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      router.push("/app");
+      return;
+    }
+
+    // Stub: paid plans proceed to /app until Stripe checkout is implemented.
     router.push("/app");
   };
 
@@ -84,6 +100,9 @@ export function PaymentPage({ role }: { role: UserRole }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {error && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
               <p className="text-sm text-muted-foreground">
                 {role === "private_seller"
                   ? "You can list up to the selected number of properties on your primary pricing path."
@@ -94,7 +113,11 @@ export function PaymentPage({ role }: { role: UserRole }) {
                   variant="default"
                   className="w-full"
                   onClick={handleSelect}
+                  disabled={loading}
                 >
+                  {loading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
                   Continue with {selectedPlan.name}
                 </Button>
               </div>

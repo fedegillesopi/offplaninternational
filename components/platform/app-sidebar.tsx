@@ -10,6 +10,7 @@ import {
   BriefcaseBusiness,
   Building,
   Building2,
+  CreditCard,
   Settings,
   LogOut,
   Menu,
@@ -34,15 +35,18 @@ const NAV_BY_ROLE: Record<UserRole, { href: string; label: string; icon: typeof 
     { href: "/app/developer", label: "Developer Profile", icon: BriefcaseBusiness },
     { href: "/app/developments", label: "Developments", icon: Building2 },
     { href: "/app/properties", label: "Properties", icon: Building },
+    { href: "/app/billing", label: "Billing", icon: CreditCard },
   ],
   broker: [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
     { href: "/app/broker", label: "Broker Profile", icon: BriefcaseBusiness },
     { href: "/app/properties", label: "Properties", icon: Building },
+    { href: "/app/billing", label: "Billing", icon: CreditCard },
   ],
   private_seller: [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
     { href: "/app/properties", label: "Properties", icon: Building },
+    { href: "/app/billing", label: "Billing", icon: CreditCard },
   ],
 }
 

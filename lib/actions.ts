@@ -2,6 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeUserHtml } from "@/lib/sanitize-html";
+import type { PlanTier } from "@/lib/plans";
+import { getPlansForRole } from "@/lib/plans";
+import { countActiveProperties } from "@/lib/subscriptions";
+import type { UserRole } from "@/lib/types";
 
 export interface SaveDeveloperPayload {
   id?: string;
@@ -668,5 +672,111 @@ export async function deleteDevelopment(
   }
 
   return { error: null };
+}
+
+async function getPlanProfile(userId: string): Promise<{
+  role: string | null;
+  country: string;
+}> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("role, operating_country, country_of_residence")
+    .eq("id", userId)
+    .single();
+
+  return {
+    role: data?.role ?? null,
+    country: data?.operating_country || data?.country_of_residence || "",
+  };
+}
+
+export async function activateFreePlan(): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { role, country } = await getPlanProfile(user.id);
+  if (!role) return { error: "No role found." };
+
+  const { data: existing } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return { error: "You already have an active plan." };
+
+  const { error } = await supabase.from("subscriptions").insert({
+    user_id: user.id,
+    role,
+    plan_name: "free",
+    country,
+    status: "active",
+  });
+
+  if (error) {
+    console.error("activateFreePlan:", error.message);
+    return { error: "Could not activate plan. Please try again." };
+  }
+
+  return { error: null };
+}
+
+export async function changePlan(
+  tier: PlanTier,
+): Promise<{ error: string | null; redirectUrl?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { role, country } = await getPlanProfile(user.id);
+  if (!role) return { error: "No role found." };
+
+  const plansForRole = getPlansForRole(role as UserRole);
+  const isValidTier = plansForRole.some((p) => p.tier === tier);
+  if (!isValidTier) return { error: "Invalid plan for your account type." };
+
+  if (tier === "free") {
+    const { data: existing } = await supabase
+      .from("subscriptions")
+      .select("id, plan_name")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.plan_name === "free") {
+        return { error: "You are already on the Free plan." };
+      }
+      const activeCount = await countActiveProperties(user.id);
+      const freePlan = plansForRole.find((p) => p.tier === "free");
+      if (freePlan && freePlan.maxProperties !== -1 && activeCount > freePlan.maxProperties) {
+        return {
+          error: `Cannot downgrade: you have ${activeCount} active properties, which exceeds the Free plan limit of ${freePlan.maxProperties}.`,
+        };
+      }
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ plan_name: "free", country })
+        .eq("id", existing.id);
+      if (error) {
+        console.error("changePlan:", error.message);
+        return { error: "Could not change plan. Please try again." };
+      }
+      return { error: null };
+    }
+
+    return activateFreePlan();
+  }
+
+  return { error: null, redirectUrl: "/auth/payment" };
 }
 
